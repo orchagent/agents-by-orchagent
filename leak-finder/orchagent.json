@@ -6,6 +6,6 @@
   "supported_providers": ["any"],
   "tags": ["security", "secrets", "scanning", "devops"],
   "default_endpoint": "scan",
-  "source_url": "git+https://github.com/orchagent/agents-by-orchagent.git#subdirectory=leak-finder",
-  "run_command": "python -m leak_finder.cli"
+  "source_url": "git+https://github.com/jp730/agents-by-orchagent.git#subdirectory=leak-finder",
+  "run_command": "python3 -m leak_finder.cli"
 }

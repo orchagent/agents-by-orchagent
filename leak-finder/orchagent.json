@@ -1,6 +1,6 @@
 {
   "name": "leak-finder",
-  "version": "v1",
+  "version": "v2",
   "type": "code",
   "description": "Finds leaked secrets and credentials in your codebase. Detects 23+ secret types including AWS keys, Stripe tokens, GitHub PATs, private keys, and database URIs.",
   "supported_providers": ["any"],

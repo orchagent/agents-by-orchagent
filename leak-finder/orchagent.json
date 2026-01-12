@@ -1,0 +1,11 @@
+{
+  "name": "leak-finder",
+  "version": "v1",
+  "type": "code",
+  "description": "Finds leaked secrets and credentials in your codebase. Detects 23+ secret types including AWS keys, Stripe tokens, GitHub PATs, private keys, and database URIs.",
+  "supported_providers": ["any"],
+  "tags": ["security", "secrets", "scanning", "devops"],
+  "default_endpoint": "scan",
+  "source_url": "git+https://github.com/orchagent/agents-by-orchagent.git#subdirectory=leak-finder",
+  "run_command": "python -m leak_finder.cli"
+}

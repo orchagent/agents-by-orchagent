@@ -1,0 +1,184 @@
+{
+  "branchName": "feature/secrets-scanner",
+  "userStories": [
+    {
+      "id": "SS-001",
+      "title": "Project scaffold",
+      "acceptanceCriteria": [
+        "Create /agents/secrets-scanner/ directory structure",
+        "Create pyproject.toml with fastapi, uvicorn, gitpython, google-genai deps",
+        "Create Dockerfile matching existing agent pattern",
+        "Create src/secrets_scanner/__init__.py",
+        "pip install -e . succeeds from agents/secrets-scanner/"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "SS-002",
+      "title": "Pydantic models",
+      "acceptanceCriteria": [
+        "Create models.py with Finding, ScanResult, ScanRequest models",
+        "Finding has: type, severity, file, line, preview, in_history, rotated, recommendation",
+        "ScanResult has: scan_id, mode, findings, summary, offer_deep_scan",
+        "Models import without error: python -c 'from secrets_scanner.models import Finding'"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "SS-003",
+      "title": "Secret patterns",
+      "acceptanceCriteria": [
+        "Create patterns.py with SECRET_PATTERNS dict",
+        "Include: AWS keys, Stripe live/test, GitHub PAT, Clerk, Supabase, private keys, generic API keys",
+        "Each pattern has: regex, severity, description",
+        "At least 15 patterns total",
+        "Patterns compile without error: python -c 'from secrets_scanner.patterns import SECRET_PATTERNS'"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "SS-004",
+      "title": "File scanner core",
+      "acceptanceCriteria": [
+        "Create scanner.py with scan_file() and scan_directory() functions",
+        "scan_file returns list of Finding objects",
+        "Skips binary files and common non-code dirs (node_modules, .git, venv, __pycache__)",
+        "Redacts secret values in preview (shows first 4 and last 4 chars only)",
+        "Test manually with a file containing a fake AWS key"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "SS-005",
+      "title": "Git utilities",
+      "acceptanceCriteria": [
+        "Create git_utils.py with clone_repo() and scan_git_history() functions",
+        "clone_repo clones to temp dir, returns path",
+        "scan_git_history uses git log -p to find secrets in history",
+        "Marks findings with in_history=True",
+        "cleanup_repo() function removes temp dir"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "SS-006",
+      "title": "LLM analyzer",
+      "acceptanceCriteria": [
+        "Create llm_analyzer.py with validate_findings() function",
+        "Uses Gemini to review findings and reduce false positives",
+        "Create prompts/analysis.txt with validation prompt",
+        "Returns filtered findings with LLM confidence score",
+        "Works with GEMINI_API_KEY env var"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "SS-007",
+      "title": "FastAPI health endpoint",
+      "acceptanceCriteria": [
+        "Create main.py with FastAPI app",
+        "GET /health returns {status: ok}",
+        "Validates GEMINI_API_KEY on startup (warns if missing)",
+        "uvicorn secrets_scanner.main:app --port 8003 runs without error"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "SS-008",
+      "title": "POST /scan endpoint",
+      "acceptanceCriteria": [
+        "POST /scan accepts {repo_url, branch?} JSON body",
+        "Clones repo, scans current files only",
+        "Returns ScanResult with findings and summary",
+        "Sets offer_deep_scan=true if any findings found",
+        "Cleans up temp dir after scan",
+        "Test with a public GitHub repo"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "SS-009",
+      "title": "POST /scan/deep endpoint",
+      "acceptanceCriteria": [
+        "POST /scan/deep accepts {repo_url, rotated_keys?}",
+        "Scans current files + git history",
+        "Marks findings as rotated if key matches rotated_keys list",
+        "Rotated findings get severity=info",
+        "Returns combined results with history_findings separate"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "SS-010",
+      "title": "CLI local mode",
+      "acceptanceCriteria": [
+        "Create cli.py with argparse",
+        "python -m secrets_scanner.cli ./path scans local directory",
+        "--deep flag enables git history scan",
+        "--rotated KEY1,KEY2 marks keys as rotated",
+        "--json outputs JSON instead of formatted table",
+        "Exit code 1 if critical findings, 0 otherwise"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "SS-011",
+      "title": "Tests",
+      "acceptanceCriteria": [
+        "Create tests/ directory",
+        "test_patterns.py tests each regex pattern with known examples",
+        "test_scanner.py tests scan_file with a test file containing fake secrets",
+        "pytest runs and all tests pass"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "SS-012",
+      "title": "README and docs",
+      "acceptanceCriteria": [
+        "Create README.md with usage examples",
+        "Document API endpoints with example curl commands",
+        "Document CLI usage with examples",
+        "Document environment variables (GEMINI_API_KEY)",
+        "List all detected secret types"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "SS-013",
+      "title": "Docker build test",
+      "acceptanceCriteria": [
+        "docker build -t secrets-scanner . succeeds",
+        "docker run with GEMINI_API_KEY env var starts server",
+        "Health endpoint responds to curl"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

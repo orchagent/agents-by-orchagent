@@ -2,30 +2,39 @@
 
 ## Overview
 
-An **orchestrator agent** that performs comprehensive security audits by combining multiple specialized scans. Calls `leak-finder` for secrets detection and performs additional pattern-based security checks.
+An **orchestrator agent** that performs comprehensive security audits by combining multiple specialized scans. Calls leaf agents for secrets and dependency scanning, plus performs internal pattern-based security checks.
 
 **Type:** Orchestrator (calls other agents)
-**Dependencies:** `orchagent/leak-finder@v1`
+**Dependencies:** `orchagent/leak-finder@v1`, `orchagent/dep-scanner@v1`
+
+## Related Agents
+
+| Agent | Type | Purpose | Doc |
+|-------|------|---------|-----|
+| `security-review` | Orchestrator | **THIS AGENT** - combines all security checks | - |
+| `leak-finder` | Leaf | Secrets/credentials scanning | Deployed |
+| `dep-scanner` | Leaf | Dependency CVE scanning | `dep-scanner-agent.md` |
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│                   Caller                         │
-│                      │                           │
-│                      ▼                           │
-│           ┌──────────────────┐                  │
-│           │ security-review  │  (orchestrator)  │
-│           └────────┬─────────┘                  │
-│                    │                            │
-│      ┌─────────────┼─────────────┐             │
-│      ▼             ▼             ▼             │
-│ ┌──────────┐  ┌──────────┐  ┌──────────┐      │
-│ │leak-finder│  │ frontend │  │   api    │      │
-│ │ (agent)   │  │  checks  │  │  checks  │      │
-│ └──────────┘  └──────────┘  └──────────┘      │
-│                (internal)    (internal)        │
-└─────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│                       Caller                           │
+│                          │                             │
+│                          ▼                             │
+│               ┌──────────────────┐                    │
+│               │ security-review  │  (orchestrator)    │
+│               └────────┬─────────┘                    │
+│                        │                              │
+│    ┌───────────────────┼───────────────────┐         │
+│    ▼                   ▼                   ▼         │
+│ ┌──────────┐     ┌──────────┐      ┌────────────┐   │
+│ │leak-finder│     │dep-scanner│      │  internal  │   │
+│ │ (agent)  │     │ (agent)  │      │   scans    │   │
+│ └──────────┘     └──────────┘      └────────────┘   │
+│   secrets          CVEs            frontend/API/    │
+│                                    logging patterns │
+└───────────────────────────────────────────────────────┘
 ```
 
 ## What It Does
@@ -33,10 +42,10 @@ An **orchestrator agent** that performs comprehensive security audits by combini
 | Check Category | Source | Description |
 |----------------|--------|-------------|
 | **Secrets/Leaks** | `leak-finder` agent | AWS keys, Stripe keys, GitHub tokens, etc. |
+| **Dependencies** | `dep-scanner` agent | Known CVEs in npm, pip, Go, Rust packages |
 | **Frontend Security** | Internal patterns | Direct DB access, client-side auth, price calculations |
 | **API Security** | Internal patterns | Missing rate limiting, missing auth middleware |
 | **Logging Issues** | Internal patterns | Sensitive data in logs, verbose error messages |
-| **Dependencies** | `npm audit` / `pip-audit` | Known CVEs in packages |
 
 ## Manifest
 
@@ -45,11 +54,12 @@ An **orchestrator agent** that performs comprehensive security audits by combini
   "name": "security-review",
   "version": "v1",
   "type": "code",
-  "description": "Comprehensive security review combining secret scanning with code pattern analysis",
+  "description": "Comprehensive security review combining secret scanning, dependency auditing, and code pattern analysis",
   "manifest": {
     "manifest_version": 1,
     "dependencies": [
-      { "id": "orchagent/leak-finder", "version": "v1" }
+      { "id": "orchagent/leak-finder", "version": "v1" },
+      { "id": "orchagent/dep-scanner", "version": "v1" }
     ],
     "max_hops": 2,
     "timeout_ms": 180000,
@@ -66,8 +76,7 @@ An **orchestrator agent** that performs comprehensive security audits by combini
 ```json
 {
   "repo_url": "https://github.com/user/repo",
-  "scan_mode": "full",  // "full" | "secrets-only" | "code-only"
-  "include_deps": true  // Run dependency audit
+  "scan_mode": "full"  // "full" | "secrets-only" | "deps-only" | "patterns-only"
 }
 ```
 
@@ -126,28 +135,29 @@ An **orchestrator agent** that performs comprehensive security audits by combini
 
 ## Implementation Plan
 
+**Note:** Build `dep-scanner` first (see `dep-scanner-agent.md`), then build this orchestrator.
+
 ### Phase 1: Core Orchestrator
 - [ ] Set up FastAPI project structure
-- [ ] Implement AgentClient integration (call leak-finder)
-- [ ] Add manifest with leak-finder dependency
-- [ ] Basic endpoint that returns combined results
+- [ ] Implement AgentClient integration
+- [ ] Call `leak-finder` and `dep-scanner` agents
+- [ ] Add manifest with both dependencies
+- [ ] Basic endpoint that combines results from both agents
 
-### Phase 2: Frontend Security Scans
+### Phase 2: Frontend Security Scans (internal)
 - [ ] Implement Supabase/Firebase direct access detection
 - [ ] Implement client-side auth check detection
 - [ ] Implement client-side calculation detection
 - [ ] File context awareness (frontend vs backend paths)
 
-### Phase 3: API Security Scans
+### Phase 3: API Security Scans (internal)
 - [ ] Implement missing auth middleware detection
 - [ ] Implement missing rate limiting detection
 - [ ] Support FastAPI, Express, Next.js patterns
 
-### Phase 4: Logging & Dependencies
+### Phase 4: Logging Scans (internal)
 - [ ] Implement sensitive data in logs detection
 - [ ] Implement verbose error detection
-- [ ] Integrate npm audit / pip-audit
-- [ ] Parse and normalize CVE findings
 
 ### Phase 5: Polish
 - [ ] LLM-powered false positive reduction (like leak-finder)

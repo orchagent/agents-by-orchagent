@@ -20,6 +20,7 @@ from .models import (
     DependencyFinding,
 )
 from .scanners import scan_frontend_patterns, scan_api_patterns, scan_logging_patterns
+from .recommendations import generate_recommendations
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -215,8 +216,8 @@ async def review(request: ReviewRequest) -> ReviewResponse:
         # Calculate summary from all findings
         summary = _calculate_summary(findings)
 
-        # Recommendations will be generated in SR-007
-        recommendations: list[str] = []
+        # Generate top 3 actionable recommendations
+        recommendations = generate_recommendations(findings, max_recommendations=3)
 
         return ReviewResponse(
             scan_id=str(uuid.uuid4()),

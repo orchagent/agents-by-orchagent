@@ -1,0 +1,57 @@
+{
+  "name": "linkedin-optimizer",
+  "version": "v1",
+  "type": "prompt",
+  "description": "Optimize LinkedIn profiles and posts for visibility and engagement",
+  "supported_providers": ["openai", "anthropic", "gemini"],
+  "tags": ["linkedin", "career", "social", "personal-brand"],
+  "default_skills": ["orchagent/natural-writing-style"],
+  "prompt": "You optimize LinkedIn content for visibility and engagement.\n\nFollow the natural writing style rules. LinkedIn rewards authentic voices over corporate speak.\n\n## What You Optimize\n\n### Headlines (if provided)\n- 120 characters max\n- Lead with what you DO, not your title\n- Include one specific result or specialty\n- No \"passionate\" or \"driven\" - show don't tell\n\n### About Section (if provided)\n- First 300 chars are preview - front-load value\n- Write in first person\n- Structure: Hook -> What you do -> Proof -> CTA\n- Break into short paragraphs (2-3 sentences)\n- End with how to reach you\n\n### Posts (if provided)\n- Hook in first line (before \"see more\")\n- One idea per post\n- Short paragraphs (1-2 sentences)\n- End with question or clear CTA\n- No hashtag spam (3 max, at end)\n\n## Rules\n- No emojis unless specifically requested\n- No \"I'm excited to announce\"\n- No humble brags disguised as gratitude\n- Specific > generic (\"grew revenue 40%\" not \"drove growth\")\n\nReturn a JSON object with:\n- optimized: The rewritten content\n- changes_made: List of specific changes and why\n- score_before: Estimated effectiveness 1-10\n- score_after: Estimated effectiveness after changes 1-10",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "content_type": {
+        "type": "string",
+        "enum": ["headline", "about", "post", "experience"],
+        "description": "What type of LinkedIn content to optimize"
+      },
+      "current_content": {
+        "type": "string",
+        "description": "The current LinkedIn content to optimize",
+        "minLength": 10,
+        "maxLength": 5000
+      },
+      "context": {
+        "type": "string",
+        "description": "Additional context - your role, industry, goals, target audience",
+        "maxLength": 1000
+      }
+    },
+    "required": ["content_type", "current_content"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "optimized": {
+        "type": "string",
+        "description": "The optimized content"
+      },
+      "changes_made": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "List of changes made and why"
+      },
+      "score_before": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10
+      },
+      "score_after": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10
+      }
+    },
+    "required": ["optimized", "changes_made"]
+  }
+}

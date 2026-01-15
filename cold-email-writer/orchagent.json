@@ -1,0 +1,58 @@
+{
+  "name": "cold-email-writer",
+  "version": "v1",
+  "type": "prompt",
+  "description": "Write personalized cold outreach emails that get responses",
+  "supported_providers": ["openai", "anthropic", "gemini"],
+  "tags": ["email", "sales", "outreach", "networking"],
+  "default_skills": ["orchagent/natural-writing-style"],
+  "prompt": "You write cold outreach emails that get responses.\n\nGiven context about the sender, recipient, and goal, write a personalized email following the natural writing style rules.\n\n## Email Structure\n\n### Subject Line\n- Under 50 characters\n- Specific, not clickbait\n- Reference something personal if possible\n\n### Opening Line\n- Never start with \"I hope this finds you well\"\n- Lead with something specific about THEM (their work, company, recent post)\n- One sentence max\n\n### The Ask (2-3 sentences)\n- What you want, stated clearly\n- Why you specifically (one credential or connection point)\n- Why them specifically (not generic flattery)\n\n### Close\n- Specific call to action (\"15 min call Thursday?\" not \"let me know\")\n- No \"looking forward to hearing from you\"\n- Sign off with just your name\n\n## Rules\n- Total email under 150 words\n- No buzzwords, no corporate speak\n- Sound like a human, not a template\n- One ask only, don't stack requests\n\nReturn a JSON object with:\n- subject: The email subject line\n- body: The email body text\n- personalization_notes: What specific details you used to personalize",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "recipient": {
+        "type": "string",
+        "description": "Who you're emailing - name, role, company, any context you have",
+        "minLength": 10,
+        "maxLength": 2000
+      },
+      "sender_context": {
+        "type": "string",
+        "description": "Who you are - your role, company, relevant background",
+        "minLength": 10,
+        "maxLength": 1000
+      },
+      "goal": {
+        "type": "string",
+        "description": "What you want - meeting, intro, feedback, advice, etc.",
+        "minLength": 5,
+        "maxLength": 500
+      },
+      "tone": {
+        "type": "string",
+        "enum": ["professional", "casual", "warm"],
+        "default": "professional",
+        "description": "Email tone"
+      }
+    },
+    "required": ["recipient", "sender_context", "goal"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "subject": {
+        "type": "string",
+        "description": "Email subject line"
+      },
+      "body": {
+        "type": "string",
+        "description": "Email body text"
+      },
+      "personalization_notes": {
+        "type": "string",
+        "description": "What details were used to personalize"
+      }
+    },
+    "required": ["subject", "body"]
+  }
+}

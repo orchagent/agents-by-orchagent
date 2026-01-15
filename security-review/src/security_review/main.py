@@ -19,7 +19,7 @@ from .models import (
     SecretFinding,
     DependencyFinding,
 )
-from .scanners import scan_frontend_patterns, scan_api_patterns
+from .scanners import scan_frontend_patterns, scan_api_patterns, scan_logging_patterns
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -204,7 +204,7 @@ async def review(request: ReviewRequest) -> ReviewResponse:
                     logger.info(f"Running pattern scanners on {repo_path}")
                     findings.frontend_security = scan_frontend_patterns(repo_path)
                     findings.api_security = scan_api_patterns(repo_path)
-                    # Logging scanner will be added in SR-006
+                    findings.logging = scan_logging_patterns(repo_path)
             except GitCommandError as e:
                 logger.error(f"Failed to clone repository for pattern scanning: {e}")
                 raise HTTPException(

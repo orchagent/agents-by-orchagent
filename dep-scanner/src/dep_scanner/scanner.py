@@ -11,10 +11,14 @@ from .scanners.pip import detect_python_deps, run_pip_audit, get_pip_package_cou
 
 logger = logging.getLogger(__name__)
 
+# Severity levels in order from lowest to highest
+SEVERITY_ORDER = ["low", "medium", "high", "critical"]
+
 
 def scan_repository(
     repo_url: str,
     package_managers: list[str] | None = None,
+    severity_threshold: str = "low",
 ) -> ScanResponse:
     """
     Scan a repository for dependency vulnerabilities.
@@ -22,6 +26,7 @@ def scan_repository(
     Args:
         repo_url: URL of the git repository to scan
         package_managers: Optional list of package managers to scan (auto-detect if None)
+        severity_threshold: Minimum severity to include (low/medium/high/critical)
 
     Returns:
         ScanResponse with findings and summary
@@ -51,15 +56,45 @@ def scan_repository(
                 detected_managers.append("pip")
                 total_packages += get_pip_package_count(repo_path)
 
-    # Build summary from findings
-    summary = _build_summary(all_findings, total_packages)
+    # Filter findings by severity threshold
+    filtered_findings = _filter_by_severity(all_findings, severity_threshold)
+
+    # Build summary from filtered findings
+    summary = _build_summary(filtered_findings, total_packages)
 
     return ScanResponse(
         scan_id=scan_id,
         detected_managers=detected_managers,
-        findings=all_findings,
+        findings=filtered_findings,
         summary=summary,
     )
+
+
+def _filter_by_severity(
+    findings: list[Finding], threshold: str
+) -> list[Finding]:
+    """
+    Filter findings to only include those at or above the severity threshold.
+
+    Args:
+        findings: List of all findings
+        threshold: Minimum severity to include (low/medium/high/critical)
+
+    Returns:
+        Filtered list of findings
+    """
+    threshold = threshold.lower()
+    if threshold not in SEVERITY_ORDER:
+        logger.warning(f"Invalid severity threshold '{threshold}', defaulting to 'low'")
+        threshold = "low"
+
+    threshold_index = SEVERITY_ORDER.index(threshold)
+
+    return [
+        finding
+        for finding in findings
+        if SEVERITY_ORDER.index(finding.severity.lower()) >= threshold_index
+    ]
 
 
 def _determine_scanners(

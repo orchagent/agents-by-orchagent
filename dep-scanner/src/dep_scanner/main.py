@@ -53,6 +53,7 @@ async def scan(request: ScanRequest) -> ScanResponse:
         response = scan_repository(
             repo_url=request.repo_url,
             package_managers=request.package_managers,
+            severity_threshold=request.severity_threshold,
         )
 
         return response

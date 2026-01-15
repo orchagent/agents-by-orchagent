@@ -7,8 +7,10 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from git.exc import GitCommandError
 
 from .agent_client import AgentClient
+from .git_utils import cloned_repo
 from .models import (
     ReviewRequest,
     ReviewResponse,
@@ -17,6 +19,7 @@ from .models import (
     SecretFinding,
     DependencyFinding,
 )
+from .scanners import scan_frontend_patterns
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -167,10 +170,10 @@ async def review(request: ReviewRequest) -> ReviewResponse:
         # Determine which scans to run based on scan_mode
         should_scan_secrets = request.scan_mode in ("full", "secrets-only")
         should_scan_deps = request.scan_mode in ("full", "deps-only")
-        # patterns-only mode will be handled in SR-004+
+        should_scan_patterns = request.scan_mode in ("full", "patterns-only")
 
+        # Run agent calls in parallel
         async with AgentClient() as client:
-            # Build list of tasks to run in parallel
             tasks = []
             task_names = []
 
@@ -194,6 +197,20 @@ async def review(request: ReviewRequest) -> ReviewResponse:
                     findings.dependencies = _parse_dep_scanner_results(results[result_idx])
                     result_idx += 1
 
+        # Run internal pattern scanners (requires local repo clone)
+        if should_scan_patterns:
+            try:
+                with cloned_repo(request.repo_url) as repo_path:
+                    logger.info(f"Running frontend pattern scanner on {repo_path}")
+                    findings.frontend_security = scan_frontend_patterns(repo_path)
+                    # API and logging scanners will be added in SR-005 and SR-006
+            except GitCommandError as e:
+                logger.error(f"Failed to clone repository for pattern scanning: {e}")
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Failed to clone repository: {str(e)}",
+                )
+
         # Calculate summary from all findings
         summary = _calculate_summary(findings)
 
@@ -207,6 +224,8 @@ async def review(request: ReviewRequest) -> ReviewResponse:
             recommendations=recommendations,
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Review failed: {e}")
         raise HTTPException(status_code=500, detail=f"Review failed: {str(e)}")

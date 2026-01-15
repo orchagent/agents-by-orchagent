@@ -1,12 +1,13 @@
 """FastAPI application for dependency scanner."""
 
 import logging
-import uuid
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from git.exc import GitCommandError
 
-from .models import ScanRequest, ScanResponse, ScanSummary
+from .models import ScanRequest, ScanResponse
+from .scanner import scan_repository
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -49,16 +50,19 @@ async def scan(request: ScanRequest) -> ScanResponse:
     try:
         logger.info(f"Scanning repository: {request.repo_url}")
 
-        # TODO: Implement actual scanning logic in future stories
-        # For now, return empty findings as a stub
-
-        return ScanResponse(
-            scan_id=str(uuid.uuid4()),
-            detected_managers=[],
-            findings=[],
-            summary=ScanSummary(),
+        response = scan_repository(
+            repo_url=request.repo_url,
+            package_managers=request.package_managers,
         )
 
+        return response
+
+    except GitCommandError as e:
+        logger.error(f"Failed to clone repository: {e}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to clone repository: {request.repo_url}",
+        )
     except Exception as e:
         logger.error(f"Scan failed: {e}")
         raise HTTPException(status_code=500, detail=f"Scan failed: {str(e)}")

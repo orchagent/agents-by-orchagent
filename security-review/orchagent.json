@@ -1,0 +1,22 @@
+{
+  "name": "security-review",
+  "version": "v1",
+  "type": "code",
+  "description": "Comprehensive security review combining secret scanning, dependency auditing, and code pattern analysis",
+  "supported_providers": ["any"],
+  "tags": ["security", "orchestrator", "scanning", "secrets", "dependencies", "devops"],
+  "default_endpoint": "review",
+  "source_url": "git+https://github.com/jp730/agents-by-orchagent.git#subdirectory=security-review",
+  "run_command": "python3 -m security_review.cli",
+  "manifest": {
+    "manifest_version": 1,
+    "dependencies": [
+      { "id": "orchagent/leak-finder", "version": "v1" },
+      { "id": "orchagent/dep-scanner", "version": "v1" }
+    ],
+    "max_hops": 2,
+    "timeout_ms": 180000,
+    "per_call_downstream_cap": 50,
+    "downstream_spend_cap": 500
+  }
+}

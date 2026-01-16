@@ -5,7 +5,7 @@ description: "Agents vs skills - active executors and passive knowledge"
 
 # Agent Types
 
-OrchAgent supports **agents** (active executors) and **skills** (passive knowledge).
+orchagent supports **agents** (active executors) and **skills** (passive knowledge).
 
 ## The Key Difference
 
@@ -27,7 +27,7 @@ Think of it this way: a skill tells an agent HOW to do something, while an agent
 
 ## Agents
 
-Agents are active executors. They take input, do work, and return output. OrchAgent supports two agent types:
+Agents are active executors. They take input, do work, and return output. orchagent supports two agent types:
 
 ## Prompt-Based Agents
 
@@ -37,7 +37,7 @@ Prompt-based agents are the simplest way to create an agent. You provide:
 2. An input schema (what callers send)
 3. An output schema (what the LLM returns)
 
-OrchAgent handles the LLM call for you.
+orchagent handles the LLM call for you.
 
 ### Example
 
@@ -90,7 +90,7 @@ Variables are replaced with values from the input at runtime.
 
 ## Code-Based Agents
 
-Code-based agents run your code on OrchAgent infrastructure. You have full control over:
+Code-based agents run your code on orchagent infrastructure. You have full control over:
 
 - Multiple LLM calls
 - External API integrations

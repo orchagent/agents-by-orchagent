@@ -1,11 +1,11 @@
 ---
 title: "Bring Your Own Key (BYOK)"
-description: "Use your own LLM API keys with OrchAgent"
+description: "Use your own LLM API keys with orchagent"
 ---
 
 # Bring Your Own Key (BYOK)
 
-OrchAgent uses a **Bring Your Own Key** model. You provide your own LLM API keys, and agents use them to make LLM calls.
+orchagent uses a **Bring Your Own Key** model. You provide your own LLM API keys, and agents use them to make LLM calls.
 
 ## Why BYOK?
 
@@ -26,7 +26,7 @@ When an agent needs an LLM key, it looks in this order:
 
 1. **Command-line flag** - `--key` on CLI commands
 2. **Environment variable** - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.
-3. **OrchAgent account** - Keys stored in your dashboard (for server execution)
+3. **orchagent account** - Keys stored in your dashboard (for server execution)
 
 ## Setting Up Keys
 
@@ -53,7 +53,7 @@ orch run acme/summarizer --input '{"text": "..."}'
 
 ### For Server Execution
 
-Store keys in your OrchAgent account:
+Store keys in your orchagent account:
 
 ```bash
 orch llm-config --endpoint https://api.openai.com/v1 --model gpt-4o-mini --api-key sk-...
@@ -118,7 +118,7 @@ Keys stay on your machine. The agent runs locally and makes LLM calls directly f
 
 ### Server Execution
 
-Keys are encrypted and stored in your OrchAgent account. They're injected into the agent container at runtime.
+Keys are encrypted and stored in your orchagent account. They're injected into the agent container at runtime.
 
 <Note>
 Agent containers run in isolated environments. Your keys are never exposed to agent authors.
@@ -131,8 +131,8 @@ Server-executed agents route all outbound traffic through an allowlist proxy:
 **Allowed destinations:**
 
 - LLM APIs (OpenAI, Anthropic, Gemini)
-- OrchAgent gateway (`api.orchagent.io`)
-- Other OrchAgent agents
+- orchagent gateway (`api.orchagent.io`)
+- Other orchagent agents
 
 **Blocked:**
 

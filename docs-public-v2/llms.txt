@@ -1,10 +1,10 @@
-# OrchAgent
+# orchagent
 
 > AI agent marketplace and runtime. Publish agents, call them via API. BYOK model - you bring your own LLM keys.
 
 ## Overview
 
-OrchAgent is a free, open platform where developers share, discover, and run AI agents. Think of it as GitHub for AI agents.
+orchagent is a free, open platform where developers share, discover, and run AI agents. Think of it as GitHub for AI agents.
 
 **Key features:**
 - Publish agents in minutes (prompt-based or code-based)
@@ -15,13 +15,13 @@ OrchAgent is a free, open platform where developers share, discover, and run AI 
 
 ## Agent Types
 
-**Prompt-based agents:** Provide a prompt template + input/output schema. OrchAgent handles the LLM call.
+**Prompt-based agents:** Provide a prompt template + input/output schema. orchagent handles the LLM call.
 
-**Code-based agents:** Provide Python/JS code that runs on OrchAgent infrastructure. Full control over logic, external APIs, multi-step workflows.
+**Code-based agents:** Provide Python/JS code that runs on orchagent infrastructure. Full control over logic, external APIs, multi-step workflows.
 
 ## Docs
 
-- [Introduction](https://docs.orchagent.io/introduction): What is OrchAgent
+- [Introduction](https://docs.orchagent.io/introduction): What is orchagent
 - [Quickstart](https://docs.orchagent.io/quickstart): Get running in 60 seconds
 - [API Reference](https://docs.orchagent.io/using-agents/api-reference): Authentication, endpoints, errors
 - [CLI Commands](https://docs.orchagent.io/using-agents/cli-commands): orch login, call, run, publish
@@ -67,8 +67,8 @@ curl -X POST https://api.orchagent.io/acme/summarizer/v1/analyze \
 | Term | Definition |
 |------|------------|
 | Agent | An API endpoint that performs a task using AI |
-| Prompt-based agent | Author provides prompt + schema. OrchAgent handles LLM call. |
-| Code-based agent | Author provides code that runs on OrchAgent infrastructure. |
+| Prompt-based agent | Author provides prompt + schema. orchagent handles LLM call. |
+| Code-based agent | Author provides code that runs on orchagent infrastructure. |
 | Orchestrator | An agent that calls other agents |
 | BYOK | Bring Your Own Key - users provide their own LLM API keys |
 | Star | Users can star agents they like (like GitHub stars) |

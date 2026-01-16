@@ -1,11 +1,11 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "OrchAgent API",
+    "title": "orchagent API",
     "description": "AI agent marketplace and runtime API",
     "version": "1.0.0",
     "contact": {
-      "name": "OrchAgent Support",
+      "name": "orchagent Support",
       "url": "https://orchagent.io",
       "email": "support@orchagent.io"
     }

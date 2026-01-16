@@ -1,17 +1,18 @@
 ---
 title: "Publishing"
-description: "How to publish your agent to OrchAgent"
+description: "How to publish your agent or skill to OrchAgent"
 ---
 
 # Publishing
 
-Publish your agent to make it available on the platform.
+Publish your agent or skill to make it available on the platform.
 
 ## Prerequisites
 
 1. OrchAgent account with API key
 2. CLI installed and authenticated
-3. `orchagent.json` manifest in your agent directory
+3. For agents: `orchagent.json` manifest in your directory
+4. For skills: `SKILL.md` file in your directory
 
 ## Quick Start
 
@@ -26,7 +27,39 @@ orch publish --public
 orch publish
 ```
 
-## Publishing Workflow
+## Publishing Skills
+
+Skills use a simpler format than agents. Create a `SKILL.md` file:
+
+```markdown
+---
+name: react-best-practices
+description: React optimization patterns for code review
+license: MIT
+metadata:
+  author: yourname
+  version: "1.0"
+---
+
+## Rules
+
+- Use functional components over class components
+- Memoize expensive computations with useMemo
+- ...
+```
+
+Then publish:
+
+```bash
+cd my-skill
+orch publish --public
+```
+
+The CLI auto-detects `SKILL.md` and publishes as a skill. See [Agent Types](/building-agents/agent-types#skills) for the full SKILL.md format.
+
+---
+
+## Publishing Agents
 
 ### Step 1: Initialize Your Agent
 

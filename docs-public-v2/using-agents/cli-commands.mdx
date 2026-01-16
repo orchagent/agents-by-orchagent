@@ -20,13 +20,16 @@ npm install -g orchagent
 | `orch login` | Authenticate and store API key |
 | `orch whoami` | Show current user/org info |
 | `orch call <agent>` | Call an agent on the server |
-| `orch run <agent>` | Download and run an agent locally |
-| `orch init` | Initialize agent directory structure |
-| `orch publish` | Publish agent from local files |
+| `orch run <agent>` | Download and run an agent or skill locally |
+| `orch init` | Initialize agent or skill directory structure |
+| `orch publish` | Publish agent or skill from local files |
 | `orch agents` | List public agents |
-| `orch search <query>` | Search public agents |
-| `orch star <agent>` | Star or unstar an agent |
-| `orch fork <agent>` | Fork a public agent |
+| `orch skill list` | List public skills |
+| `orch skill call <skill>` | Call a skill on the server |
+| `orch skill run <skill>` | Run a skill locally |
+| `orch search <query>` | Search public agents and skills |
+| `orch star <agent>` | Star or unstar an agent or skill |
+| `orch fork <agent>` | Fork a public agent or skill |
 | `orch llm-config` | Set default LLM config |
 
 ## Authentication
@@ -91,6 +94,15 @@ orch call acme/image-processor photo.jpg --output result.png
 
 # Pass tenant ID (multi-tenant callers)
 orch call acme/invoice-scanner invoice.pdf --tenant customer-123
+
+# Compose with skills (add skill knowledge to the agent)
+orch call acme/code-reviewer code.py --skills yourorg/react-best-practices
+
+# Use only specific skills (ignore agent's default_skills)
+orch call acme/code-reviewer code.py --skills-only yourorg/react-best-practices
+
+# Ignore all skills (even if agent has default_skills)
+orch call acme/code-reviewer code.py --no-skills
 ```
 
 **Input handling:**
@@ -161,10 +173,59 @@ orch agents --json
 
 ### search
 
-Search public agents.
+Search public agents and skills.
 
 ```bash
 orch search "invoice" --sort stars
+
+# Filter to agents only
+orch search "invoice" --type agents
+
+# Filter to skills only
+orch search "react" --type skills
+```
+
+## Skills
+
+Skills are passive knowledge (instructions, rules, guidelines) that can be run standalone or composed with agents.
+
+### skill list
+
+List public skills.
+
+```bash
+# List all public skills
+orch skill list
+
+# Filter by name
+orch skill list --filter "react"
+
+# JSON output
+orch skill list --json
+```
+
+### skill call
+
+Call a skill on OrchAgent's servers. The skill is loaded and your input is processed using it.
+
+```bash
+# Call with input
+orch skill call yourorg/react-best-practices --input '{"code": "..."}'
+
+# Specify version
+orch skill call yourorg/react-best-practices@v2 --input '{"code": "..."}'
+```
+
+### skill run
+
+Download and run a skill locally.
+
+```bash
+# Run locally with input
+orch skill run yourorg/react-best-practices --input '{"code": "..."}'
+
+# Just download without running
+orch skill run yourorg/react-best-practices --download-only
 ```
 
 ## Social Features
@@ -189,7 +250,7 @@ orch fork acme/invoice-scanner
 
 ### init
 
-Initialize a new agent directory.
+Initialize a new agent or skill directory.
 
 ```bash
 # Initialize a prompt-based agent
@@ -197,15 +258,26 @@ orch init --type prompt
 
 # Initialize a code-based agent
 orch init --type code
+
+# Initialize a skill
+orch init --type skill
 ```
 
 ### publish
 
-Publish an agent from the current directory.
+Publish an agent or skill from the current directory.
 
 ```bash
+# Publish as public
 orch publish --public
+
+# Publish as private (requires paid plan)
+orch publish
 ```
+
+The CLI auto-detects the type:
+- If `SKILL.md` exists → publishes as skill
+- If `orchagent.json` exists → publishes as agent (prompt or code based on config)
 
 ### llm-config
 

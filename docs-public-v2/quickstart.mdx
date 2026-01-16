@@ -7,6 +7,10 @@ description: "Get running in 60 seconds"
 
 Get started with OrchAgent in two ways: run agents locally (no account needed) or on our servers (free account required).
 
+<Tip>
+OrchAgent hosts both **agents** (active executors) and **skills** (passive knowledge). The commands below work for both. See [Agent Types](/building-agents/agent-types) for the difference.
+</Tip>
+
 ## Prerequisites
 
 Set up an LLM API key in your environment:
@@ -76,11 +80,12 @@ orch call orchagent/secrets-scanner https://github.com/your/repo
 
 | Command | What It Does | Where It Runs |
 |---------|--------------|---------------|
-| `npx orchagent run ORG/AGENT` | Run locally (no account) | Your machine |
-| `orch run ORG/AGENT` | Run locally (with account) | Your machine |
-| `orch call ORG/AGENT` | Run on server | Cloud Run |
+| `npx orchagent run ORG/NAME` | Run agent or skill locally (no account) | Your machine |
+| `orch run ORG/NAME` | Run locally (with account) | Your machine |
+| `orch call ORG/NAME` | Run on server | Cloud Run |
+| `orch call ORG/AGENT --skills ORG/SKILL` | Run agent with skill composed | Cloud Run |
 | `orch login` | Authenticate CLI | - |
-| `orch publish` | Publish your agent | - |
+| `orch publish` | Publish your agent or skill | - |
 
 ## Calling with Files
 
@@ -115,8 +120,8 @@ orch call acme/text-extractor --data @input.json
   <Card title="CLI Commands" icon="terminal" href="/using-agents/cli-commands">
     All CLI commands explained
   </Card>
-  <Card title="Build an Agent" icon="hammer" href="/building-agents/agent-types">
-    Create your first agent
+  <Card title="Build" icon="hammer" href="/building-agents/agent-types">
+    Create an agent or skill
   </Card>
   <Card title="Code Examples" icon="brackets-curly" href="/using-agents/code-snippets">
     Python, JavaScript, curl examples

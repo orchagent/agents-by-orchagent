@@ -1,21 +1,33 @@
 ---
 title: "Agent Types"
-description: "Prompt-based vs code-based agents"
+description: "Agents vs skills - active executors and passive knowledge"
 ---
 
 # Agent Types
 
-OrchAgent supports two types of agents: **prompt-based** and **code-based**.
+OrchAgent supports **agents** (active executors) and **skills** (passive knowledge).
+
+## The Key Difference
+
+- **Agents** do things - they take input, process it, and return output
+- **Skills** inform agents - they're reusable knowledge/instructions that can be injected into agents
+
+Think of it this way: a skill tells an agent HOW to do something, while an agent actually DOES it.
 
 ## Comparison
 
-| | Prompt-based | Code-based |
-|-|--------------|------------|
-| **What you provide** | Prompt template + input/output schema | Python/JS code |
-| **Publish time** | Minutes | Hours |
-| **Complexity** | Single LLM call | Any logic |
-| **Forking** | Easy (edit prompt) | Harder (understand code) |
-| **Best for** | Extraction, summarization, classification | Multi-step workflows, tools, external APIs |
+| | Prompt-based Agent | Code-based Agent | Skill |
+|-|--------------|------------|-------|
+| **What it is** | Active executor | Active executor | Passive knowledge |
+| **What you provide** | Prompt + input/output schema | Python/JS code | SKILL.md file |
+| **Publish time** | Minutes | Hours | Minutes |
+| **Complexity** | Single LLM call | Any logic | Instructions only |
+| **Forking** | Easy (edit prompt) | Harder (understand code) | Easy (edit markdown) |
+| **Best for** | Extraction, summarization | Multi-step workflows, APIs | Coding standards, style guides, domain rules |
+
+## Agents
+
+Agents are active executors. They take input, do work, and return output. OrchAgent supports two agent types:
 
 ## Prompt-Based Agents
 
@@ -196,6 +208,89 @@ llm_config = {
 }
 ```
 
+## Skills
+
+Skills are passive knowledge - markdown files containing instructions, rules, or domain expertise that can be injected into agents.
+
+### What Skills Are For
+
+- **Coding standards** - React best practices, security rules, style guides
+- **Domain knowledge** - Legal requirements, industry regulations, company policies
+- **Writing rules** - Tone guidelines, formatting standards, brand voice
+- **Decision frameworks** - How to evaluate options, prioritize tasks, handle edge cases
+
+### SKILL.md Format
+
+Skills use the industry-standard Agent Skills format (adopted by Anthropic, Google, Microsoft, OpenAI, Cursor):
+
+```markdown
+---
+name: react-best-practices
+description: React optimization patterns for performance-critical apps
+license: MIT
+metadata:
+  author: yourname
+  version: "1.0"
+---
+
+## Rules
+
+- Use functional components over class components
+- Memoize expensive computations with useMemo
+- Avoid inline function definitions in JSX
+- ...
+```
+
+### YAML Frontmatter Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Max 64 chars, lowercase, hyphens only |
+| `description` | Yes | When to use this skill (max 1024 chars) |
+| `license` | No | License name (e.g., MIT) |
+| `metadata` | No | Author, version, and other info |
+
+### Directory Structure
+
+```
+my-skill/
+├── SKILL.md              # Required - YAML frontmatter + instructions
+├── references/           # Optional - additional docs
+└── assets/               # Optional - templates, examples
+```
+
+### Using Skills
+
+Skills can be used in two ways:
+
+**1. Run standalone** - The skill becomes a simple prompt agent:
+
+```bash
+npx orchagent run yourorg/react-best-practices
+```
+
+**2. Compose with agents** - Inject skill knowledge into an agent:
+
+```bash
+# Add skills to an agent call
+orch call yourorg/code-reviewer --skills yourorg/react-best-practices
+
+# Use only specific skills (ignore agent's defaults)
+orch call yourorg/code-reviewer --skills-only yourorg/react-best-practices
+
+# Ignore all skills
+orch call yourorg/code-reviewer --no-skills
+```
+
+### When to Create a Skill vs an Agent
+
+| Create a **Skill** when... | Create an **Agent** when... |
+|---------------------------|----------------------------|
+| You have knowledge to share | You have a task to automate |
+| Content is reusable across contexts | Logic is specific to one workflow |
+| No structured input/output needed | You need defined schemas |
+| Instructions could help any agent | You need code execution |
+
 ## Next Steps
 
 <CardGroup cols={2}>
@@ -203,9 +298,9 @@ llm_config = {
     Full orchagent.json schema
   </Card>
   <Card title="Publishing" icon="upload" href="/building-agents/publishing">
-    Publish your agent
+    Publish your agent or skill
   </Card>
   <Card title="Orchestration" icon="diagram-project" href="/building-agents/orchestration">
-    Call other agents
+    Compose agents and skills
   </Card>
 </CardGroup>

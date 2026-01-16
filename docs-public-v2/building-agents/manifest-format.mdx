@@ -7,6 +7,10 @@ description: "The orchagent.json configuration schema"
 
 Every agent needs an `orchagent.json` file that defines its configuration, dependencies, and runtime limits.
 
+<Note>
+**Skills use a different format.** Skills use a `SKILL.md` file with YAML frontmatter instead of `orchagent.json`. See [Agent Types](/building-agents/agent-types#skills) for the SKILL.md format.
+</Note>
+
 ## Basic Structure
 
 ```json
@@ -39,6 +43,7 @@ Every agent needs an `orchagent.json` file that defines its configuration, depen
 | `timeout_seconds` | number | `60` | Request timeout |
 | `tags` | array | `[]` | Searchable tags |
 | `is_public` | boolean | `false` | Whether agent is publicly listed |
+| `default_skills` | array | `[]` | Skills to inject into agent prompts (e.g., `["yourorg/writing-style"]`) |
 
 ## Code-Based Agent Fields
 
@@ -106,6 +111,31 @@ Additional fields for prompt agents:
   }
 }
 ```
+
+## Skill Composition
+
+Agents can include skills by default using the `default_skills` field. Skills are injected into the agent's prompt at runtime.
+
+```json
+{
+  "name": "code-reviewer",
+  "version": "v1",
+  "type": "prompt",
+  "description": "Reviews code with best practices",
+  "supported_providers": ["anthropic", "openai"],
+  "default_skills": [
+    "yourorg/react-best-practices",
+    "yourorg/writing-style"
+  ],
+  "prompt_template": "Review this code:\n\n{{code}}"
+}
+```
+
+When called, the agent's prompt is prepended with the content from each skill. Callers can override this behavior:
+
+- `--skills org/skill` - Add more skills
+- `--skills-only org/skill` - Replace default_skills entirely
+- `--no-skills` - Ignore all skills
 
 ## Manifest Section (for Orchestrator Agents)
 

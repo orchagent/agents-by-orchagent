@@ -1,11 +1,11 @@
 ---
 title: "What is OrchAgent?"
-description: "A free, open platform where developers share, discover, and run AI agents."
+description: "A free, open platform where developers share, discover, and run AI agents and skills."
 ---
 
 # What is OrchAgent?
 
-OrchAgent is an **AI agent marketplace and runtime**. Think of it as GitHub for AI agents: publish agents in minutes, call any agent via API, fork and improve others' work.
+OrchAgent is an **AI agent and skill marketplace**. Think of it as GitHub for AI agents: publish agents and skills in minutes, call any agent via API, fork and improve others' work.
 
 ## How It Works
 
@@ -28,44 +28,51 @@ OrchAgent is an **AI agent marketplace and runtime**. Think of it as GitHub for 
 4. See usage, stars, forks in dashboard
 ```
 
-## What is an Agent?
+## Agents vs Skills
 
-An agent is an API endpoint that performs a specific task using AI.
+OrchAgent hosts two types of things:
+
+- **Agents** are active executors - they take input, do work, and return output
+- **Skills** are passive knowledge - reusable instructions that can be injected into agents
 
 | Type | What You Provide | Best For |
 |------|------------------|----------|
-| **Prompt-based** | Prompt template + input/output schema | Simple tasks (extraction, summarization, classification) |
-| **Code-based** | Python/JS code | Complex logic (multi-step, tools, external APIs) |
+| **Prompt-based agent** | Prompt template + input/output schema | Simple tasks (extraction, summarization, classification) |
+| **Code-based agent** | Python/JS code | Complex logic (multi-step, tools, external APIs) |
+| **Skill** | SKILL.md file | Coding standards, style guides, domain rules |
 
-Both types are:
+Agents are:
 
 - **Stateless** - each call is independent
 - **Specific** - one task, done well
-- **Hosted** - OrchAgent runs it
-- **Callable** - simple API call to use
+- **Callable** - simple API or CLI call
+
+Skills use the industry-standard Agent Skills format (adopted by Anthropic, Google, Microsoft, OpenAI, Cursor) and can be run standalone or composed with agents.
 
 ## Core Concepts
 
 | Term | Definition |
 |------|------------|
-| **Agent** | An API endpoint that performs a task using AI |
+| **Agent** | An active executor that performs a task using AI |
+| **Skill** | Passive knowledge (instructions/rules) that can be injected into agents |
 | **Prompt-based agent** | Author provides prompt + schema. OrchAgent handles the LLM call. |
 | **Code-based agent** | Author provides code that runs on OrchAgent infrastructure. |
-| **Star** | Users can star agents they like (like GitHub stars) |
-| **Fork** | Copy an agent to your account and modify it |
+| **Star** | Users can star agents or skills they like (like GitHub stars) |
+| **Fork** | Copy an agent or skill to your account and modify it |
 | **Version** | Each publish creates a new version (v1, v2, v3...) |
 
 ## Key Features
 
 | Feature | Description |
 |---------|-------------|
-| **Free hosting** | We run your agent. No infra to manage. |
+| **Free hosting** | We run your agents. No infra to manage. |
 | **Free to call** | 1000 calls/day free. No payment required. |
 | **BYOK model** | Bring your own LLM API keys |
-| **Forking** | One-click copy of any public agent |
-| **Stars** | Signal quality, discover popular agents |
+| **Forking** | One-click copy of any public agent or skill |
+| **Stars** | Signal quality, discover popular agents and skills |
 | **Versioning** | Auto-increment (v1, v2, v3) on each publish |
 | **CLI** | Publish, call, fork, star from terminal |
+| **Skills** | Industry-standard format, composable with any agent |
 
 ## BYOK: Bring Your Own Key
 
@@ -93,7 +100,7 @@ API keys are separate from subscriptions (Claude Pro/Max, ChatGPT Plus). You'll 
   <Card title="CLI Commands" icon="terminal" href="/using-agents/cli-commands">
     orch login, call, run, publish
   </Card>
-  <Card title="Build an Agent" icon="hammer" href="/building-agents/agent-types">
-    Create your own agent
+  <Card title="Build" icon="hammer" href="/building-agents/agent-types">
+    Create an agent or skill
   </Card>
 </CardGroup>

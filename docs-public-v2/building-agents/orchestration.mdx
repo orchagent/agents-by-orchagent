@@ -1,11 +1,68 @@
 ---
 title: "Orchestration"
-description: "Build agents that call other agents"
+description: "Compose agents with other agents and skills"
 ---
 
 # Orchestration
 
-Orchestrator agents call other agents to build complex workflows. This guide covers how to create agents that compose multiple agents together.
+OrchAgent supports two types of composition:
+
+1. **Skill composition** - Inject knowledge/instructions into agent prompts
+2. **Agent composition** - Call other agents from within your agent
+
+## Skill Composition
+
+Skills are passive knowledge that can be injected into agents. Unlike agent-to-agent calls, skill composition happens at the prompt level - skill content is prepended to the agent's prompt before the LLM call.
+
+### Using default_skills
+
+Agents can declare skills they always use:
+
+```json
+{
+  "name": "code-reviewer",
+  "version": "v1",
+  "type": "prompt",
+  "default_skills": [
+    "yourorg/react-best-practices",
+    "yourorg/writing-style"
+  ],
+  "prompt_template": "Review this code:\n\n{{code}}"
+}
+```
+
+When called, the agent's prompt becomes: `[skill 1 content] + [skill 2 content] + [agent prompt]`
+
+### Caller Override
+
+Callers can modify skill behavior:
+
+```bash
+# Add more skills to agent's defaults
+orch call yourorg/code-reviewer --skills yourorg/security-rules
+
+# Replace default_skills entirely
+orch call yourorg/code-reviewer --skills-only yourorg/security-rules
+
+# Ignore all skills
+orch call yourorg/code-reviewer --no-skills
+```
+
+### Skills vs Agent Dependencies
+
+| | Skills | Agent Dependencies |
+|-|--------|-------------------|
+| **What they are** | Knowledge injected into prompt | Agents called at runtime |
+| **When evaluated** | Before LLM call | During execution |
+| **Declared in** | `default_skills` | `manifest.dependencies` |
+| **Can be overridden** | Yes (--skills flags) | No (fixed in manifest) |
+| **Best for** | Style guides, rules, domain knowledge | Complex workflows, multi-step tasks |
+
+---
+
+## Agent Composition
+
+Orchestrator agents call other agents to build complex workflows. This section covers how to create agents that compose multiple agents together.
 
 ## Concepts
 

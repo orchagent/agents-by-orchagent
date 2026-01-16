@@ -2,17 +2,17 @@
   "$schema": "https://mintlify.com/schema.json",
   "name": "OrchAgent",
   "logo": {
-    "dark": "/logo/dark.svg",
-    "light": "/logo/light.svg"
+    "dark": "/logo/logo-icon-simple.png",
+    "light": "/logo/logo-icon-simple.png"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/logo/logo-icon-simple.png",
   "colors": {
-    "primary": "#6366F1",
-    "light": "#818CF8",
-    "dark": "#4F46E5",
+    "primary": "#f97316",
+    "light": "#fb923c",
+    "dark": "#ea580c",
     "anchors": {
-      "from": "#6366F1",
-      "to": "#8B5CF6"
+      "from": "#f97316",
+      "to": "#ea580c"
     }
   },
   "topbarLinks": [

@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "quill",
+  "theme": "mint",
   "name": "OrchAgent",
   "logo": {
     "dark": "/logo/logo-icon-simple.png",

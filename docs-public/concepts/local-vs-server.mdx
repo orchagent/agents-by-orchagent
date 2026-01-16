@@ -1,0 +1,188 @@
+---
+title: "Local vs Server Execution"
+description: "Understanding orch run vs orch call"
+---
+
+# Local vs Server Execution
+
+OrchAgent supports two execution modes: **local** (`orch run`) and **server** (`orch call`). This guide explains when to use each.
+
+## Quick Comparison
+
+| | Local (`orch run`) | Server (HTTP API) |
+|-|-------------------|-------------------|
+| **Primary users** | Power users, devs exploring | Apps in production |
+| **Interface** | CLI | HTTP API (code) |
+| **Where code runs** | Your machine | OrchAgent Cloud Run |
+| **Account required** | No | Yes (free) |
+| **LLM keys** | From your environment | From your account |
+| **Rate limits** | Your LLM provider limits | 1000 calls/day free |
+| **Dependencies** | Must be downloadable | Handled automatically |
+| **Best for** | Development, exploration | Production integration |
+
+Note: `orch call` is a CLI tool for testing the HTTP API. Production apps call the HTTP API directly from code.
+
+## Local Execution (`orch run`)
+
+Download and run an agent on your machine.
+
+```bash
+# No account needed for public agents
+npx orchagent run acme/summarizer --input '{"text": "..."}'
+
+# With CLI installed
+orch run acme/summarizer --input '{"text": "..."}'
+```
+
+### What Happens
+
+1. CLI downloads agent code from registry
+2. Agent installs on your machine
+3. Agent runs locally
+4. Agent calls LLM using YOUR environment keys
+5. Results returned to terminal
+
+### When to Use
+
+- **Development** - Test agents before calling server
+- **Privacy** - Keep data on your machine
+- **No account** - Try agents without signing up
+- **Debugging** - See full execution locally
+
+### Requirements
+
+- Agent must have `source_url` or `pip_package` in manifest
+- LLM API key in environment variable
+- For orchestrators: dependencies must also be downloadable
+
+## Server Execution (`orch call`)
+
+Run an agent on OrchAgent's servers.
+
+```bash
+orch call acme/summarizer --data '{"text": "..."}'
+```
+
+### What Happens
+
+1. CLI sends request to gateway (`api.orchagent.io`)
+2. Gateway authenticates your API key
+3. Gateway routes to agent container on Cloud Run
+4. Agent runs with your stored LLM keys
+5. Response returned through gateway
+
+### When to Use
+
+- **Production** - Reliable, managed infrastructure
+- **Orchestration** - Agents calling other agents
+- **No local setup** - Run without installing dependencies
+- **Higher reliability** - Auto-scaling, health checks
+
+### Requirements
+
+- OrchAgent account (free)
+- API key from dashboard
+- LLM key stored in account (for server execution)
+
+## Architecture Diagrams
+
+### Local Execution
+
+```
+┌──────────────┐      ┌──────────────┐      ┌──────────────┐
+│  Your CLI    │─────▶│ Agent Code   │─────▶│  LLM API     │
+│              │      │ (local)      │      │  (direct)    │
+└──────────────┘      └──────────────┘      └──────────────┘
+      │                      │
+      └──────────────────────┘
+           All on your machine
+```
+
+### Server Execution
+
+```
+┌──────────────┐      ┌──────────────┐      ┌──────────────┐
+│  Your CLI    │─────▶│  Gateway     │─────▶│ Agent        │
+│              │      │              │      │ (Cloud Run)  │
+└──────────────┘      └──────────────┘      └──────┬───────┘
+                                                   │
+                             ┌─────────────────────┘
+                             ▼
+                      ┌──────────────┐
+                      │  LLM API     │
+                      │  (via proxy) │
+                      └──────────────┘
+```
+
+## Handling Dependencies
+
+### Local with Dependencies
+
+Orchestrator agents have dependencies. When running locally:
+
+```
+$ orch run joe/security-review .
+
+Checking dependencies...
+
+This agent has dependencies:
+  joe/leak-finder@v1 (downloadable)
+  joe/vuln-scanner@v1 (downloadable)
+  acme/premium-scan@v1 (cloud-only)
+
+Options:
+  [1] Run on server (orch call) - recommended
+  [2] Download 2 available deps, run locally
+  [3] Cancel
+```
+
+**Auto-download:**
+
+```bash
+orch run joe/security-review --with-deps .
+```
+
+### Server with Dependencies
+
+On the server, dependencies are handled automatically. The gateway routes calls between agents.
+
+## CLI Commands Summary
+
+| Command | Mode | Description |
+|---------|------|-------------|
+| `npx orchagent run` | Local | Run without installing CLI |
+| `orch run` | Local | Run with installed CLI |
+| `orch run --download-only` | Local | Just download, don't execute |
+| `orch run --with-deps` | Local | Auto-download dependencies |
+| `orch call` | Server | Run on OrchAgent servers |
+
+## Choosing the Right Mode
+
+### Use Local When
+
+- You want to keep data on your machine
+- You're developing or debugging an agent
+- You want to try an agent without an account
+- The agent doesn't have complex dependencies
+
+### Use Server When
+
+- You're building production integrations
+- The agent has dependencies (orchestrator)
+- You want managed infrastructure
+- You need usage tracking and logs
+
+## Mixed Mode
+
+You can use both modes in your workflow:
+
+```bash
+# Develop locally
+orch run my-agent --input '{"test": true}'
+
+# Test on server
+orch call my-agent --data '{"test": true}'
+
+# Deploy to production
+# (Your app calls api.orchagent.io directly)
+```

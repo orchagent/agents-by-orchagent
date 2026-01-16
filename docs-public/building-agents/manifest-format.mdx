@@ -1,0 +1,195 @@
+---
+title: "Manifest Format"
+description: "The orchagent.json configuration schema"
+---
+
+# Manifest Format
+
+Every agent needs an `orchagent.json` file that defines its configuration, dependencies, and runtime limits.
+
+## Basic Structure
+
+```json
+{
+  "name": "my-agent",
+  "version": "v1",
+  "type": "code",
+  "description": "What my agent does",
+  "supported_providers": ["openai", "anthropic"],
+  "default_endpoint": "analyze",
+  "timeout_seconds": 60
+}
+```
+
+## Required Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | string | Agent name (lowercase, hyphens allowed) |
+| `version` | string | Version string (e.g., `v1`, `v2`) |
+| `type` | string | `"code"` or `"prompt"` |
+| `description` | string | Short description of what the agent does |
+| `supported_providers` | array | LLM providers: `["openai", "anthropic", "gemini", "any"]` |
+
+## Optional Fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `default_endpoint` | string | `"analyze"` | Default endpoint for `orch call` |
+| `timeout_seconds` | number | `60` | Request timeout |
+| `tags` | array | `[]` | Searchable tags |
+| `is_public` | boolean | `false` | Whether agent is publicly listed |
+
+## Code-Based Agent Fields
+
+Additional fields for code agents:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `url` | string | Deployed service URL |
+| `source_url` | string | Git URL for local execution |
+| `run_command` | string | Command to run locally |
+
+### Example
+
+```json
+{
+  "name": "leak-finder",
+  "version": "v1",
+  "type": "code",
+  "description": "Finds leaked secrets in codebases",
+  "supported_providers": ["any"],
+  "default_endpoint": "scan",
+  "timeout_seconds": 120,
+  "url": "https://leak-finder-xyz.run.app",
+  "source_url": "git+https://github.com/user/repo.git#subdirectory=leak-finder",
+  "run_command": "python3 -m leak_finder.cli",
+  "tags": ["security", "scanning"],
+  "is_public": true
+}
+```
+
+## Prompt-Based Agent Fields
+
+Additional fields for prompt agents:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `prompt_template` | string | Prompt with `{{variable}}` placeholders |
+| `input_schema` | object | JSON Schema for input validation |
+| `output_schema` | object | JSON Schema for output validation |
+
+### Example
+
+```json
+{
+  "name": "summarizer",
+  "version": "v1",
+  "type": "prompt",
+  "description": "Summarizes text content",
+  "supported_providers": ["openai", "anthropic"],
+  "prompt_template": "Summarize the following text in {{style}} style:\n\n{{text}}",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "text": { "type": "string" },
+      "style": { "type": "string", "enum": ["bullet", "paragraph", "tldr"] }
+    },
+    "required": ["text", "style"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "summary": { "type": "string" }
+    },
+    "required": ["summary"]
+  }
+}
+```
+
+## Manifest Section (for Orchestrator Agents)
+
+Agents that call other agents need a `manifest` section:
+
+```json
+{
+  "name": "security-review",
+  "version": "v1",
+  "type": "code",
+  "description": "Comprehensive security review",
+  "manifest": {
+    "manifest_version": 1,
+    "dependencies": [
+      { "id": "joe/leak-finder", "version": "v1" },
+      { "id": "joe/vuln-scanner", "version": "v1" }
+    ],
+    "max_hops": 2,
+    "timeout_ms": 120000,
+    "per_call_downstream_cap": 100
+  }
+}
+```
+
+### Manifest Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `manifest_version` | Yes | Always `1` |
+| `dependencies` | Yes | Array of `{id, version}` for agents you'll call |
+| `max_hops` | Yes | Max call depth (>= 1 if you have deps) |
+| `timeout_ms` | Yes | Total timeout for your agent |
+| `per_call_downstream_cap` | Yes | Max downstream cap per dependency call |
+| `min_required_hops` | No | Minimum hops caller must allow |
+| `region` | No | Deployment region |
+| `visibility` | No | `public` or `private` |
+
+### Dependency Format
+
+```json
+{
+  "id": "org_slug/agent_name",
+  "version": "v1"
+}
+```
+
+## Validation Rules
+
+The platform validates manifests on publish:
+
+1. **Dependencies exist** - All declared dependencies must be registered
+2. **No cycles** - Dependency graph must be acyclic
+3. **max_hops >= 1** - Required when dependencies are declared
+4. **Version pins** - Dependencies must specify exact versions
+
+## Complete Example
+
+```json
+{
+  "name": "security-review",
+  "version": "v1",
+  "type": "code",
+  "description": "Comprehensive security review combining multiple scanners",
+  "supported_providers": ["any"],
+  "default_endpoint": "review",
+  "timeout_seconds": 180,
+  "url": "https://security-review-xyz.run.app",
+  "source_url": "git+https://github.com/user/security-review.git",
+  "run_command": "python3 -m security_review.cli",
+  "tags": ["security", "scanning", "orchestrator"],
+  "is_public": true,
+  "manifest": {
+    "manifest_version": 1,
+    "dependencies": [
+      { "id": "joe/leak-finder", "version": "v1" },
+      { "id": "joe/vuln-scanner", "version": "v1" },
+      { "id": "joe/license-checker", "version": "v1" }
+    ],
+    "max_hops": 2,
+    "timeout_ms": 180000,
+    "per_call_downstream_cap": 50,
+    "min_required_hops": 2,
+    "region": "us-east",
+    "visibility": "public"
+  }
+}
+```

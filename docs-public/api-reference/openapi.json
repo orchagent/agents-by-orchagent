@@ -1,0 +1,451 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OrchAgent API",
+    "description": "AI agent marketplace and runtime API",
+    "version": "1.0.0",
+    "contact": {
+      "name": "OrchAgent Support",
+      "url": "https://orchagent.io",
+      "email": "support@orchagent.io"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.orchagent.io",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "/public/agents": {
+      "get": {
+        "summary": "List public agents",
+        "description": "Get a list of all public agents on the platform",
+        "operationId": "listPublicAgents",
+        "tags": ["Public"],
+        "responses": {
+          "200": {
+            "description": "List of public agents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PublicAgent"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/agents/{org}/{agent}/{version}": {
+      "get": {
+        "summary": "Get agent details",
+        "description": "Get detailed information about a specific agent",
+        "operationId": "getPublicAgent",
+        "tags": ["Public"],
+        "parameters": [
+          {
+            "name": "org",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization slug"
+          },
+          {
+            "name": "agent",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Agent name"
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Agent version (e.g., v1)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicAgent"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent not found"
+          }
+        }
+      }
+    },
+    "/{org}/{agent}/{version}/{endpoint}": {
+      "post": {
+        "summary": "Call an agent",
+        "description": "Execute an agent with the provided input",
+        "operationId": "callAgent",
+        "tags": ["Agents"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "org",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Organization slug"
+          },
+          {
+            "name": "agent",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Agent name"
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Agent version"
+          },
+          {
+            "name": "endpoint",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Agent endpoint"
+          },
+          {
+            "name": "X-Orchagent-Max-Hops",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "integer" },
+            "description": "Maximum call chain depth"
+          },
+          {
+            "name": "X-Orchagent-Tenant",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Tenant ID for usage attribution"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Agent response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentResponse"
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid input" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Agent not found" },
+          "429": { "description": "Rate limited" }
+        }
+      }
+    },
+    "/usage": {
+      "get": {
+        "summary": "Get usage summary",
+        "description": "Get your usage summary for the current period",
+        "operationId": "getUsage",
+        "tags": ["Usage"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 30 },
+            "description": "Number of days to include"
+          },
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Filter by tenant ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usage summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents": {
+      "get": {
+        "summary": "List your agents",
+        "description": "Get a list of agents you own",
+        "operationId": "listAgents",
+        "tags": ["Agent Management"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of agents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Agent"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Register new agent",
+        "description": "Register a new agent on the platform",
+        "operationId": "createAgent",
+        "tags": ["Agent Management"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAgentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agent created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateAgentResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api-keys": {
+      "get": {
+        "summary": "List API keys",
+        "description": "Get a list of your API keys",
+        "operationId": "listApiKeys",
+        "tags": ["API Keys"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of API keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApiKey"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create API key",
+        "description": "Create a new API key",
+        "operationId": "createApiKey",
+        "tags": ["API Keys"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Key name"
+                  }
+                },
+                "required": ["name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API key created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyWithSecret"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key authentication"
+      }
+    },
+    "schemas": {
+      "PublicAgent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "org": { "type": "string" },
+          "version": { "type": "string" },
+          "type": { "type": "string", "enum": ["code", "prompt"] },
+          "description": { "type": "string" },
+          "supported_providers": { "type": "array", "items": { "type": "string" } },
+          "default_endpoint": { "type": "string" },
+          "timeout_seconds": { "type": "integer" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "stars": { "type": "integer" },
+          "forks": { "type": "integer" }
+        }
+      },
+      "Agent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "type": { "type": "string" },
+          "description": { "type": "string" },
+          "url": { "type": "string" },
+          "is_public": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AgentResponse": {
+        "type": "object",
+        "properties": {
+          "data": { "type": "object" },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": { "type": "string" },
+                "field": { "type": "string" },
+                "message": { "type": "string" }
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "request_id": { "type": "string" },
+              "processing_time_ms": { "type": "integer" },
+              "version": { "type": "string" }
+            }
+          }
+        }
+      },
+      "UsageSummary": {
+        "type": "object",
+        "properties": {
+          "total_calls": { "type": "integer" },
+          "calls_remaining": { "type": "integer" },
+          "period_start": { "type": "string", "format": "date-time" },
+          "period_end": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreateAgentRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "type": { "type": "string", "enum": ["code", "prompt"] },
+          "url": { "type": "string" },
+          "is_public": { "type": "boolean" },
+          "description": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "supported_providers": { "type": "array", "items": { "type": "string" } },
+          "default_endpoint": { "type": "string" },
+          "timeout_seconds": { "type": "integer" },
+          "source_url": { "type": "string" },
+          "run_command": { "type": "string" }
+        },
+        "required": ["name", "version", "type"]
+      },
+      "CreateAgentResponse": {
+        "type": "object",
+        "properties": {
+          "agent": { "$ref": "#/components/schemas/Agent" },
+          "service_key": { "type": "string" },
+          "service_key_prefix": { "type": "string" }
+        }
+      },
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "prefix": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "last_used_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ApiKeyWithSecret": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "key": { "type": "string", "description": "Full API key (only shown once)" },
+          "prefix": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  }
+}

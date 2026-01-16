@@ -1,0 +1,281 @@
+---
+title: "Orchestration"
+description: "Build agents that call other agents"
+---
+
+# Orchestration
+
+Orchestrator agents call other agents to build complex workflows. This guide covers how to create agents that compose multiple agents together.
+
+## Concepts
+
+| Term | Definition |
+|------|------------|
+| **Orchestrator agent** | An agent that calls other agents. Declares dependencies in its manifest. |
+| **Leaf agent** | An agent with no dependencies. Does one focused task. |
+| **Dependency** | An agent that an orchestrator is allowed to call. Must be declared explicitly. |
+
+## How It Works
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      Caller                              │
+│                        │                                 │
+│                        ▼                                 │
+│              ┌─────────────────┐                        │
+│              │ security-review │  (orchestrator)        │
+│              └────────┬────────┘                        │
+│                       │                                 │
+│         ┌─────────────┼─────────────┐                  │
+│         ▼             ▼             ▼                  │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐         │
+│  │leak-finder │ │vuln-scanner│ │license-chk │ (leaves)│
+│  └────────────┘ └────────────┘ └────────────┘         │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Key points:**
+
+- Gateway handles all routing, auth, and limits
+- Caller's rate limit: 1 call (top-level only)
+- Sub-agent calls: validated against manifest limits and hop rules
+- Call chains are tracked to prevent cycles
+- Timeouts propagate through the chain
+
+## Creating an Orchestrator
+
+### Step 1: Declare Dependencies
+
+Add a `manifest` section to your `orchagent.json`:
+
+```json
+{
+  "name": "security-review",
+  "version": "v1",
+  "type": "code",
+  "description": "Comprehensive security review combining multiple scanners",
+  "manifest": {
+    "manifest_version": 1,
+    "dependencies": [
+      { "id": "joe/leak-finder", "version": "v1" },
+      { "id": "joe/vuln-scanner", "version": "v1" }
+    ],
+    "max_hops": 2,
+    "timeout_ms": 120000,
+    "per_call_downstream_cap": 100
+  }
+}
+```
+
+### Step 2: Use the Python SDK
+
+```python
+from fastapi import Request
+from orchagent import AgentClient
+
+@app.post("/review")
+async def review(request: Request, input: ReviewInput):
+    # Create client from request (inherits call chain, deadline, etc.)
+    client = AgentClient.from_request(request)
+
+    # Call dependencies
+    secrets = await client.call("joe/leak-finder@v1", {"url": input.repo_url})
+    vulns = await client.call("joe/vuln-scanner@v1", {"url": input.repo_url})
+
+    # Combine results
+    return {
+        "secrets": secrets,
+        "vulnerabilities": vulns,
+        "summary": f"Found {len(secrets)} secrets, {len(vulns)} vulnerabilities"
+    }
+```
+
+**The SDK handles automatically:**
+
+- Service key authentication
+- Call chain propagation
+- Deadline propagation
+- Max hops decrement
+- Error wrapping
+
+### Step 3: Set Environment Variables
+
+```bash
+export ORCHAGENT_SERVICE_KEY="sk_agent_..."
+export ORCHAGENT_GATEWAY_URL="https://api.orchagent.io"
+```
+
+### Step 4: Publish
+
+```bash
+orch publish
+```
+
+The gateway validates:
+
+- All declared dependencies exist
+- No cycles in dependency graph
+- `max_hops >= 1` when dependencies declared
+
+## Calling Dependencies
+
+### Basic Call
+
+```python
+result = await client.call("org/agent@version", {"input": "data"})
+```
+
+### With Custom Endpoint
+
+```python
+result = await client.call("org/agent@v1", {"url": repo}, endpoint="deep-scan")
+```
+
+### With Timeout Override
+
+```python
+result = await client.call("org/agent@v1", {"url": repo}, timeout=30.0)
+```
+
+### Error Handling
+
+```python
+from orchagent import DependencyCallError, TimeoutExceededError, CallChainCycleError
+
+try:
+    result = await client.call("org/agent@v1", input_data)
+except DependencyCallError as e:
+    print(f"Agent returned error: {e.status_code}")
+    print(f"Response: {e.response_body}")
+except TimeoutExceededError:
+    print("Deadline exceeded")
+except CallChainCycleError:
+    print("Cycle detected in call chain")
+```
+
+## Common Patterns
+
+### Serial Calls
+
+Call agents one after another:
+
+```python
+step1 = await client.call("org/parser@v1", {"file": input.file})
+step2 = await client.call("org/analyzer@v1", {"parsed": step1})
+step3 = await client.call("org/reporter@v1", {"analysis": step2})
+return step3
+```
+
+### Parallel Calls (Fan-out)
+
+Call multiple agents concurrently:
+
+```python
+import asyncio
+
+secrets, vulns, licenses = await asyncio.gather(
+    client.call("joe/leak-finder@v1", {"url": repo}),
+    client.call("joe/vuln-scanner@v1", {"url": repo}),
+    client.call("joe/license-checker@v1", {"url": repo}),
+)
+
+return {"secrets": secrets, "vulns": vulns, "licenses": licenses}
+```
+
+### Conditional Calls
+
+Call based on previous results:
+
+```python
+scan = await client.call("org/quick-scan@v1", {"url": repo})
+
+if scan["risk_level"] == "high":
+    # Only do deep scan if quick scan found issues
+    deep = await client.call("org/deep-scan@v1", {"url": repo})
+    return {"quick": scan, "deep": deep}
+
+return {"quick": scan}
+```
+
+## Local Development
+
+When you run an orchestrator locally with `orch run`, the CLI detects dependencies:
+
+```
+$ orch run joe/security-review .
+
+Checking dependencies...
+
+This agent has dependencies:
+  joe/leak-finder@v1 (downloadable)
+  joe/vuln-scanner@v1 (downloadable)
+  acme/premium-scan@v1 (cloud-only)
+
+Options:
+  [1] Run on server (orch call) - recommended
+  [2] Download 2 available deps, run locally
+  [3] Cancel
+
+Choose [1/2/3]:
+```
+
+**Auto-download dependencies:**
+
+```bash
+orch run joe/security-review --with-deps .
+```
+
+## Rate Limits
+
+| What | Limit Applied |
+|------|---------------|
+| Top-level call | Caller's 1000/day limit |
+| Sub-agent calls | Orchestrator's manifest + hop limits |
+| Nested calls | Same orchestrator's limits |
+
+**Example:** User calls `security-review` which calls 3 agents:
+
+- User's daily count: **+1** (just the top-level)
+- `security-review`'s downstream calls: **+3** (no billing)
+
+## Troubleshooting
+
+### DEPENDENCY_NOT_ALLOWED
+
+Your agent tried to call an agent not in its manifest.
+
+**Fix:** Add the dependency to your manifest's `dependencies` array.
+
+### MAX_HOPS_EXCEEDED
+
+Call chain is too deep.
+
+**Fix:** Increase `max_hops` in manifest, or refactor to reduce nesting.
+
+### MAX_HOPS_TOO_LOW
+
+Caller's `max_hops` is lower than your agent's `min_required_hops`.
+
+**Fix:** Either lower your `min_required_hops` or document that callers need higher limits.
+
+### DEPENDENCY_CYCLE
+
+A→B→C→A detected.
+
+**Fix:** Restructure your agents to avoid circular dependencies.
+
+### TIMEOUT
+
+Request exceeded deadline.
+
+**Fix:** Increase `timeout_ms` or optimize your agent's logic.
+
+## Best Practices
+
+1. **Keep agents focused** - Each agent does one thing well
+2. **Declare all deps** - Undeclared calls are blocked
+3. **Pin versions** - Use exact versions (`v1`), not `latest`
+4. **Handle errors** - Wrap calls in try/except
+5. **Set reasonable timeouts** - Account for all dependency calls
+6. **Use parallel calls** - Fan-out when deps are independent
+7. **Test locally first** - Use `orch run --with-deps` during development

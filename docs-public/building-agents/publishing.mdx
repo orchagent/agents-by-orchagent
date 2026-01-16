@@ -1,0 +1,240 @@
+---
+title: "Publishing"
+description: "How to publish your agent to OrchAgent"
+---
+
+# Publishing
+
+Publish your agent to make it available on the platform.
+
+## Prerequisites
+
+1. OrchAgent account with API key
+2. CLI installed and authenticated
+3. `orchagent.json` manifest in your agent directory
+
+## Quick Start
+
+```bash
+# Navigate to your agent directory
+cd my-agent
+
+# Publish as public agent
+orch publish --public
+
+# Publish as private agent (default)
+orch publish
+```
+
+## Publishing Workflow
+
+### Step 1: Initialize Your Agent
+
+Create a new agent directory:
+
+```bash
+# Create prompt-based agent
+orch init --type prompt
+
+# Create code-based agent
+orch init --type code
+```
+
+This creates the basic directory structure and `orchagent.json`.
+
+### Step 2: Configure Your Manifest
+
+Edit `orchagent.json` with your agent's configuration:
+
+```json
+{
+  "name": "my-agent",
+  "version": "v1",
+  "type": "prompt",
+  "description": "What my agent does",
+  "supported_providers": ["openai", "anthropic"]
+}
+```
+
+See [Manifest Format](/building-agents/manifest-format) for all options.
+
+### Step 3: Test Locally
+
+Before publishing, test your agent locally:
+
+```bash
+# For prompt-based agents
+orch run . --input '{"text": "test input"}'
+
+# For code-based agents
+orch run .
+```
+
+### Step 4: Publish
+
+```bash
+# Publish as public (visible in marketplace)
+orch publish --public
+
+# Publish as private (only you can access)
+orch publish
+```
+
+## What Happens on Publish
+
+The platform runs several checks:
+
+1. **Manifest validation** - Verifies `orchagent.json` is valid
+2. **Schema validation** - Validates input/output schemas
+3. **Dependency check** - Verifies all dependencies exist (for orchestrators)
+4. **Cycle detection** - Ensures no circular dependencies
+5. **Health check** - Verifies `/health` endpoint responds (code agents)
+
+For code-based agents, the platform also:
+
+1. Builds your container image
+2. Deploys to Cloud Run
+3. Verifies the deployment is healthy
+
+## Versioning
+
+Each publish creates or updates a version:
+
+```
+https://api.orchagent.io/yourorg/my-agent/v1/analyze
+https://api.orchagent.io/yourorg/my-agent/v2/analyze
+```
+
+### Version Strategy
+
+- Increment version for breaking changes
+- Old versions remain accessible for 60 days after deprecation
+- Callers should pin to specific versions
+
+### Updating an Existing Version
+
+To update an existing version (non-breaking changes):
+
+```bash
+orch publish
+```
+
+To publish a new version:
+
+```json
+// orchagent.json
+{
+  "version": "v2"  // Increment version
+}
+```
+
+## Service Keys
+
+When you publish an agent that has dependencies, the platform issues a **service key**:
+
+```json
+{
+  "agent": { "...": "agent fields" },
+  "service_key": "sk_agent_...",
+  "service_key_prefix": "sk_agent_..."
+}
+```
+
+<Warning>
+Store the service key securely. It's only shown once on registration. Your agent uses this key to call other agents.
+</Warning>
+
+Set it as an environment variable for your deployed agent:
+
+```bash
+export ORCHAGENT_SERVICE_KEY="sk_agent_..."
+```
+
+## Publish Options
+
+| Flag | Description |
+|------|-------------|
+| `--public` | Make agent publicly visible |
+| `--private` | Keep agent private (default) |
+| `--dry-run` | Validate without publishing |
+
+## Troubleshooting
+
+### "Manifest validation failed"
+
+Check your `orchagent.json` for:
+- Valid JSON syntax
+- Required fields present
+- Correct field types
+
+### "Dependency not found"
+
+Verify all dependencies in your manifest exist:
+- Check org/agent names are correct
+- Ensure dependencies are published
+- Verify version strings match
+
+### "Health check failed"
+
+For code agents, ensure:
+- `/health` endpoint returns 200
+- Response includes `{"status": "healthy"}`
+- Service starts within timeout
+
+### "Build failed"
+
+Check your:
+- `requirements.txt` has all dependencies
+- `Dockerfile` is valid (if provided)
+- Code has no syntax errors
+
+## CI/CD Integration
+
+### GitHub Actions
+
+```yaml
+name: Publish Agent
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install CLI
+        run: npm install -g orchagent
+
+      - name: Publish
+        env:
+          ORCHAGENT_API_KEY: ${{ secrets.ORCHAGENT_API_KEY }}
+        run: orch publish --public
+```
+
+### Environment Variables
+
+For CI/CD, use environment variables instead of config files:
+
+| Variable | Description |
+|----------|-------------|
+| `ORCHAGENT_API_KEY` | Your API key |
+| `ORCHAGENT_API_URL` | API URL (defaults to production) |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Orchestration" icon="diagram-project" href="/building-agents/orchestration">
+    Build agents that call other agents
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/using-agents/cli-commands">
+    All CLI commands
+  </Card>
+</CardGroup>

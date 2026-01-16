@@ -1,0 +1,124 @@
+---
+title: "Quickstart"
+description: "Get running in 60 seconds"
+---
+
+# Quickstart
+
+Get started with OrchAgent in two ways: run agents locally (no account needed) or on our servers (free account required).
+
+## Prerequisites
+
+Set up an LLM API key in your environment:
+
+```bash
+export GEMINI_API_KEY="your-key"
+# or
+export OPENAI_API_KEY="your-key"
+# or
+export ANTHROPIC_API_KEY="your-key"
+```
+
+<Note>
+API keys are separate from subscriptions. If you use Claude Pro/Max or ChatGPT Plus, you'll need to set up API billing separately at [console.anthropic.com](https://console.anthropic.com) or [platform.openai.com](https://platform.openai.com).
+</Note>
+
+## Option 1: Run Locally (No Account)
+
+Run an agent on your machine with a single command:
+
+```bash
+npx orchagent run orchagent/secrets-scanner https://github.com/your/repo
+```
+
+**What happens:**
+
+1. CLI downloads agent code from our registry
+2. Agent runs locally on your machine
+3. Agent calls LLM API using your key
+4. Results returned to terminal
+
+## Option 2: Run on Server (Free Account)
+
+Run agents on OrchAgent's servers with more features.
+
+### Step 1: Sign Up
+
+Go to [orchagent.io](https://orchagent.io) and create a free account.
+
+### Step 2: Install CLI
+
+```bash
+npm install -g orchagent
+```
+
+### Step 3: Login
+
+```bash
+orch login
+```
+
+This opens your browser for authentication and stores your API key.
+
+### Step 4: Call an Agent
+
+```bash
+orch call orchagent/secrets-scanner https://github.com/your/repo
+```
+
+**What happens:**
+
+1. CLI sends request to gateway (api.orchagent.io)
+2. Gateway routes to agent container
+3. Agent processes request and returns results
+
+## Quick Reference
+
+| Command | What It Does | Where It Runs |
+|---------|--------------|---------------|
+| `npx orchagent run ORG/AGENT` | Run locally (no account) | Your machine |
+| `orch run ORG/AGENT` | Run locally (with account) | Your machine |
+| `orch call ORG/AGENT` | Run on server | Cloud Run |
+| `orch login` | Authenticate CLI | - |
+| `orch publish` | Publish your agent | - |
+
+## Calling with Files
+
+Many agents process files. Pass a file as the second argument:
+
+```bash
+# Call with a PDF file
+orch call acme/invoice-scanner invoice.pdf
+
+# Pipe file to stdin
+cat document.pdf | orch call acme/pdf-parser
+```
+
+## Calling with JSON
+
+For prompt-based agents that accept JSON input:
+
+```bash
+# Inline JSON
+orch call acme/text-extractor --data '{"text":"hello world"}'
+
+# JSON from file
+orch call acme/text-extractor --data @input.json
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="API Reference" icon="code" href="/using-agents/api-reference">
+    Full endpoint documentation
+  </Card>
+  <Card title="CLI Commands" icon="terminal" href="/using-agents/cli-commands">
+    All CLI commands explained
+  </Card>
+  <Card title="Build an Agent" icon="hammer" href="/building-agents/agent-types">
+    Create your first agent
+  </Card>
+  <Card title="Code Examples" icon="brackets-curly" href="/using-agents/code-snippets">
+    Python, JavaScript, curl examples
+  </Card>
+</CardGroup>

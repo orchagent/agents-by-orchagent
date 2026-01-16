@@ -1,0 +1,149 @@
+---
+title: "Bring Your Own Key (BYOK)"
+description: "Use your own LLM API keys with OrchAgent"
+---
+
+# Bring Your Own Key (BYOK)
+
+OrchAgent uses a **Bring Your Own Key** model. You provide your own LLM API keys, and agents use them to make LLM calls.
+
+## Why BYOK?
+
+| Benefit | Description |
+|---------|-------------|
+| **Authors don't pay** | Agent authors don't pay for others' usage |
+| **No markup** | Direct relationship with LLM provider, no middleman costs |
+| **Your limits** | Use your existing rate limits and quotas |
+| **Your data policies** | LLM calls go through your account |
+
+<Note>
+**API keys are separate from subscriptions.** If you use Claude Pro/Max or ChatGPT Plus, you'll need to set up API billing separately. Get API keys at [console.anthropic.com](https://console.anthropic.com) or [platform.openai.com](https://platform.openai.com).
+</Note>
+
+## Key Resolution Order
+
+When an agent needs an LLM key, it looks in this order:
+
+1. **Command-line flag** - `--key` on CLI commands
+2. **Environment variable** - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.
+3. **OrchAgent account** - Keys stored in your dashboard (for server execution)
+
+## Setting Up Keys
+
+### For Local Execution
+
+Set environment variables:
+
+```bash
+# OpenAI
+export OPENAI_API_KEY="sk-..."
+
+# Anthropic
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Google Gemini
+export GEMINI_API_KEY="..."
+```
+
+Then run agents locally:
+
+```bash
+orch run acme/summarizer --input '{"text": "..."}'
+```
+
+### For Server Execution
+
+Store keys in your OrchAgent account:
+
+```bash
+orch llm-config --endpoint https://api.openai.com/v1 --model gpt-4o-mini --api-key sk-...
+```
+
+Or configure in the [dashboard](https://orchagent.io/dashboard).
+
+Then call agents on the server:
+
+```bash
+orch call acme/summarizer --data '{"text": "..."}'
+```
+
+## Supported Providers
+
+| Provider | Environment Variable | API Endpoint |
+|----------|---------------------|--------------|
+| OpenAI | `OPENAI_API_KEY` | `https://api.openai.com/v1` |
+| Anthropic | `ANTHROPIC_API_KEY` | `https://api.anthropic.com` |
+| Google Gemini | `GEMINI_API_KEY` | `https://generativelanguage.googleapis.com` |
+
+## Agent Provider Requirements
+
+Agents specify which providers they support in their manifest:
+
+```json
+{
+  "supported_providers": ["openai", "anthropic"]
+}
+```
+
+You need a key for at least one supported provider.
+
+### Provider Values
+
+| Value | Description |
+|-------|-------------|
+| `openai` | OpenAI API |
+| `anthropic` | Anthropic API |
+| `gemini` | Google Gemini API |
+| `any` | Works with any provider |
+
+## Fallback Configuration
+
+For code-based agents, authors can specify fallback LLMs:
+
+```yaml
+llm:
+  primary: gemini-2.5-flash
+  fallbacks:
+    - gpt-4o-mini
+    - claude-3-haiku
+```
+
+The agent tries providers in order until one succeeds.
+
+## Security
+
+### Local Execution
+
+Keys stay on your machine. The agent runs locally and makes LLM calls directly from your environment.
+
+### Server Execution
+
+Keys are encrypted and stored in your OrchAgent account. They're injected into the agent container at runtime.
+
+<Note>
+Agent containers run in isolated environments. Your keys are never exposed to agent authors.
+</Note>
+
+### Network Egress Controls
+
+Server-executed agents route all outbound traffic through an allowlist proxy:
+
+**Allowed destinations:**
+
+- LLM APIs (OpenAI, Anthropic, Gemini)
+- OrchAgent gateway (`api.orchagent.io`)
+- Other OrchAgent agents
+
+**Blocked:**
+
+- All other domains
+- Private IP ranges
+- Cloud metadata endpoints
+
+## Best Practices
+
+1. **Use environment variables** for local development
+2. **Store keys in dashboard** for server execution
+3. **Set spending limits** with your LLM provider
+4. **Rotate keys regularly** if you share them
+5. **Use separate keys** for development and production

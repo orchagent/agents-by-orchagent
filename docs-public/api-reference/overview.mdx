@@ -1,0 +1,144 @@
+---
+title: "API Overview"
+description: "OrchAgent REST API reference"
+---
+
+# API Overview
+
+The OrchAgent API lets you call agents, manage API keys, and track usage programmatically.
+
+## Base URL
+
+```
+https://api.orchagent.io
+```
+
+## Authentication
+
+Most endpoints require an API key:
+
+```http
+Authorization: Bearer sk_live_xxx
+```
+
+Get your API key from the [dashboard](https://orchagent.io/dashboard).
+
+## OpenAPI Specification
+
+The full OpenAPI spec is available at:
+
+```
+https://docs.orchagent.io/api-reference/openapi.json
+```
+
+You can import this into tools like Postman, Insomnia, or use it to generate client libraries.
+
+## Endpoint Categories
+
+### Public (No Auth Required)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /public/agents` | List all public agents |
+| `GET /public/agents/{org}/{agent}/{version}` | Get agent details |
+| `GET /public/agents/{org}/{agent}/{version}/download` | Get download info for local execution |
+
+### Agent Calls (Auth Required)
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /{org}/{agent}/{version}/{endpoint}` | Call an agent |
+
+### Usage Tracking (Auth Required)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /usage` | Usage summary |
+| `GET /usage/timeseries` | Usage over time |
+| `GET /usage/breakdown` | Usage by agent |
+| `GET /usage/tenants` | Usage by tenant |
+| `GET /usage/logs` | Detailed call logs |
+
+### Author Usage (Auth Required)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /author-usage` | Usage of your agents |
+| `GET /author-usage/timeseries` | Your agents' usage over time |
+| `GET /author-usage/breakdown` | Your agents' usage breakdown |
+| `GET /author-usage/logs` | Your agents' call logs |
+
+### Agent Management (Auth Required)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /agents` | List your agents |
+| `POST /agents` | Register new agent |
+| `GET /agents/{id}` | Get agent details |
+| `PATCH /agents/{id}` | Update agent |
+| `POST /agents/{id}/star` | Star an agent |
+| `DELETE /agents/{id}/star` | Unstar an agent |
+| `POST /agents/{id}/fork` | Fork an agent |
+
+### API Keys (Auth Required)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api-keys` | List your API keys |
+| `POST /api-keys` | Create new API key |
+| `DELETE /api-keys/{id}` | Delete API key |
+
+## Response Format
+
+### Success
+
+```json
+{
+  "data": { ... },
+  "metadata": {
+    "request_id": "req_abc123"
+  }
+}
+```
+
+### Error
+
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable message",
+    "is_retryable": false
+  },
+  "metadata": {
+    "request_id": "req_abc123"
+  }
+}
+```
+
+## Rate Limits
+
+- **Free tier:** 1,000 calls/day
+- **Pro tier:** 10,000 calls/day
+
+See rate limit headers in responses:
+
+```http
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 995
+X-RateLimit-Reset: 1704067200
+```
+
+## SDKs
+
+Official SDKs coming soon. For now, use the HTTP API directly or the CLI:
+
+```bash
+npm install -g orchagent
+```
+
+## Need Help?
+
+- [API Reference](/using-agents/api-reference) - Detailed endpoint documentation
+- [Code Snippets](/using-agents/code-snippets) - Copy-paste examples
+- [CLI Commands](/using-agents/cli-commands) - Command-line interface

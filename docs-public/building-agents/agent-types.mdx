@@ -1,0 +1,211 @@
+---
+title: "Agent Types"
+description: "Prompt-based vs code-based agents"
+---
+
+# Agent Types
+
+OrchAgent supports two types of agents: **prompt-based** and **code-based**.
+
+## Comparison
+
+| | Prompt-based | Code-based |
+|-|--------------|------------|
+| **What you provide** | Prompt template + input/output schema | Python/JS code |
+| **Publish time** | Minutes | Hours |
+| **Complexity** | Single LLM call | Any logic |
+| **Forking** | Easy (edit prompt) | Harder (understand code) |
+| **Best for** | Extraction, summarization, classification | Multi-step workflows, tools, external APIs |
+
+## Prompt-Based Agents
+
+Prompt-based agents are the simplest way to create an agent. You provide:
+
+1. A prompt template with variable placeholders
+2. An input schema (what callers send)
+3. An output schema (what the LLM returns)
+
+OrchAgent handles the LLM call for you.
+
+### Example
+
+```json
+{
+  "name": "sentiment-analyzer",
+  "type": "prompt",
+  "version": "v1",
+  "description": "Analyze sentiment of text",
+  "supported_providers": ["openai", "anthropic"],
+  "prompt_template": "Analyze the sentiment of the following text and return a JSON object with 'sentiment' (positive, negative, or neutral) and 'confidence' (0-1).\n\nText: {{text}}",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "text": { "type": "string", "description": "Text to analyze" }
+    },
+    "required": ["text"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "sentiment": { "type": "string", "enum": ["positive", "negative", "neutral"] },
+      "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+    },
+    "required": ["sentiment", "confidence"]
+  }
+}
+```
+
+### Prompt Template Variables
+
+Use `{{variable}}` syntax in your prompt template:
+
+```
+Summarize the following {{document_type}} in {{language}}:
+
+{{content}}
+
+Focus on: {{focus_areas}}
+```
+
+Variables are replaced with values from the input at runtime.
+
+### When to Use Prompt-Based
+
+- Single LLM call is sufficient
+- No external API calls needed
+- No complex logic or branching
+- Want quick iteration on prompts
+
+## Code-Based Agents
+
+Code-based agents run your code on OrchAgent infrastructure. You have full control over:
+
+- Multiple LLM calls
+- External API integrations
+- Complex business logic
+- Data processing pipelines
+
+### Example
+
+Create a FastAPI application:
+
+```python
+# main.py
+from fastapi import FastAPI, Request
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class AnalyzeInput(BaseModel):
+    repo_url: str
+
+class AnalyzeOutput(BaseModel):
+    issues: list[str]
+    risk_score: float
+
+@app.get("/health")
+def health():
+    return {"status": "healthy", "version": "v1"}
+
+@app.post("/analyze")
+async def analyze(input: AnalyzeInput) -> AnalyzeOutput:
+    # Your custom logic here
+    # - Clone repo
+    # - Scan files
+    # - Call LLM for analysis
+    # - Aggregate results
+    return AnalyzeOutput(
+        issues=["Found hardcoded API key in config.py"],
+        risk_score=0.7
+    )
+```
+
+### Required Endpoints
+
+Every code-based agent must implement:
+
+```http
+GET /health
+```
+
+Response:
+
+```json
+{
+  "status": "healthy",
+  "version": "v1"
+}
+```
+
+### When to Use Code-Based
+
+- Multiple LLM calls needed
+- External API integrations
+- Complex data processing
+- Conditional logic based on intermediate results
+- Need to call other agents (orchestration)
+
+## Directory Structure
+
+### Prompt-Based Agent
+
+```
+my-prompt-agent/
+├── orchagent.json      # Agent configuration
+└── README.md           # Documentation (optional)
+```
+
+### Code-Based Agent
+
+```
+my-code-agent/
+├── orchagent.json      # Agent configuration
+├── main.py             # FastAPI application
+├── requirements.txt    # Python dependencies
+├── Dockerfile          # Container configuration (optional)
+└── README.md           # Documentation (optional)
+```
+
+## LLM Provider Configuration
+
+Agents specify which LLM providers they support:
+
+```json
+{
+  "supported_providers": ["openai", "anthropic", "gemini"]
+}
+```
+
+Use `"any"` if your agent works with any provider:
+
+```json
+{
+  "supported_providers": ["any"]
+}
+```
+
+### Fallback Configuration
+
+For code-based agents, specify fallback LLMs:
+
+```python
+# In your code
+llm_config = {
+    "primary": "gemini-2.5-flash",
+    "fallbacks": ["gpt-4o-mini", "claude-3-haiku"]
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Manifest Format" icon="file-code" href="/building-agents/manifest-format">
+    Full orchagent.json schema
+  </Card>
+  <Card title="Publishing" icon="upload" href="/building-agents/publishing">
+    Publish your agent
+  </Card>
+  <Card title="Orchestration" icon="diagram-project" href="/building-agents/orchestration">
+    Call other agents
+  </Card>
+</CardGroup>

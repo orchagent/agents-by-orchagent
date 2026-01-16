@@ -1,0 +1,89 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "OrchAgent",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#6366F1",
+    "light": "#818CF8",
+    "dark": "#4F46E5",
+    "anchors": {
+      "from": "#6366F1",
+      "to": "#8B5CF6"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "Dashboard",
+      "url": "https://orchagent.io/dashboard"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Sign Up",
+    "url": "https://orchagent.io"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/orchagent"
+    },
+    {
+      "name": "Community",
+      "icon": "discord",
+      "url": "https://discord.gg/orchagent"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": ["introduction", "quickstart"]
+    },
+    {
+      "group": "Using Agents",
+      "pages": [
+        "using-agents/api-reference",
+        "using-agents/cli-commands",
+        "using-agents/code-snippets"
+      ]
+    },
+    {
+      "group": "Building Agents",
+      "pages": [
+        "building-agents/agent-types",
+        "building-agents/manifest-format",
+        "building-agents/publishing",
+        "building-agents/orchestration"
+      ]
+    },
+    {
+      "group": "Concepts",
+      "pages": [
+        "concepts/byok",
+        "concepts/local-vs-server",
+        "concepts/rate-limits"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": ["api-reference/overview"]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/orchagent",
+    "twitter": "https://twitter.com/orchagent"
+  },
+  "openapi": ["/api-reference/openapi.json"],
+  "api": {
+    "baseUrl": "https://api.orchagent.io"
+  }
+}

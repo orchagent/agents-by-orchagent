@@ -1,0 +1,301 @@
+---
+title: "CLI Commands"
+description: "Complete reference for the OrchAgent CLI"
+---
+
+# CLI Commands
+
+The OrchAgent CLI lets you interact with the platform from your terminal.
+
+## Installation
+
+```bash
+npm install -g orchagent
+```
+
+## Commands Overview
+
+| Command | Purpose |
+|---------|---------|
+| `orch login` | Authenticate and store API key |
+| `orch whoami` | Show current user/org info |
+| `orch call <agent>` | Call an agent on the server |
+| `orch run <agent>` | Download and run an agent locally |
+| `orch init` | Initialize agent directory structure |
+| `orch publish` | Publish agent from local files |
+| `orch agents` | List public agents |
+| `orch search <query>` | Search public agents |
+| `orch star <agent>` | Star or unstar an agent |
+| `orch fork <agent>` | Fork a public agent |
+| `orch llm-config` | Set default LLM config |
+
+## Authentication
+
+### login
+
+Authenticate and store your API key.
+
+```bash
+# Interactive mode (recommended)
+orch login
+
+# Non-interactive mode (for CI/CD)
+orch login --key sk_live_xxx
+```
+
+<Warning>
+The `--key` flag exposes the key in shell history. For CI/CD, use the `ORCHAGENT_API_KEY` environment variable instead.
+</Warning>
+
+### whoami
+
+Show current user and organization info.
+
+```bash
+orch whoami
+```
+
+## Calling Agents
+
+### call
+
+Call an agent on OrchAgent's servers.
+
+```bash
+# Call with file
+orch call acme/invoice-scanner invoice.pdf
+
+# Agent name only (uses default_org from config)
+orch call invoice-scanner invoice.pdf
+
+# Pipe input via stdin
+cat document.pdf | orch call acme/pdf-parser
+
+# JSON payload
+orch call acme/text-extractor --data '{"text":"hello world"}'
+
+# JSON from file
+orch call acme/text-extractor --data @input.json
+
+# Specify version (default: v1)
+orch call acme/invoice-scanner@v2 invoice.pdf
+
+# Override endpoint
+orch call acme/invoice-scanner invoice.pdf --endpoint extract
+
+# JSON output for scripts
+orch call acme/invoice-scanner invoice.pdf --json
+
+# Save response to file
+orch call acme/image-processor photo.jpg --output result.png
+
+# Pass tenant ID (multi-tenant callers)
+orch call acme/invoice-scanner invoice.pdf --tenant customer-123
+```
+
+**Input handling:**
+
+- `--data` provided: sends JSON (`application/json`)
+- File argument provided: reads file, sends as `multipart/form-data`
+- No file but stdin has data: reads stdin, sends as `multipart/form-data`
+- Neither: sends empty request body
+
+### run
+
+Download and run an agent locally (no server execution).
+
+```bash
+# Run a code agent locally
+orch run joe/leak-finder https://github.com/user/repo
+
+# Run a prompt-based agent with JSON input
+orch run joe/summarizer --input '{"text": "..."}'
+
+# Just download without running
+orch run joe/leak-finder --download-only
+
+# Auto-download all dependencies
+orch run joe/security-review --with-deps https://github.com/user/repo
+```
+
+**Dependency handling for orchestrator agents:**
+
+When running an agent that has dependencies, the CLI prompts:
+
+```
+$ orch run joe/security-review .
+
+Checking dependencies...
+
+This agent has dependencies:
+  joe/leak-finder@v1 (downloadable)
+  joe/vuln-scanner@v1 (downloadable)
+  acme/premium-scan@v1 (cloud-only)
+
+Options:
+  [1] Run on server (orch call) - recommended
+  [2] Download 2 available deps, run locally
+  [3] Cancel
+
+Choose [1/2/3]:
+```
+
+Use `--with-deps` to skip the prompt and auto-download all available dependencies.
+
+## Discovery
+
+### agents
+
+List public agents.
+
+```bash
+# List all public agents
+orch agents
+
+# Filter by name
+orch agents --filter "invoice"
+
+# JSON output
+orch agents --json
+```
+
+### search
+
+Search public agents.
+
+```bash
+orch search "invoice" --sort stars
+```
+
+## Social Features
+
+### star
+
+Star or unstar an agent.
+
+```bash
+orch star acme/invoice-scanner
+```
+
+### fork
+
+Fork a public agent to your account.
+
+```bash
+orch fork acme/invoice-scanner
+```
+
+## Agent Development
+
+### init
+
+Initialize a new agent directory.
+
+```bash
+# Initialize a prompt-based agent
+orch init --type prompt
+
+# Initialize a code-based agent
+orch init --type code
+```
+
+### publish
+
+Publish an agent from the current directory.
+
+```bash
+orch publish --public
+```
+
+### llm-config
+
+Set default LLM configuration for prompt agents.
+
+```bash
+orch llm-config --endpoint https://api.openai.com/v1 --model gpt-4.1-mini --api-key sk-...
+```
+
+## Configuration
+
+Config is stored at `~/.orchagent/config.json`:
+
+```json
+{
+  "api_key": "sk_live_xxx",
+  "api_url": "https://api.orchagent.io",
+  "default_org": "acme"
+}
+```
+
+### Environment Variables
+
+Environment variables override config file values:
+
+| Variable | Description |
+|----------|-------------|
+| `ORCHAGENT_API_KEY` | API key (preferred for CI/CD) |
+| `ORCHAGENT_API_URL` | API base URL |
+| `ORCHAGENT_DEFAULT_ORG` | Default org for agent lookups |
+
+### Resolution Order
+
+1. Command-line flags
+2. Environment variables
+3. Config file
+4. Built-in defaults
+
+## Output Modes
+
+### Human Mode (Default)
+
+```
+$ orch agents
+
+Name                    Author    Category
+--------------------------------------------
+invoice-scanner         acme      Document Processing
+billing-doc-analyzer    acme      Document Processing
+pdf-parser              tools     Utilities
+```
+
+### JSON Mode
+
+```bash
+orch agents --json
+```
+
+```json
+[
+  {"name": "invoice-scanner", "org": "acme", "category": "Document Processing"}
+]
+```
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | General/unknown error |
+| `2` | Authentication error |
+| `3` | Permission denied |
+| `4` | Not found |
+| `5` | Invalid input |
+| `6` | Rate limited |
+| `7` | Timeout |
+| `8` | Server error |
+| `9` | Network error |
+
+## Scripting
+
+The CLI is designed for Unix-style scripting:
+
+```bash
+# Capture response, see errors
+result=$(orch call acme/scanner doc.pdf)
+
+# Suppress errors, check exit code
+orch call acme/scanner doc.pdf 2>/dev/null && echo "success"
+
+# Process JSON output
+orch call acme/scanner doc.pdf --json | jq '.data.total'
+```

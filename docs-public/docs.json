@@ -12,54 +12,71 @@
     "light": "#fb923c",
     "dark": "#ea580c"
   },
-  "topbarLinks": [
-    {
-      "name": "Dashboard",
-      "url": "https://orchagent.io/dashboard"
+  "navbar": {
+    "links": [
+      {
+        "label": "Dashboard",
+        "href": "https://orchagent.io/dashboard"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Sign Up",
+      "href": "https://orchagent.io"
     }
-  ],
-  "topbarCtaButton": {
-    "name": "Sign Up",
-    "url": "https://orchagent.io"
   },
-  "navigation": [
-    {
-      "group": "Get Started",
-      "pages": ["introduction", "quickstart"]
-    },
-    {
-      "group": "Using Agents",
-      "pages": [
-        "using-agents/api-reference",
-        "using-agents/cli-commands",
-        "using-agents/code-snippets"
-      ]
-    },
-    {
-      "group": "Building Agents",
-      "pages": [
-        "building-agents/agent-types",
-        "building-agents/manifest-format",
-        "building-agents/publishing",
-        "building-agents/orchestration"
-      ]
-    },
-    {
-      "group": "Concepts",
-      "pages": [
-        "concepts/byok",
-        "concepts/local-vs-server",
-        "concepts/rate-limits"
-      ]
-    },
-    {
-      "group": "API Reference",
-      "pages": ["api-reference/overview"]
+  "navigation": {
+    "languages": [
+      {
+        "language": "en",
+        "tabs": [
+          {
+            "tab": "Documentation",
+            "groups": [
+              {
+                "group": "Get Started",
+                "pages": ["introduction", "quickstart"]
+              },
+              {
+                "group": "Using Agents",
+                "pages": [
+                  "using-agents/api-reference",
+                  "using-agents/cli-commands",
+                  "using-agents/code-snippets"
+                ]
+              },
+              {
+                "group": "Building Agents",
+                "pages": [
+                  "building-agents/agent-types",
+                  "building-agents/manifest-format",
+                  "building-agents/publishing",
+                  "building-agents/orchestration"
+                ]
+              },
+              {
+                "group": "Concepts",
+                "pages": [
+                  "concepts/byok",
+                  "concepts/local-vs-server",
+                  "concepts/rate-limits"
+                ]
+              },
+              {
+                "group": "API Reference",
+                "pages": ["api-reference/overview"]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/orchagent",
+      "x": "https://twitter.com/orchagent"
     }
-  ],
-  "footerSocials": {
-    "github": "https://github.com/orchagent",
-    "twitter": "https://twitter.com/orchagent"
   },
   "openapi": ["/api-reference/openapi.json"],
   "api": {

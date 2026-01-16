@@ -1,0 +1,344 @@
+---
+title: "Code Snippets"
+description: "Examples in curl, Python, JavaScript, and TypeScript"
+---
+
+# Code Snippets
+
+Copy-paste examples for calling OrchAgent APIs in different languages.
+
+## curl
+
+### Call Agent with JSON
+
+```bash
+curl -X POST https://api.orchagent.io/acme/text-extractor/v1/extract \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Extract key points from this text..."}'
+```
+
+### Call Agent with File
+
+```bash
+curl -X POST https://api.orchagent.io/acme/invoice-scanner/v1/analyze \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY" \
+  -F "file=@invoice.pdf"
+```
+
+### List Public Agents
+
+```bash
+curl https://api.orchagent.io/public/agents
+```
+
+### Get Agent Details
+
+```bash
+curl https://api.orchagent.io/public/agents/acme/invoice-scanner/v1
+```
+
+## Python
+
+### Install
+
+```bash
+pip install httpx
+```
+
+### Call Agent with JSON
+
+```python
+import httpx
+import os
+
+API_KEY = os.environ["ORCHAGENT_API_KEY"]
+BASE_URL = "https://api.orchagent.io"
+
+def call_agent(org: str, agent: str, data: dict, version: str = "v1", endpoint: str = "analyze"):
+    response = httpx.post(
+        f"{BASE_URL}/{org}/{agent}/{version}/{endpoint}",
+        headers={"Authorization": f"Bearer {API_KEY}"},
+        json=data,
+        timeout=120.0
+    )
+    response.raise_for_status()
+    return response.json()
+
+# Example usage
+result = call_agent(
+    org="acme",
+    agent="text-extractor",
+    data={"text": "Extract key points from this text..."}
+)
+print(result["data"])
+```
+
+### Call Agent with File
+
+```python
+import httpx
+import os
+from pathlib import Path
+
+API_KEY = os.environ["ORCHAGENT_API_KEY"]
+BASE_URL = "https://api.orchagent.io"
+
+def call_agent_with_file(org: str, agent: str, file_path: str, version: str = "v1", endpoint: str = "analyze"):
+    path = Path(file_path)
+    with open(path, "rb") as f:
+        response = httpx.post(
+            f"{BASE_URL}/{org}/{agent}/{version}/{endpoint}",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            files={"file": (path.name, f, "application/octet-stream")},
+            timeout=120.0
+        )
+    response.raise_for_status()
+    return response.json()
+
+# Example usage
+result = call_agent_with_file(
+    org="acme",
+    agent="invoice-scanner",
+    file_path="invoice.pdf"
+)
+print(result["data"])
+```
+
+### Async Python
+
+```python
+import httpx
+import asyncio
+import os
+
+API_KEY = os.environ["ORCHAGENT_API_KEY"]
+BASE_URL = "https://api.orchagent.io"
+
+async def call_agent_async(org: str, agent: str, data: dict, version: str = "v1", endpoint: str = "analyze"):
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{BASE_URL}/{org}/{agent}/{version}/{endpoint}",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            json=data,
+            timeout=120.0
+        )
+        response.raise_for_status()
+        return response.json()
+
+# Example usage
+async def main():
+    result = await call_agent_async(
+        org="acme",
+        agent="text-extractor",
+        data={"text": "Extract key points..."}
+    )
+    print(result["data"])
+
+asyncio.run(main())
+```
+
+## JavaScript (Node.js)
+
+### Call Agent with JSON
+
+```javascript
+const API_KEY = process.env.ORCHAGENT_API_KEY;
+const BASE_URL = "https://api.orchagent.io";
+
+async function callAgent(org, agent, data, version = "v1", endpoint = "analyze") {
+  const response = await fetch(
+    `${BASE_URL}/${org}/${agent}/${version}/${endpoint}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// Example usage
+const result = await callAgent("acme", "text-extractor", {
+  text: "Extract key points from this text...",
+});
+console.log(result.data);
+```
+
+### Call Agent with File
+
+```javascript
+import { readFileSync } from "fs";
+import path from "path";
+
+const API_KEY = process.env.ORCHAGENT_API_KEY;
+const BASE_URL = "https://api.orchagent.io";
+
+async function callAgentWithFile(org, agent, filePath, version = "v1", endpoint = "analyze") {
+  const fileBuffer = readFileSync(filePath);
+  const fileName = path.basename(filePath);
+
+  const formData = new FormData();
+  formData.append("file", new Blob([fileBuffer]), fileName);
+
+  const response = await fetch(
+    `${BASE_URL}/${org}/${agent}/${version}/${endpoint}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+      },
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// Example usage
+const result = await callAgentWithFile("acme", "invoice-scanner", "invoice.pdf");
+console.log(result.data);
+```
+
+## TypeScript
+
+### Types
+
+```typescript
+interface AgentResponse<T> {
+  data: T;
+  warnings?: Array<{
+    code: string;
+    field?: string;
+    message: string;
+  }>;
+  metadata: {
+    request_id: string;
+    processing_time_ms: number;
+    version: string;
+  };
+}
+
+interface AgentError {
+  error: {
+    code: string;
+    message: string;
+    is_retryable: boolean;
+  };
+  metadata: {
+    request_id: string;
+  };
+}
+```
+
+### API Client
+
+```typescript
+const API_KEY = process.env.ORCHAGENT_API_KEY!;
+const BASE_URL = "https://api.orchagent.io";
+
+async function callAgent<T>(
+  org: string,
+  agent: string,
+  data: Record<string, unknown>,
+  version = "v1",
+  endpoint = "analyze"
+): Promise<AgentResponse<T>> {
+  const response = await fetch(
+    `${BASE_URL}/${org}/${agent}/${version}/${endpoint}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!response.ok) {
+    const error = (await response.json()) as AgentError;
+    throw new Error(`${error.error.code}: ${error.error.message}`);
+  }
+
+  return response.json() as Promise<AgentResponse<T>>;
+}
+
+// Example usage with typed response
+interface TextExtractionResult {
+  key_points: string[];
+  summary: string;
+}
+
+const result = await callAgent<TextExtractionResult>("acme", "text-extractor", {
+  text: "Extract key points from this text...",
+});
+
+console.log(result.data.key_points);
+console.log(result.data.summary);
+```
+
+## Error Handling
+
+### Python
+
+```python
+import httpx
+
+try:
+    result = call_agent("acme", "text-extractor", {"text": "..."})
+except httpx.HTTPStatusError as e:
+    error_body = e.response.json()
+    print(f"Error: {error_body['error']['code']}")
+    print(f"Message: {error_body['error']['message']}")
+    if error_body['error'].get('is_retryable'):
+        print("This error is retryable")
+```
+
+### JavaScript/TypeScript
+
+```javascript
+try {
+  const result = await callAgent("acme", "text-extractor", { text: "..." });
+} catch (error) {
+  if (error.response) {
+    const errorBody = await error.response.json();
+    console.error(`Error: ${errorBody.error.code}`);
+    console.error(`Message: ${errorBody.error.message}`);
+  }
+}
+```
+
+## Rate Limiting
+
+Check rate limit headers in responses:
+
+### Python
+
+```python
+response = httpx.post(url, headers=headers, json=data)
+remaining = response.headers.get("X-RateLimit-Remaining")
+reset_time = response.headers.get("X-RateLimit-Reset")
+print(f"Remaining: {remaining}, Reset: {reset_time}")
+```
+
+### JavaScript
+
+```javascript
+const response = await fetch(url, options);
+const remaining = response.headers.get("X-RateLimit-Remaining");
+const resetTime = response.headers.get("X-RateLimit-Reset");
+console.log(`Remaining: ${remaining}, Reset: ${resetTime}`);
+```

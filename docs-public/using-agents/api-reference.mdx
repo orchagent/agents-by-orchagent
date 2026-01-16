@@ -1,0 +1,243 @@
+---
+title: "API Reference"
+description: "Authentication, endpoints, request/response formats, and error handling"
+---
+
+# API Reference
+
+Base URL: `https://api.orchagent.io`
+
+## Authentication
+
+All authenticated endpoints require an API key in the Authorization header:
+
+```http
+Authorization: Bearer {api_key}
+```
+
+Get your API key from the [OrchAgent Dashboard](https://orchagent.io/dashboard).
+
+## Calling an Agent
+
+### Request Format
+
+```http
+POST /{org}/{agent}/{version}/{endpoint}
+Host: api.orchagent.io
+Authorization: Bearer {api_key}
+Content-Type: application/json
+Accept: application/json
+```
+
+### URL Parameters
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `org` | Organization slug | `acme` |
+| `agent` | Agent name | `invoice-scanner` |
+| `version` | Agent version | `v1` |
+| `endpoint` | Agent endpoint | `analyze` |
+
+### Optional Headers
+
+| Header | Description |
+|--------|-------------|
+| `X-Orchagent-Max-Hops` | Maximum call chain depth (for orchestrator agents) |
+| `X-Orchagent-Tenant` | Tenant ID for multi-tenant usage attribution |
+
+## Response Format
+
+### Success Response
+
+```json
+{
+  "data": {
+    // Agent-specific response fields
+  },
+  "warnings": [
+    {
+      "code": "LOW_CONFIDENCE",
+      "field": "amount",
+      "message": "Amount extracted with low confidence"
+    }
+  ],
+  "metadata": {
+    "request_id": "req_abc123",
+    "processing_time_ms": 1250,
+    "version": "v1"
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "error": {
+    "code": "DOCUMENT_TOO_LARGE",
+    "message": "Document exceeds 25MB size limit",
+    "is_retryable": false
+  },
+  "metadata": {
+    "request_id": "req_abc123"
+  }
+}
+```
+
+## Error Codes
+
+| Code | HTTP Status | Retryable | Description |
+|------|-------------|-----------|-------------|
+| `INVALID_INPUT` | 400 | No | Request doesn't match input schema |
+| `UNAUTHORIZED` | 401 | No | Invalid or missing API key |
+| `FORBIDDEN` | 403 | No | Caller lacks permission for this agent |
+| `NOT_FOUND` | 404 | No | Agent or version doesn't exist |
+| `DOCUMENT_TOO_LARGE` | 413 | No | File exceeds size limit |
+| `UNSUPPORTED_TYPE` | 415 | No | File type not supported |
+| `UNPROCESSABLE` | 422 | No | Valid format but cannot process content |
+| `RATE_LIMITED` | 429 | Yes | Too many requests, retry after wait |
+| `TIMEOUT` | 504 | Yes | Request exceeded configured timeout |
+| `LLM_ERROR` | 502 | Yes | Upstream LLM provider error |
+| `INTERNAL_ERROR` | 500 | Yes | Unexpected agent error |
+
+## File Upload
+
+For agents that accept files, use multipart form data:
+
+```http
+POST /{org}/{agent}/{version}/analyze
+Content-Type: multipart/form-data
+
+------Boundary
+Content-Disposition: form-data; name="file"; filename="invoice.pdf"
+Content-Type: application/pdf
+
+{binary data}
+------Boundary--
+```
+
+## Rate Limit Headers
+
+Response headers indicate your limit status:
+
+```http
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 995
+X-RateLimit-Reset: 1704067200
+```
+
+## Public Endpoints
+
+These endpoints don't require authentication:
+
+### List Public Agents
+
+```http
+GET /public/agents
+```
+
+### Get Agent Details
+
+```http
+GET /public/agents/{org}/{agent}/{version}
+```
+
+### Download Agent (for local execution)
+
+```http
+GET /public/agents/{org}/{agent}/{version}/download
+```
+
+Response:
+
+```json
+{
+  "type": "code",
+  "name": "leak-finder",
+  "version": "v1",
+  "description": "Finds leaked secrets in your codebase",
+  "source_url": "git+https://github.com/user/repo.git#subdirectory=leak-finder",
+  "run_command": "python3 -m leak_finder.cli"
+}
+```
+
+## Authenticated Endpoints
+
+### Usage
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /usage` | Your usage summary |
+| `GET /usage/timeseries` | Usage over time |
+| `GET /usage/breakdown` | Usage by agent |
+| `GET /usage/logs` | Detailed call logs |
+
+### API Keys
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api-keys` | List your API keys |
+| `POST /api-keys` | Create new API key |
+| `DELETE /api-keys/{id}` | Delete API key |
+
+### Agents
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /agents` | List your agents |
+| `POST /agents` | Register new agent |
+| `GET /agents/{id}` | Get agent details |
+| `PATCH /agents/{id}` | Update agent |
+| `POST /agents/{id}/star` | Star an agent |
+| `DELETE /agents/{id}/star` | Unstar an agent |
+| `POST /agents/{id}/fork` | Fork an agent |
+
+## Versioning
+
+Agents use URL-based versioning:
+
+```
+https://api.orchagent.io/{org}/{agent}/v1/analyze
+https://api.orchagent.io/{org}/{agent}/v2/analyze
+```
+
+- Authors increment version for breaking changes
+- Old versions remain accessible during 60-day deprecation period
+- Pin to specific versions in production
+
+### Deprecation Headers
+
+When an agent version is deprecated:
+
+```http
+HTTP/1.1 200 OK
+Deprecation: true
+Sunset: Sat, 1 Mar 2025 00:00:00 GMT
+Link: </{org}/{agent}/v2/{endpoint}>; rel="successor-version"
+```
+
+## Warnings Array
+
+Successful responses may include warnings:
+
+```json
+{
+  "data": { ... },
+  "warnings": [
+    {
+      "code": "LOW_CONFIDENCE",
+      "field": "amount",
+      "message": "Amount extracted with 60% confidence"
+    }
+  ]
+}
+```
+
+Standard warning codes:
+
+| Code | Description |
+|------|-------------|
+| `LOW_CONFIDENCE` | Field value uncertain |
+| `TRUNCATED` | Data was truncated |
+| `DEPRECATED_FIELD` | Field will be removed in next version |
+| `VALIDATION_SKIPPED` | Couldn't validate a field |

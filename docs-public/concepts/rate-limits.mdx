@@ -1,0 +1,212 @@
+---
+title: "Rate Limits"
+description: "Platform limits and how they work"
+---
+
+# Rate Limits
+
+OrchAgent enforces rate limits to ensure fair usage across the platform.
+
+## Platform Limits
+
+| Tier | Daily Calls | Concurrent Requests |
+|------|-------------|---------------------|
+| **Free** | 1,000 | 10 |
+| **Pro** | 10,000 | 50 |
+| **Enterprise** | Custom | Custom |
+
+## How Limits Are Counted
+
+### Top-Level Calls
+
+Each call to an agent counts as **1 call** against your daily limit:
+
+```bash
+orch call acme/summarizer --data '{"text": "..."}'  # +1 call
+```
+
+### Orchestrator Calls
+
+When you call an orchestrator that calls other agents, only the **top-level call** counts:
+
+```
+You → security-review → leak-finder
+                     → vuln-scanner
+                     → license-checker
+```
+
+**Your daily count: +1** (not +4)
+
+The orchestrator's sub-calls are handled internally and don't count against your limit.
+
+## Rate Limit Headers
+
+Every response includes headers showing your limit status:
+
+```http
+X-RateLimit-Limit: 1000
+X-RateLimit-Remaining: 995
+X-RateLimit-Reset: 1704067200
+```
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Your daily limit |
+| `X-RateLimit-Remaining` | Remaining calls today |
+| `X-RateLimit-Reset` | Unix timestamp when limit resets |
+
+## Rate Limit Errors
+
+When you exceed your limit:
+
+```json
+{
+  "error": {
+    "code": "RATE_LIMITED",
+    "message": "Rate limit exceeded. Try again after 2024-01-16T00:00:00Z",
+    "is_retryable": true,
+    "suggested_wait_time": 3600
+  },
+  "metadata": {
+    "request_id": "req_abc123"
+  }
+}
+```
+
+**HTTP Status:** 429 Too Many Requests
+
+## Timeouts
+
+### Request Timeouts
+
+| Setting | Default | Maximum |
+|---------|---------|---------|
+| Author-configured | 60s | 300s |
+| Platform-enforced | — | 300s |
+
+Authors set timeout in their manifest:
+
+```json
+{
+  "timeout_seconds": 120
+}
+```
+
+### Timeout Propagation
+
+For orchestrators, timeouts propagate through the call chain:
+
+```
+remaining_time = original_deadline - elapsed_time
+```
+
+If a sub-call would exceed the remaining time, it fails fast with `TIMEOUT`.
+
+## Composition Limits
+
+### Max Hops
+
+Limits how deep agent-to-agent calls can go:
+
+```
+Caller → Agent A → Agent B → Agent C
+              ↑         ↑         ↑
+            hop 1     hop 2     hop 3
+```
+
+**Effective limit:** `min(caller's max_hops, agent's max_hops)`
+
+### Downstream Cap
+
+Limits how many downstream calls an orchestrator can make per request:
+
+```json
+{
+  "manifest": {
+    "per_call_downstream_cap": 100
+  }
+}
+```
+
+## Handling Rate Limits
+
+### Check Before Calling
+
+```python
+import httpx
+
+response = httpx.get(
+    "https://api.orchagent.io/usage",
+    headers={"Authorization": f"Bearer {api_key}"}
+)
+usage = response.json()
+remaining = usage["calls_remaining"]
+```
+
+### Implement Backoff
+
+```python
+import time
+import httpx
+
+def call_with_retry(url, data, max_retries=3):
+    for attempt in range(max_retries):
+        response = httpx.post(url, json=data)
+
+        if response.status_code == 429:
+            wait_time = int(response.headers.get("Retry-After", 60))
+            time.sleep(wait_time)
+            continue
+
+        return response
+
+    raise Exception("Max retries exceeded")
+```
+
+### JavaScript Example
+
+```javascript
+async function callWithRetry(url, data, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (response.status === 429) {
+      const waitTime = parseInt(response.headers.get("Retry-After") || "60");
+      await new Promise((resolve) => setTimeout(resolve, waitTime * 1000));
+      continue;
+    }
+
+    return response;
+  }
+
+  throw new Error("Max retries exceeded");
+}
+```
+
+## Upgrading Limits
+
+### Pro Plan
+
+- 10,000 calls/day
+- 50 concurrent requests
+- Priority support
+
+### Enterprise
+
+- Custom limits
+- SLA guarantees
+- Dedicated support
+
+Contact [sales@orchagent.io](mailto:sales@orchagent.io) for enterprise pricing.
+
+## Best Practices
+
+1. **Check remaining calls** before batch operations
+2. **Implement exponential backoff** for 429 responses
+3. **Cache responses** when appropriate
+4. **Use webhooks** instead of polling when available
+5. **Monitor usage** in the dashboard

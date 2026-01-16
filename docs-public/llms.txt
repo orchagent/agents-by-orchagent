@@ -1,0 +1,83 @@
+# OrchAgent
+
+> AI agent marketplace and runtime. Publish agents, call them via API. BYOK model - you bring your own LLM keys.
+
+## Overview
+
+OrchAgent is a free, open platform where developers share, discover, and run AI agents. Think of it as GitHub for AI agents.
+
+**Key features:**
+- Publish agents in minutes (prompt-based or code-based)
+- Call any agent via simple API
+- Fork and improve others' agents
+- Free tier: 1000 calls/day
+- BYOK: Bring your own LLM API keys
+
+## Agent Types
+
+**Prompt-based agents:** Provide a prompt template + input/output schema. OrchAgent handles the LLM call.
+
+**Code-based agents:** Provide Python/JS code that runs on OrchAgent infrastructure. Full control over logic, external APIs, multi-step workflows.
+
+## Docs
+
+- [Introduction](https://docs.orchagent.io/introduction): What is OrchAgent
+- [Quickstart](https://docs.orchagent.io/quickstart): Get running in 60 seconds
+- [API Reference](https://docs.orchagent.io/using-agents/api-reference): Authentication, endpoints, errors
+- [CLI Commands](https://docs.orchagent.io/using-agents/cli-commands): orch login, call, run, publish
+- [Code Snippets](https://docs.orchagent.io/using-agents/code-snippets): curl, Python, JavaScript, TypeScript examples
+- [Agent Types](https://docs.orchagent.io/building-agents/agent-types): Prompt-based vs code-based
+- [Manifest Format](https://docs.orchagent.io/building-agents/manifest-format): orchagent.json schema
+- [Publishing](https://docs.orchagent.io/building-agents/publishing): Publish your agent
+- [Orchestration](https://docs.orchagent.io/building-agents/orchestration): Agent-to-agent calls
+- [BYOK](https://docs.orchagent.io/concepts/byok): Bring Your Own Key model
+- [Local vs Server](https://docs.orchagent.io/concepts/local-vs-server): orch run vs orch call
+- [Rate Limits](https://docs.orchagent.io/concepts/rate-limits): Platform limits
+
+## API
+
+- Base URL: https://api.orchagent.io
+- Auth: Bearer token (API key from dashboard)
+- OpenAPI spec: https://docs.orchagent.io/api-reference/openapi.json
+
+## Quick Start
+
+### Call an agent (no account needed, runs locally)
+```bash
+npx orchagent run orchagent/summarizer --input '{"text": "Your text here"}'
+```
+
+### Call an agent (server execution, account required)
+```bash
+npm install -g orchagent
+orch login
+orch call orchagent/summarizer --data '{"text": "Your text here"}'
+```
+
+### API call
+```bash
+curl -X POST https://api.orchagent.io/acme/summarizer/v1/analyze \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Your text here"}'
+```
+
+## Core Concepts
+
+| Term | Definition |
+|------|------------|
+| Agent | An API endpoint that performs a task using AI |
+| Prompt-based agent | Author provides prompt + schema. OrchAgent handles LLM call. |
+| Code-based agent | Author provides code that runs on OrchAgent infrastructure. |
+| Orchestrator | An agent that calls other agents |
+| BYOK | Bring Your Own Key - users provide their own LLM API keys |
+| Star | Users can star agents they like (like GitHub stars) |
+| Fork | Copy an agent to your account and modify it |
+| Version | Each publish creates a new version (v1, v2, v3...) |
+
+## Links
+
+- Website: https://orchagent.io
+- Dashboard: https://orchagent.io/dashboard
+- API: https://api.orchagent.io
+- Docs: https://docs.orchagent.io

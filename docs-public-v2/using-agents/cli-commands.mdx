@@ -25,8 +25,7 @@ npm install -g orchagent
 | `orch publish` | Publish agent or skill from local files |
 | `orch agents` | List public agents |
 | `orch skill list` | List public skills |
-| `orch skill call <skill>` | Call a skill on the server |
-| `orch skill run <skill>` | Run a skill locally |
+| `orch skill install <skill>` | Install skill to local AI tool directories |
 | `orch search <query>` | Search public agents and skills |
 | `orch star <agent>` | Star or unstar an agent or skill |
 | `orch fork <agent>` | Fork a public agent or skill |
@@ -187,7 +186,7 @@ orch search "react" --type skills
 
 ## Skills
 
-Skills are passive knowledge (instructions, rules, guidelines) that can be run standalone or composed with agents.
+Skills are passive knowledge (instructions, rules, guidelines) that enhance agents. Install them locally for use with any AI coding tool (Claude Code, Cursor, Codex, etc.).
 
 ### skill list
 
@@ -204,29 +203,55 @@ orch skill list --filter "react"
 orch skill list --json
 ```
 
-### skill call
+### skill install
 
-Call a skill on orchagent's servers. The skill is loaded and your input is processed using it.
+Install a skill to your local AI tool directories. This writes the skill to multiple locations so it works with Claude Code, Cursor, Codex, and other AI coding tools.
 
 ```bash
-# Call with input
-orch skill call yourorg/react-best-practices --input '{"code": "..."}'
+# Install to current directory (project-specific)
+orch skill install yourorg/react-best-practices
+
+# Install to home directory (global)
+orch skill install yourorg/react-best-practices --global
 
 # Specify version
-orch skill call yourorg/react-best-practices@v2 --input '{"code": "..."}'
+orch skill install yourorg/react-best-practices@v2
 ```
 
-### skill run
+**Install locations (current directory):**
+```
+./.claude/skills/react-best-practices.md
+./.cursor/skills/react-best-practices.md
+./.codex/skills/react-best-practices.md
+./.agent/skills/react-best-practices.md
+```
 
-Download and run a skill locally.
+**Install locations (with `--global`):**
+```
+~/.claude/skills/react-best-practices.md
+~/.cursor/skills/react-best-practices.md
+~/.codex/skills/react-best-practices.md
+~/.agent/skills/react-best-practices.md
+```
+
+The skill is saved in standard markdown format, compatible with the [Agent Skills specification](https://agentskills.io).
+
+### Using Skills with OrchAgent Agents
+
+When calling OrchAgent agents, you can pass skills via flags:
 
 ```bash
-# Run locally with input
-orch skill run yourorg/react-best-practices --input '{"code": "..."}'
+# Add skills to an agent call
+orch call acme/code-reviewer code.py --skills yourorg/react-best-practices
 
-# Just download without running
-orch skill run yourorg/react-best-practices --download-only
+# Use ONLY specific skills (ignore agent's default_skills)
+orch call acme/code-reviewer code.py --skills-only yourorg/react-rules
+
+# Ignore all skills
+orch call acme/code-reviewer code.py --no-skills
 ```
+
+Agent authors can also define `default_skills` in their agent manifest - these are automatically injected when the agent runs.
 
 ## Social Features
 

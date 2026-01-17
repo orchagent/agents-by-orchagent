@@ -263,24 +263,36 @@ my-skill/
 
 Skills can be used in two ways:
 
-**1. Run standalone** - The skill becomes a simple prompt agent:
+**1. Install locally** - Use with any AI coding tool (Claude Code, Cursor, Codex, etc.):
 
 ```bash
-npx orchagent run yourorg/react-best-practices
+# Install to current directory
+orch skill install yourorg/react-best-practices
+
+# Install globally
+orch skill install yourorg/react-best-practices --global
 ```
 
-**2. Compose with agents** - Inject skill knowledge into an agent:
+This writes the skill to multiple directories:
+- `.claude/skills/` (Claude Code)
+- `.cursor/skills/` (Cursor)
+- `.codex/skills/` (Codex)
+- `.agent/skills/` (Universal)
+
+**2. Compose with OrchAgent agents** - Inject skill knowledge into an agent call:
 
 ```bash
 # Add skills to an agent call
 orch call yourorg/code-reviewer --skills yourorg/react-best-practices
 
-# Use only specific skills (ignore agent's defaults)
+# Use only specific skills (ignore agent's default_skills)
 orch call yourorg/code-reviewer --skills-only yourorg/react-best-practices
 
 # Ignore all skills
 orch call yourorg/code-reviewer --no-skills
 ```
+
+Agent authors can define `default_skills` in their manifest - these are automatically injected when the agent runs.
 
 ### When to Create a Skill vs an Agent
 

@@ -4,7 +4,7 @@
 
 ## Overview
 
-orchagent is a free, open platform where developers share, discover, and run AI agents. Think of it as GitHub for AI agents.
+orchagent is a free marketplace where developers find, run, and share AI agents. Think of it as GitHub for AI agents.
 
 **Key features:**
 - Publish agents in minutes (prompt-based or code-based)

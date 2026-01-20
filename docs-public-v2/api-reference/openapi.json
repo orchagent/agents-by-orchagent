@@ -265,6 +265,137 @@
         }
       }
     },
+    "/agents/{id}/upload": {
+      "post": {
+        "summary": "Upload code bundle",
+        "description": "Upload a ZIP bundle for a code-based agent",
+        "operationId": "uploadAgentBundle",
+        "tags": ["Agent Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Agent ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "bundle": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "ZIP file containing agent code"
+                  }
+                },
+                "required": ["bundle"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Bundle uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadBundleResponse"
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid bundle" },
+          "401": { "description": "Unauthorized" },
+          "413": { "description": "Bundle too large (max 25MB)" }
+        }
+      }
+    },
+    "/agents/{id}/logs": {
+      "get": {
+        "summary": "Get execution logs",
+        "description": "Get execution logs for a code agent (owner only)",
+        "operationId": "getAgentLogs",
+        "tags": ["Agent Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Agent ID"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 50 },
+            "description": "Number of log entries to return"
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date-time" },
+            "description": "Return logs before this timestamp"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Execution logs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ExecutionLog"
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Not the agent owner" },
+          "404": { "description": "Agent not found" }
+        }
+      }
+    },
+    "/usage/compute": {
+      "get": {
+        "summary": "Get compute usage",
+        "description": "Get compute usage statistics for code agents",
+        "operationId": "getComputeUsage",
+        "tags": ["Usage"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 30 },
+            "description": "Number of days to include"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Compute usage statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComputeUsageStats"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api-keys": {
       "get": {
         "summary": "List API keys",
@@ -444,6 +575,53 @@
           "key": { "type": "string", "description": "Full API key (only shown once)" },
           "prefix": { "type": "string" },
           "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "UploadBundleResponse": {
+        "type": "object",
+        "properties": {
+          "bundle_id": { "type": "string", "description": "Unique ID for the uploaded bundle" },
+          "size_bytes": { "type": "integer", "description": "Size of the uploaded bundle" },
+          "entrypoint": { "type": "string", "description": "Detected entrypoint file" },
+          "status": { "type": "string", "enum": ["processing", "active", "error"] },
+          "uploaded_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ExecutionLog": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "request_id": { "type": "string" },
+          "agent_id": { "type": "string" },
+          "started_at": { "type": "string", "format": "date-time" },
+          "completed_at": { "type": "string", "format": "date-time" },
+          "duration_ms": { "type": "integer" },
+          "status": { "type": "string", "enum": ["success", "error", "timeout"] },
+          "exit_code": { "type": "integer" },
+          "stdout": { "type": "string", "description": "Standard output (truncated to 10KB)" },
+          "stderr": { "type": "string", "description": "Standard error (truncated to 10KB)" }
+        }
+      },
+      "ComputeUsageStats": {
+        "type": "object",
+        "properties": {
+          "total_executions": { "type": "integer", "description": "Total code agent executions" },
+          "executions_remaining": { "type": "integer", "description": "Remaining executions this period" },
+          "total_compute_seconds": { "type": "number", "description": "Total compute time in seconds" },
+          "period_start": { "type": "string", "format": "date-time" },
+          "period_end": { "type": "string", "format": "date-time" },
+          "by_agent": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "agent_id": { "type": "string" },
+                "agent_name": { "type": "string" },
+                "executions": { "type": "integer" },
+                "compute_seconds": { "type": "number" }
+              }
+            }
+          }
         }
       }
     }

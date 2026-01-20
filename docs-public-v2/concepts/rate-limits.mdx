@@ -15,6 +15,30 @@ orchagent enforces rate limits to ensure fair usage across the platform.
 | **Pro** | 10,000 | 50 |
 | **Enterprise** | Custom | Custom |
 
+## Code Agent Limits
+
+Code agents have separate limits for compute time (sandbox execution):
+
+| Tier | Daily Calls | Max Timeout | Compute Hours |
+|------|-------------|-------------|---------------|
+| **Free** | 50 | 30s | Included |
+| **Pro** | 500 | 5min | Included |
+| **Enterprise** | Custom | Custom | Custom |
+
+<Note>
+Code agent limits are **separate** from prompt agent limits. You can use both types with their respective quotas.
+</Note>
+
+Check your compute usage:
+
+```bash
+# Via CLI
+orch usage --compute
+
+# Via API
+GET /usage/compute
+```
+
 ## How Limits Are Counted
 
 ### Top-Level Calls

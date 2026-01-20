@@ -90,7 +90,7 @@ Variables are replaced with values from the input at runtime.
 
 ## Code-Based Agents
 
-Code-based agents run your code on orchagent infrastructure. You have full control over:
+Code-based agents run your code in **E2B sandboxes** - secure, ephemeral execution environments. Each call spins up a fresh sandbox, runs your script, and returns the result. You have full control over:
 
 - Multiple LLM calls
 - External API integrations
@@ -99,55 +99,75 @@ Code-based agents run your code on orchagent infrastructure. You have full contr
 
 ### Example
 
-Create a FastAPI application:
+Create a simple Python script that reads from stdin and writes to stdout:
 
 ```python
-# main.py
-from fastapi import FastAPI, Request
-from pydantic import BaseModel
+# main.py - Code agent that analyzes a repository
+import json
+import sys
+import subprocess
 
-app = FastAPI()
+def main():
+    # Read input from stdin
+    input_data = json.load(sys.stdin)
+    repo_url = input_data.get("repo_url")
 
-class AnalyzeInput(BaseModel):
-    repo_url: str
-
-class AnalyzeOutput(BaseModel):
-    issues: list[str]
-    risk_score: float
-
-@app.get("/health")
-def health():
-    return {"status": "healthy", "version": "v1"}
-
-@app.post("/analyze")
-async def analyze(input: AnalyzeInput) -> AnalyzeOutput:
     # Your custom logic here
     # - Clone repo
     # - Scan files
     # - Call LLM for analysis
     # - Aggregate results
-    return AnalyzeOutput(
-        issues=["Found hardcoded API key in config.py"],
-        risk_score=0.7
-    )
+
+    result = {
+        "issues": ["Found hardcoded API key in config.py"],
+        "risk_score": 0.7
+    }
+
+    # Write output to stdout
+    print(json.dumps(result))
+
+if __name__ == "__main__":
+    main()
 ```
 
-### Required Endpoints
+### Input/Output Contract
 
-Every code-based agent must implement:
+Code agents communicate via stdin/stdout:
 
-```http
-GET /health
-```
-
-Response:
+**Input (stdin):** JSON object with your input data:
 
 ```json
 {
-  "status": "healthy",
-  "version": "v1"
+  "repo_url": "https://github.com/user/repo"
 }
 ```
+
+**Output (stdout):** JSON object with your result:
+
+```json
+{
+  "issues": ["..."],
+  "risk_score": 0.7
+}
+```
+
+**File Input:** When files are uploaded, you receive a manifest:
+
+```json
+{
+  "files": [
+    {
+      "path": "/tmp/uploads/invoice.pdf",
+      "original_name": "invoice.pdf",
+      "content_type": "application/pdf",
+      "size_bytes": 1234567
+    }
+  ],
+  "metadata": {"format": "detailed"}
+}
+```
+
+Your code reads files from the `path` locations and processes them.
 
 ### When to Use Code-Based
 
@@ -172,10 +192,17 @@ my-prompt-agent/
 ```
 my-code-agent/
 ├── orchagent.json      # Agent configuration
-├── main.py             # FastAPI application
-├── requirements.txt    # Python dependencies
-├── Dockerfile          # Container configuration (optional)
+├── main.py             # Entry point (or index.js for Node.js)
+├── requirements.txt    # Python dependencies (or package.json)
 └── README.md           # Documentation (optional)
+```
+
+The CLI auto-detects your entrypoint. Detection order: `main.py`, `app.py`, `index.py`, `main.js`, `index.js`. You can override this in your manifest:
+
+```json
+{
+  "entrypoint": "run.py"
+}
 ```
 
 ## LLM Provider Configuration

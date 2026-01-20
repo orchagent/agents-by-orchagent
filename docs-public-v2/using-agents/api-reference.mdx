@@ -116,6 +116,66 @@ Content-Type: application/pdf
 ------Boundary--
 ```
 
+### Multiple Files
+
+To send multiple files, use the `files[]` array format:
+
+```http
+POST /{org}/{agent}/{version}/analyze
+Content-Type: multipart/form-data
+
+------Boundary
+Content-Disposition: form-data; name="files[]"; filename="doc1.pdf"
+Content-Type: application/pdf
+
+{binary data}
+------Boundary
+Content-Disposition: form-data; name="files[]"; filename="doc2.pdf"
+Content-Type: application/pdf
+
+{binary data}
+------Boundary
+Content-Disposition: form-data; name="metadata"
+Content-Type: application/json
+
+{"format":"detailed"}
+------Boundary--
+```
+
+## Code Agent Input Contract
+
+When files are uploaded to a code agent, the agent receives a JSON manifest via stdin:
+
+```json
+{
+  "files": [
+    {
+      "path": "/tmp/uploads/doc1.pdf",
+      "original_name": "doc1.pdf",
+      "content_type": "application/pdf",
+      "size_bytes": 1234567
+    },
+    {
+      "path": "/tmp/uploads/doc2.pdf",
+      "original_name": "doc2.pdf",
+      "content_type": "application/pdf",
+      "size_bytes": 2345678
+    }
+  ],
+  "metadata": {"format": "detailed"}
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `files[].path` | Absolute path to the file in the sandbox |
+| `files[].original_name` | Original filename from upload |
+| `files[].content_type` | MIME type of the file |
+| `files[].size_bytes` | File size in bytes |
+| `metadata` | Optional JSON metadata from the request |
+
+Your code agent reads the files from their `path` locations and processes them.
+
 ## Rate Limit Headers
 
 Response headers indicate your limit status:
@@ -191,6 +251,14 @@ Response:
 | `POST /agents/{id}/star` | Star an agent |
 | `DELETE /agents/{id}/star` | Unstar an agent |
 | `POST /agents/{id}/fork` | Fork an agent |
+| `POST /agents/{id}/upload` | Upload code bundle (code agents only) |
+| `GET /agents/{id}/logs` | Get execution logs (owner only) |
+
+### Compute Usage
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /usage/compute` | Get compute usage for code agents |
 
 ## Versioning
 

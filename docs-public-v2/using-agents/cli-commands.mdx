@@ -94,6 +94,12 @@ orch call acme/image-processor photo.jpg --output result.png
 # Pass tenant ID (multi-tenant callers)
 orch call acme/invoice-scanner invoice.pdf --tenant customer-123
 
+# Multiple files
+orch call acme/batch-processor --file doc1.pdf --file doc2.pdf
+
+# Files with metadata
+orch call acme/invoice-scanner --file invoice.pdf --metadata '{"format":"detailed"}'
+
 # Compose with skills (add skill knowledge to the agent)
 orch call acme/code-reviewer code.py --skills yourorg/react-best-practices
 
@@ -108,6 +114,8 @@ orch call acme/code-reviewer code.py --no-skills
 
 - `--data` provided: sends JSON (`application/json`)
 - File argument provided: reads file, sends as `multipart/form-data`
+- `--file` provided: sends files as `multipart/form-data` with `files[]` array
+- `--metadata` provided: adds JSON metadata field to multipart request
 - No file but stdin has data: reads stdin, sends as `multipart/form-data`
 - Neither: sends empty request body
 
@@ -298,11 +306,25 @@ orch publish --public
 
 # Publish as private (requires paid plan)
 orch publish
+
+# Dry run to preview bundle (code agents)
+orch publish --dry-run
+
+# Override entrypoint for code agents
+orch publish --entrypoint custom.py
 ```
 
 The CLI auto-detects the type:
 - If `SKILL.md` exists → publishes as skill
 - If `orchagent.json` exists → publishes as agent (prompt or code based on config)
+
+**Code agent bundling:**
+
+For code-based agents, `orch publish` automatically:
+1. Detects your entrypoint (`main.py`, `index.js`, etc.)
+2. Bundles your code into a ZIP file
+3. Excludes `__pycache__/`, `node_modules/`, `.git/`, `.env`, `venv/`
+4. Uploads to the platform (25MB max)
 
 ### llm-config
 

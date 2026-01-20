@@ -121,13 +121,14 @@ The platform runs several checks:
 2. **Schema validation** - Validates input/output schemas
 3. **Dependency check** - Verifies all dependencies exist (for orchestrators)
 4. **Cycle detection** - Ensures no circular dependencies
-5. **Health check** - Verifies `/health` endpoint responds (code agents)
 
 For code-based agents, the platform also:
 
-1. Builds your container image
-2. Deploys to Cloud Run
-3. Verifies the deployment is healthy
+1. Creates a ZIP bundle of your code
+2. Stores the bundle securely
+3. On each call, spins up an E2B sandbox
+4. Runs your entrypoint with input via stdin
+5. Returns stdout as the response
 
 ## Versioning
 
@@ -161,6 +162,88 @@ To publish a new version:
 }
 ```
 
+## Code Agent Bundling
+
+For code-based agents, the CLI automatically creates a ZIP bundle of your project.
+
+### Auto-Detection
+
+The CLI detects code projects by looking for:
+- Python files (`.py`) with `requirements.txt`
+- JavaScript files (`.js`) with `package.json`
+
+### Entrypoint Detection
+
+The CLI looks for entrypoints in this order:
+1. `main.py`
+2. `app.py`
+3. `index.py`
+4. `main.js`
+5. `index.js`
+
+Override in your manifest:
+
+```json
+{
+  "entrypoint": "custom_runner.py"
+}
+```
+
+### Bundle Exclusions
+
+These files/directories are automatically excluded:
+- `__pycache__/`
+- `node_modules/`
+- `.git/`
+- `.env`
+- `venv/`
+- `.venv/`
+
+Create `.orchagentignore` for custom exclusions (same syntax as `.gitignore`).
+
+### Size Limits
+
+- Maximum bundle size: **25MB**
+- Use `orch publish --dry-run` to preview what will be bundled
+
+### Dry Run
+
+Preview your bundle without publishing:
+
+```bash
+orch publish --dry-run
+```
+
+This shows:
+- Files that will be included
+- Total bundle size
+- Detected entrypoint
+
+## Web UI Upload
+
+You can also upload code agent bundles through the web dashboard as an alternative to the CLI.
+
+### Upload via Dashboard
+
+1. Go to [orchagent Dashboard](https://orchagent.io/dashboard)
+2. Navigate to **Agents** → **My Agents**
+3. Click **Upload Bundle** on your agent card
+4. Drag and drop your ZIP file or click to browse
+
+### Bundle Requirements
+
+When uploading manually, ensure your ZIP contains:
+- `orchagent.json` at the root
+- Your entrypoint file (`main.py`, etc.)
+- `requirements.txt` or `package.json` (if needed)
+
+### Bundle Status
+
+Agent cards show bundle status indicators:
+- ✓ **Active** - Bundle uploaded and ready
+- ⏳ **Processing** - Bundle being validated
+- ✗ **Error** - Bundle validation failed (check logs)
+
 ## Service Keys
 
 When you publish an agent that has dependencies, the platform issues a **service key**:
@@ -189,7 +272,8 @@ export ORCHAGENT_SERVICE_KEY="sk_agent_..."
 |------|-------------|
 | `--public` | Make agent publicly visible |
 | `--private` | Keep agent private (default) |
-| `--dry-run` | Validate without publishing |
+| `--dry-run` | Validate and preview bundle without publishing |
+| `--entrypoint <file>` | Override entrypoint for code agents |
 
 ## Troubleshooting
 
@@ -207,19 +291,22 @@ Verify all dependencies in your manifest exist:
 - Ensure dependencies are published
 - Verify version strings match
 
-### "Health check failed"
+### "Bundle too large"
 
-For code agents, ensure:
-- `/health` endpoint returns 200
-- Response includes `{"status": "healthy"}`
-- Service starts within timeout
+Code agent bundles have a 25MB size limit. To reduce size:
+- Check for large files that shouldn't be included
+- Remove `node_modules/` or `venv/` directories
+- Use `.orchagentignore` to exclude files
 
-### "Build failed"
+### "Entrypoint not found"
 
-Check your:
-- `requirements.txt` has all dependencies
-- `Dockerfile` is valid (if provided)
-- Code has no syntax errors
+The CLI auto-detects entrypoints in this order: `main.py`, `app.py`, `index.py`, `main.js`, `index.js`. If your entrypoint has a different name:
+
+```json
+{
+  "entrypoint": "run.py"
+}
+```
 
 ## CI/CD Integration
 

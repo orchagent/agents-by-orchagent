@@ -13,7 +13,7 @@ orchagent supports two execution modes: **local** (`orch run`) and **server** (`
 |-|-------------------|-------------------|
 | **Primary users** | Power users, devs exploring | Apps in production |
 | **Interface** | CLI | HTTP API (code) |
-| **Where code runs** | Your machine | orchagent Cloud Run |
+| **Where code runs** | Your machine | E2B sandboxes (ephemeral) |
 | **Account required** | No | Yes (free) |
 | **LLM keys** | From your environment | From your account |
 | **Rate limits** | Your LLM provider limits | 1000 calls/day free |
@@ -67,9 +67,10 @@ orch call acme/summarizer --data '{"text": "..."}'
 
 1. CLI sends request to gateway (`api.orchagent.io`)
 2. Gateway authenticates your API key
-3. Gateway routes to agent container on Cloud Run
-4. Agent runs with your stored LLM keys
-5. Response returned through gateway
+3. Gateway spins up an E2B sandbox (ephemeral)
+4. Agent code runs with input via stdin
+5. Agent runs with your stored LLM keys
+6. Response (stdout) returned through gateway
 
 ### When to Use
 
@@ -102,8 +103,8 @@ orch call acme/summarizer --data '{"text": "..."}'
 
 ```
 ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
-│  Your CLI    │─────▶│  Gateway     │─────▶│ Agent        │
-│              │      │              │      │ (Cloud Run)  │
+│  Your CLI    │─────▶│  Gateway     │─────▶│ E2B Sandbox  │
+│              │      │              │      │ (ephemeral)  │
 └──────────────┘      └──────────────┘      └──────┬───────┘
                                                    │
                              ┌─────────────────────┘

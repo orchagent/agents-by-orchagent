@@ -51,28 +51,48 @@ Additional fields for code agents:
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `url` | string | Deployed service URL |
+| `entrypoint` | string | Entry file to execute (e.g., `sandbox_main.py`) |
+| `url` | string | Deployed service URL (legacy) |
 | `source_url` | string | Git URL for local execution |
 | `run_command` | string | Command to run locally |
+| `bundle` | object | Bundle configuration (see below) |
+
+### Bundle Configuration
+
+Control what files are included in your code bundle:
+
+```json
+{
+  "bundle": {
+    "exclude": ["data/", "*.log", "large_model.bin"],
+    "include": ["important.dat"]
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `exclude` | array | Glob patterns to exclude from bundle |
+| `include` | array | Glob patterns to include (overrides excludes) |
 
 ### Example
 
 ```json
 {
   "name": "leak-finder",
-  "version": "v1",
+  "version": "v5",
   "type": "code",
   "description": "Finds leaked secrets in codebases",
-  "supported_providers": ["any"],
-  "default_endpoint": "scan",
-  "timeout_seconds": 120,
-  "url": "https://leak-finder-xyz.run.app",
-  "source_url": "git+https://github.com/user/repo.git#subdirectory=leak-finder",
-  "run_command": "python3 -m leak_finder.cli",
+  "supported_providers": ["gemini"],
+  "entrypoint": "sandbox_main.py",
   "tags": ["security", "scanning"],
   "is_public": true
 }
 ```
+
+<Note>
+For E2B sandbox execution (recommended), only `entrypoint` is needed. The `url`, `source_url`, and `run_command` fields are for legacy self-hosted agents.
+</Note>
 
 ## Prompt-Based Agent Fields
 

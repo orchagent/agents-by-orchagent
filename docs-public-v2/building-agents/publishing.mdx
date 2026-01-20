@@ -175,36 +175,73 @@ The CLI detects code projects by looking for:
 ### Entrypoint Detection
 
 The CLI looks for entrypoints in this order:
-1. `main.py`
-2. `app.py`
-3. `index.py`
-4. `main.js`
-5. `index.js`
+
+**Python:** `main.py`, `app.py`, `agent.py`, `run.py`, `__main__.py`
+
+**JavaScript:** `main.js`, `index.js`, `agent.js`, `main.ts`, `index.ts`, `agent.ts`
 
 Override in your manifest:
 
 ```json
 {
-  "entrypoint": "custom_runner.py"
+  "entrypoint": "sandbox_main.py"
 }
 ```
 
 ### Bundle Exclusions
 
 These files/directories are automatically excluded:
-- `__pycache__/`
-- `node_modules/`
-- `.git/`
-- `.env`
-- `venv/`
-- `.venv/`
 
-Create `.orchagentignore` for custom exclusions (same syntax as `.gitignore`).
+**Python:**
+- `**/__pycache__/`, `**/*.pyc`, `**/*.pyo`, `**/*.egg-info/`
+- `venv/`, `.venv/`, `env/`, `.env`
+- `dist/`, `build/`, `.eggs/`
+- `pyproject.toml`, `setup.py`, `setup.cfg`
+- `.mypy_cache/`, `.pytest_cache/`, `.ruff_cache/`
+
+**Node.js:**
+- `node_modules/`
+- `package.json`, `package-lock.json`, `yarn.lock`, `bun.lockb`
+- `tsconfig.json`
+
+**Git & IDE:**
+- `.git/`, `.gitignore`, `.gitattributes`
+- `.idea/`, `.vscode/`, `.DS_Store`
+
+**Documentation:**
+- `README.md`, `CHANGELOG.md`, `LICENSE`
+- `docs/`
+
+**Docker & CI:**
+- `Dockerfile`, `docker-compose.yml`, `.dockerignore`
+- `.github/`, `.gitlab-ci.yml`, `.circleci/`
+
+**Tests:**
+- `tests/`, `test/`, `__tests__/`
+- `*_test.py`, `test_*.py`, `*.test.js`, `*.spec.ts`
+- `conftest.py`, `pytest.ini`, `coverage/`
+
+**Other:**
+- `orchagent.json` (read separately)
+- `*.zip`, `bundle.zip`
+- `scripts/`, `Makefile`
+
+For custom exclusions, add a `bundle` section to your manifest:
+
+```json
+{
+  "name": "my-agent",
+  "bundle": {
+    "exclude": ["data/", "*.log"],
+    "include": ["important.dat"]
+  }
+}
+```
 
 ### Size Limits
 
-- Maximum bundle size: **25MB**
-- Use `orch publish --dry-run` to preview what will be bundled
+- Maximum bundle size: **50MB**
+- Keep bundles small for faster cold starts
 
 ### Dry Run
 
@@ -293,18 +330,18 @@ Verify all dependencies in your manifest exist:
 
 ### "Bundle too large"
 
-Code agent bundles have a 25MB size limit. To reduce size:
+Code agent bundles have a 50MB size limit. To reduce size:
 - Check for large files that shouldn't be included
 - Remove `node_modules/` or `venv/` directories
-- Use `.orchagentignore` to exclude files
+- Use `bundle.exclude` in your manifest to exclude files
 
 ### "Entrypoint not found"
 
-The CLI auto-detects entrypoints in this order: `main.py`, `app.py`, `index.py`, `main.js`, `index.js`. If your entrypoint has a different name:
+The CLI auto-detects entrypoints: `main.py`, `app.py`, `agent.py`, `run.py` for Python; `main.js`, `index.js`, `agent.js` for JavaScript. If your entrypoint has a different name:
 
 ```json
 {
-  "entrypoint": "run.py"
+  "entrypoint": "sandbox_main.py"
 }
 ```
 

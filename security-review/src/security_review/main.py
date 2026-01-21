@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from git.exc import GitCommandError
 
-from .agent_client import AgentClient
+from orchagent import AgentClient
 from .git_utils import cloned_repo
 from .models import (
     ReviewRequest,

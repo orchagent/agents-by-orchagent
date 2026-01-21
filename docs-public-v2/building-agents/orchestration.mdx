@@ -155,6 +155,8 @@ async def review(request: Request, input: ReviewInput):
 - Max hops decrement
 - Error wrapping
 
+<Tip>For complete SDK reference including error handling and environment variables, see the [SDK Documentation](/building-agents/sdk).</Tip>
+
 ### Step 3: Set Environment Variables
 
 ```bash
@@ -282,6 +284,8 @@ Choose [1/2/3]:
 orch run joe/security-review --with-deps .
 ```
 
+<Note>Local mode requires the [orchagent-sdk](/building-agents/sdk) package to be installed for dependency calls to work correctly.</Note>
+
 ## Rate Limits
 
 | What | Limit Applied |
@@ -336,3 +340,14 @@ Request exceeded deadline.
 5. **Set reasonable timeouts** - Account for all dependency calls
 6. **Use parallel calls** - Fan-out when deps are independent
 7. **Test locally first** - Use `orch run --with-deps` during development
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="SDK Reference" icon="code" href="/building-agents/sdk">
+    Complete API reference for the orchagent-sdk package
+  </Card>
+  <Card title="Agent Types" icon="shapes" href="/building-agents/agent-types">
+    Learn about different agent types and when to use them
+  </Card>
+</CardGroup>

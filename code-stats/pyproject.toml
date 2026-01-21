@@ -7,7 +7,7 @@ name = "code-stats"
 version = "0.1.0"
 description = "Analyzes code for quality metrics - line counts, function lengths, complexity warnings"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = ["orchagent-sdk>=0.1.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0"]

@@ -1,0 +1,270 @@
+---
+title: "OrchAgent SDK"
+description: "Use the official orchagent-sdk package for calling other agents"
+---
+
+# OrchAgent SDK
+
+The `orchagent-sdk` Python package provides a simple interface for building orchestrator agents that call other agents. It handles authentication, call chain propagation, and error handling automatically.
+
+## Installation
+
+Install from PyPI:
+
+```bash
+pip install orchagent-sdk
+```
+
+<Tip>
+The SDK requires Python 3.9 or higher.
+</Tip>
+
+## Basic Usage
+
+The SDK provides `AgentClient` for calling other agents from within your agent:
+
+```python
+from fastapi import Request
+from orchagent import AgentClient
+
+@app.post("/analyze")
+async def analyze(request: Request, input: AnalyzeInput):
+    # Create client from incoming request
+    client = AgentClient.from_request(request)
+
+    # Call another agent
+    result = await client.call("joe/leak-finder@v1", {"url": input.repo_url})
+
+    return {"findings": result}
+```
+
+The `AgentClient.from_request()` method extracts context from the incoming request, including:
+
+- Service key for authentication
+- Call chain for cycle detection
+- Deadline for timeout propagation
+- Remaining hops count
+
+## Local vs Server Mode
+
+The SDK automatically detects whether to route calls locally or through the gateway based on the `ORCHAGENT_LOCAL_EXECUTION` environment variable.
+
+| Mode | `ORCHAGENT_LOCAL_EXECUTION` | Behavior |
+|------|----------------------------|----------|
+| **Server** | Not set or `false` | Calls route through `api.orchagent.io` |
+| **Local** | `true` | Calls route to locally running agents |
+
+<Note>
+When you run an orchestrator with `orch run --with-deps`, the CLI automatically sets `ORCHAGENT_LOCAL_EXECUTION=true` so your agent calls dependencies locally.
+</Note>
+
+### Server Mode (Default)
+
+In server mode, calls go through the gateway which handles routing, authentication, and sandbox management:
+
+```python
+# Server mode - calls go to api.orchagent.io
+client = AgentClient.from_request(request)
+result = await client.call("joe/leak-finder@v1", {"url": repo})
+```
+
+### Local Mode
+
+In local mode, calls go directly to locally running agent processes:
+
+```python
+# With ORCHAGENT_LOCAL_EXECUTION=true
+# Calls route to localhost ports where dependencies are running
+client = AgentClient.from_request(request)
+result = await client.call("joe/leak-finder@v1", {"url": repo})
+```
+
+## API Reference
+
+### AgentClient
+
+The main class for calling other agents.
+
+#### Creating a Client
+
+```python
+from orchagent import AgentClient
+
+# From an incoming request (recommended for orchestrators)
+client = AgentClient.from_request(request)
+
+# With explicit configuration
+client = AgentClient(
+    service_key="sk_agent_...",
+    gateway_url="https://api.orchagent.io"
+)
+```
+
+#### call()
+
+Call another agent asynchronously.
+
+```python
+result = await client.call(
+    agent_id,      # Required: "org/name@version"
+    input_data,    # Required: dict of input parameters
+    endpoint=None, # Optional: specific endpoint (default: agent's default)
+    timeout=None   # Optional: timeout in seconds (default: inherited from request)
+)
+```
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `agent_id` | `str` | Yes | Agent identifier in format `org/name@version` |
+| `input_data` | `dict` | Yes | Input parameters for the agent |
+| `endpoint` | `str` | No | Specific endpoint to call (e.g., `"deep-scan"`) |
+| `timeout` | `float` | No | Timeout in seconds, overrides inherited deadline |
+
+**Returns:** `dict` - The agent's response data
+
+**Raises:** `DependencyCallError`, `TimeoutExceededError`, `CallChainCycleError`
+
+#### Examples
+
+```python
+# Basic call
+result = await client.call("joe/summarizer@v1", {"text": document})
+
+# Call specific endpoint
+result = await client.call("joe/scanner@v1", {"url": repo}, endpoint="deep-scan")
+
+# Override timeout
+result = await client.call("joe/analyzer@v1", {"data": data}, timeout=60.0)
+```
+
+## Environment Variables
+
+The SDK uses these environment variables:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ORCHAGENT_SERVICE_KEY` | Yes | Service key for agent authentication (`sk_agent_...`) |
+| `ORCHAGENT_GATEWAY_URL` | No | Gateway URL (default: `https://api.orchagent.io`) |
+| `ORCHAGENT_LOCAL_EXECUTION` | No | Set to `true` to route calls locally |
+| `ORCHAGENT_CALL_CHAIN` | No | Propagated automatically; tracks call ancestry |
+| `ORCHAGENT_DEADLINE` | No | Propagated automatically; deadline timestamp |
+
+<Tip>
+When running on orchagent's servers, `ORCHAGENT_SERVICE_KEY` is automatically injected into your agent's environment.
+</Tip>
+
+## Error Handling
+
+The SDK provides specific exception types for different failure modes:
+
+```python
+from orchagent import (
+    AgentClient,
+    DependencyCallError,
+    TimeoutExceededError,
+    CallChainCycleError
+)
+
+try:
+    result = await client.call("joe/analyzer@v1", input_data)
+except DependencyCallError as e:
+    # The called agent returned an error
+    print(f"Agent error: {e.status_code}")
+    print(f"Response: {e.response_body}")
+except TimeoutExceededError:
+    # Request exceeded deadline
+    print("Call timed out")
+except CallChainCycleError:
+    # Cycle detected (A -> B -> A)
+    print("Circular dependency detected")
+```
+
+### Exception Reference
+
+| Exception | When Raised | Common Causes |
+|-----------|-------------|---------------|
+| `DependencyCallError` | Agent returned non-2xx status | Agent bug, invalid input, agent unavailable |
+| `TimeoutExceededError` | Deadline exceeded | Slow agent, network issues, timeout too short |
+| `CallChainCycleError` | Cycle detected in call chain | A calls B calls A (circular dependency) |
+
+### Handling Partial Failures
+
+When calling multiple agents, handle failures gracefully:
+
+```python
+import asyncio
+
+async def analyze_repo(client, repo_url):
+    results = {}
+
+    # Use asyncio.gather with return_exceptions=True
+    outcomes = await asyncio.gather(
+        client.call("joe/leak-finder@v1", {"url": repo_url}),
+        client.call("joe/vuln-scanner@v1", {"url": repo_url}),
+        return_exceptions=True
+    )
+
+    for name, outcome in zip(["secrets", "vulnerabilities"], outcomes):
+        if isinstance(outcome, Exception):
+            results[name] = {"error": str(outcome)}
+        else:
+            results[name] = outcome
+
+    return results
+```
+
+## Best Practices
+
+### When to Use the SDK
+
+- **Building orchestrators** - Agents that compose multiple leaf agents
+- **Multi-step workflows** - Chaining agent calls in sequence
+- **Fan-out patterns** - Calling multiple agents in parallel
+
+### Recommendations
+
+1. **Always use `from_request()`** - This ensures proper context propagation (call chain, deadline, hops)
+
+2. **Handle all exception types** - Don't let `DependencyCallError` crash your agent
+
+3. **Use parallel calls when possible** - Fan-out to independent agents with `asyncio.gather()`
+
+4. **Pin dependency versions** - Use `org/agent@v1`, not `org/agent@latest`
+
+5. **Set reasonable timeouts** - Account for all dependency calls in your `timeout_ms`
+
+6. **Return partial results on failure** - Don't fail completely if one dependency fails
+
+```python
+# Good: Parallel calls with error handling
+async def review(client, repo):
+    secrets, vulns = await asyncio.gather(
+        client.call("joe/leak-finder@v1", {"url": repo}),
+        client.call("joe/vuln-scanner@v1", {"url": repo}),
+        return_exceptions=True
+    )
+
+    return {
+        "secrets": secrets if not isinstance(secrets, Exception) else None,
+        "vulnerabilities": vulns if not isinstance(vulns, Exception) else None,
+    }
+```
+
+### Anti-patterns to Avoid
+
+- **Don't create clients manually** in orchestrators - use `from_request()` to inherit context
+- **Don't ignore the call chain** - it prevents cycles and tracks lineage
+- **Don't hardcode gateway URLs** - use the environment variable
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Orchestration" icon="diagram-project" href="/building-agents/orchestration">
+    Learn how to build orchestrator agents that compose multiple agents together
+  </Card>
+  <Card title="Local vs Server" icon="server" href="/concepts/local-vs-server">
+    Understand when to use local execution vs server execution
+  </Card>
+</CardGroup>

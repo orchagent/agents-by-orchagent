@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from git.exc import GitCommandError
 
-from security_review.agent_client import AgentClient
+from orchagent import AgentClient
 from security_review.git_utils import cloned_repo
 from security_review.models import (
     FindingsCollection,

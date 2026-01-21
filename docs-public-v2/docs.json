@@ -51,7 +51,8 @@
                   "building-agents/agent-types",
                   "building-agents/manifest-format",
                   "building-agents/publishing",
-                  "building-agents/orchestration"
+                  "building-agents/orchestration",
+                  "building-agents/sdk"
                 ]
               },
               {

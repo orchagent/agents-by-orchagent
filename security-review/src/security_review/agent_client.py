@@ -32,7 +32,7 @@ class AgentClient:
                          env var.
         """
         self.base_url = base_url or os.environ.get(
-            "ORCHAGENT_API_URL", "http://localhost:8000"
+            "ORCHAGENT_API_URL", "https://api.orchagent.io"
         )
         self.timeout = timeout
         self.service_key = service_key or os.environ.get("ORCHAGENT_SERVICE_KEY")
@@ -58,6 +58,7 @@ class AgentClient:
         endpoint: str,
         payload: dict[str, Any],
         version: str = "v1",
+        org: str = "orchagent",
     ) -> dict[str, Any]:
         """Call an OrchAgent agent endpoint.
 
@@ -66,6 +67,7 @@ class AgentClient:
             endpoint: Endpoint to call (e.g., "scan").
             payload: Request payload.
             version: Agent version (e.g., "v1").
+            org: Organization that owns the agent (default: "orchagent").
 
         Returns:
             Response JSON from the agent.
@@ -76,11 +78,10 @@ class AgentClient:
         if not self._client:
             raise RuntimeError("AgentClient must be used as an async context manager")
 
-        # OrchAgent API URL pattern: /{agent-name}/{version}/{endpoint}/
-        # Trailing slash required to avoid 307 redirects that httpx won't follow for POST
-        url = f"/{agent_name}/{version}/{endpoint}/"
+        # OrchAgent API URL pattern: /{org}/{agent-name}/{version}/{endpoint}
+        url = f"/{org}/{agent_name}/{version}/{endpoint}"
 
-        logger.info(f"Calling agent: {agent_name}/{version}/{endpoint}")
+        logger.info(f"Calling agent: {org}/{agent_name}/{version}/{endpoint}")
 
         # Build headers with authentication
         headers: dict[str, str] = {}
@@ -114,7 +115,7 @@ class AgentClient:
 
         return await self.call_agent(
             agent_name="leak-finder",
-            endpoint="scan",
+            endpoint="run",
             payload=payload,
         )
 
@@ -142,6 +143,6 @@ class AgentClient:
 
         return await self.call_agent(
             agent_name="dep-scanner",
-            endpoint="scan",
+            endpoint="run",
             payload=payload,
         )

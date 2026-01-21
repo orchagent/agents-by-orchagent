@@ -20,6 +20,7 @@ class AgentClient:
         self,
         base_url: str | None = None,
         timeout: float = 60.0,
+        service_key: str | None = None,
     ):
         """Initialize the agent client.
 
@@ -27,11 +28,14 @@ class AgentClient:
             base_url: Base URL for the OrchAgent API. Defaults to ORCHAGENT_API_URL
                       env var or http://localhost:8000.
             timeout: Request timeout in seconds.
+            service_key: Service key for authentication. Defaults to ORCHAGENT_SERVICE_KEY
+                         env var.
         """
         self.base_url = base_url or os.environ.get(
             "ORCHAGENT_API_URL", "http://localhost:8000"
         )
         self.timeout = timeout
+        self.service_key = service_key or os.environ.get("ORCHAGENT_SERVICE_KEY")
         self._client: httpx.AsyncClient | None = None
 
     async def __aenter__(self) -> "AgentClient":
@@ -78,7 +82,12 @@ class AgentClient:
 
         logger.info(f"Calling agent: {agent_name}/{version}/{endpoint}")
 
-        response = await self._client.post(url, json=payload)
+        # Build headers with authentication
+        headers: dict[str, str] = {}
+        if self.service_key:
+            headers["Authorization"] = f"Bearer {self.service_key}"
+
+        response = await self._client.post(url, json=payload, headers=headers)
         response.raise_for_status()
 
         return response.json()

@@ -32,7 +32,7 @@ API keys are separate from subscriptions. If you use Claude Pro/Max or ChatGPT P
 Run an agent on your machine with a single command:
 
 ```bash
-npx orchagent run orchagent/secrets-scanner https://github.com/your/repo
+npx @orchagent/cli run orchagent/secrets-scanner https://github.com/your/repo
 ```
 
 **What happens:**
@@ -53,13 +53,13 @@ Go to [orchagent.io](https://orchagent.io) and create a free account.
 ### Step 2: Install CLI
 
 ```bash
-npm install -g orchagent
+npm install -g @orchagent/cli
 ```
 
 ### Step 3: Login
 
 ```bash
-orch login
+orchagent login
 ```
 
 This opens your browser for authentication and stores your API key.
@@ -67,7 +67,7 @@ This opens your browser for authentication and stores your API key.
 ### Step 4: Call an Agent
 
 ```bash
-orch call orchagent/secrets-scanner https://github.com/your/repo
+orchagent call orchagent/secrets-scanner https://github.com/your/repo
 ```
 
 **What happens:**
@@ -80,12 +80,12 @@ orch call orchagent/secrets-scanner https://github.com/your/repo
 
 | Command | What It Does | Where It Runs |
 |---------|--------------|---------------|
-| `npx orchagent run ORG/NAME` | Run agent or skill locally (no account) | Your machine |
-| `orch run ORG/NAME` | Run locally (with account) | Your machine |
-| `orch call ORG/NAME` | Run on server | Cloud Run |
-| `orch call ORG/AGENT --skills ORG/SKILL` | Run agent with skill composed | Cloud Run |
-| `orch login` | Authenticate CLI | - |
-| `orch publish` | Publish your agent or skill | - |
+| `npx @orchagent/cli run ORG/NAME` | Run agent or skill locally (no account) | Your machine |
+| `orchagent run ORG/NAME` | Run locally (with account) | Your machine |
+| `orchagent call ORG/NAME` | Run on server | Cloud Run |
+| `orchagent call ORG/AGENT --skills ORG/SKILL` | Run agent with skill composed | Cloud Run |
+| `orchagent login` | Authenticate CLI | - |
+| `orchagent publish` | Publish your agent or skill | - |
 
 ## Calling with Files
 
@@ -93,10 +93,10 @@ Many agents process files. Pass a file as the second argument:
 
 ```bash
 # Call with a PDF file
-orch call acme/invoice-scanner invoice.pdf
+orchagent call acme/invoice-scanner invoice.pdf
 
 # Pipe file to stdin
-cat document.pdf | orch call acme/pdf-parser
+cat document.pdf | orchagent call acme/pdf-parser
 ```
 
 ## Calling with JSON
@@ -105,10 +105,10 @@ For prompt-based agents that accept JSON input:
 
 ```bash
 # Inline JSON
-orch call acme/text-extractor --data '{"text":"hello world"}'
+orchagent call acme/text-extractor --data '{"text":"hello world"}'
 
 # JSON from file
-orch call acme/text-extractor --data @input.json
+orchagent call acme/text-extractor --data @input.json
 ```
 
 ## Next Steps

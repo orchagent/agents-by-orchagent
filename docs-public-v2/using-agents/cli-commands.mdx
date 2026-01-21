@@ -10,26 +10,30 @@ The orchagent CLI lets you interact with the platform from your terminal.
 ## Installation
 
 ```bash
-npm install -g orchagent
+npm install -g @orchagent/cli
 ```
+
+<Tip>
+The CLI also installs `orch` as a shorthand alias. All commands work with either `orchagent` or `orch`.
+</Tip>
 
 ## Commands Overview
 
 | Command | Purpose |
 |---------|---------|
-| `orch login` | Authenticate and store API key |
-| `orch whoami` | Show current user/org info |
-| `orch call <agent>` | Call an agent on the server |
-| `orch run <agent>` | Download and run an agent or skill locally |
-| `orch init` | Initialize agent or skill directory structure |
-| `orch publish` | Publish agent or skill from local files |
-| `orch agents` | List public agents |
-| `orch skill list` | List public skills |
-| `orch skill install <skill>` | Install skill to local AI tool directories |
-| `orch search <query>` | Search public agents and skills |
-| `orch star <agent>` | Star or unstar an agent or skill |
-| `orch fork <agent>` | Fork a public agent or skill |
-| `orch llm-config` | Set default LLM config |
+| `orchagent login` | Authenticate and store API key |
+| `orchagent whoami` | Show current user/org info |
+| `orchagent call <agent>` | Call an agent on the server |
+| `orchagent run <agent>` | Download and run an agent or skill locally |
+| `orchagent init` | Initialize agent or skill directory structure |
+| `orchagent publish` | Publish agent or skill from local files |
+| `orchagent agents` | List public agents |
+| `orchagent skill list` | List public skills |
+| `orchagent skill install <skill>` | Install skill to local AI tool directories |
+| `orchagent search <query>` | Search public agents and skills |
+| `orchagent star <agent>` | Star or unstar an agent or skill |
+| `orchagent fork <agent>` | Fork a public agent or skill |
+| `orchagent llm-config` | Set default LLM config |
 
 ## Authentication
 
@@ -39,10 +43,10 @@ Authenticate and store your API key.
 
 ```bash
 # Interactive mode (recommended)
-orch login
+orchagent login
 
 # Non-interactive mode (for CI/CD)
-orch login --key sk_live_xxx
+orchagent login --key sk_live_xxx
 ```
 
 <Warning>
@@ -54,7 +58,7 @@ The `--key` flag exposes the key in shell history. For CI/CD, use the `ORCHAGENT
 Show current user and organization info.
 
 ```bash
-orch whoami
+orchagent whoami
 ```
 
 ## Calling Agents
@@ -65,49 +69,49 @@ Call an agent on orchagent's servers.
 
 ```bash
 # Call with file
-orch call acme/invoice-scanner invoice.pdf
+orchagent call acme/invoice-scanner invoice.pdf
 
 # Agent name only (uses default_org from config)
-orch call invoice-scanner invoice.pdf
+orchagent call invoice-scanner invoice.pdf
 
 # Pipe input via stdin
-cat document.pdf | orch call acme/pdf-parser
+cat document.pdf | orchagent call acme/pdf-parser
 
 # JSON payload
-orch call acme/text-extractor --data '{"text":"hello world"}'
+orchagent call acme/text-extractor --data '{"text":"hello world"}'
 
 # JSON from file
-orch call acme/text-extractor --data @input.json
+orchagent call acme/text-extractor --data @input.json
 
 # Specify version (default: v1)
-orch call acme/invoice-scanner@v2 invoice.pdf
+orchagent call acme/invoice-scanner@v2 invoice.pdf
 
 # Override endpoint
-orch call acme/invoice-scanner invoice.pdf --endpoint extract
+orchagent call acme/invoice-scanner invoice.pdf --endpoint extract
 
 # JSON output for scripts
-orch call acme/invoice-scanner invoice.pdf --json
+orchagent call acme/invoice-scanner invoice.pdf --json
 
 # Save response to file
-orch call acme/image-processor photo.jpg --output result.png
+orchagent call acme/image-processor photo.jpg --output result.png
 
 # Pass tenant ID (multi-tenant callers)
-orch call acme/invoice-scanner invoice.pdf --tenant customer-123
+orchagent call acme/invoice-scanner invoice.pdf --tenant customer-123
 
 # Multiple files
-orch call acme/batch-processor --file doc1.pdf --file doc2.pdf
+orchagent call acme/batch-processor --file doc1.pdf --file doc2.pdf
 
 # Files with metadata
-orch call acme/invoice-scanner --file invoice.pdf --metadata '{"format":"detailed"}'
+orchagent call acme/invoice-scanner --file invoice.pdf --metadata '{"format":"detailed"}'
 
 # Compose with skills (add skill knowledge to the agent)
-orch call acme/code-reviewer code.py --skills yourorg/react-best-practices
+orchagent call acme/code-reviewer code.py --skills yourorg/react-best-practices
 
 # Use only specific skills (ignore agent's default_skills)
-orch call acme/code-reviewer code.py --skills-only yourorg/react-best-practices
+orchagent call acme/code-reviewer code.py --skills-only yourorg/react-best-practices
 
 # Ignore all skills (even if agent has default_skills)
-orch call acme/code-reviewer code.py --no-skills
+orchagent call acme/code-reviewer code.py --no-skills
 ```
 
 **Input handling:**
@@ -125,16 +129,16 @@ Download and run an agent locally (no server execution).
 
 ```bash
 # Run a code agent locally
-orch run joe/leak-finder https://github.com/user/repo
+orchagent run joe/leak-finder https://github.com/user/repo
 
 # Run a prompt-based agent with JSON input
-orch run joe/summarizer --input '{"text": "..."}'
+orchagent run joe/summarizer --input '{"text": "..."}'
 
 # Just download without running
-orch run joe/leak-finder --download-only
+orchagent run joe/leak-finder --download-only
 
 # Auto-download all dependencies
-orch run joe/security-review --with-deps https://github.com/user/repo
+orchagent run joe/security-review --with-deps https://github.com/user/repo
 ```
 
 **Dependency handling for orchestrator agents:**
@@ -142,7 +146,7 @@ orch run joe/security-review --with-deps https://github.com/user/repo
 When running an agent that has dependencies, the CLI prompts:
 
 ```
-$ orch run joe/security-review .
+$ orchagent run joe/security-review .
 
 Checking dependencies...
 
@@ -152,7 +156,7 @@ This agent has dependencies:
   acme/premium-scan@v1 (cloud-only)
 
 Options:
-  [1] Run on server (orch call) - recommended
+  [1] Run on server (orchagent call) - recommended
   [2] Download 2 available deps, run locally
   [3] Cancel
 
@@ -169,13 +173,13 @@ List public agents.
 
 ```bash
 # List all public agents
-orch agents
+orchagent agents
 
 # Filter by name
-orch agents --filter "invoice"
+orchagent agents --filter "invoice"
 
 # JSON output
-orch agents --json
+orchagent agents --json
 ```
 
 ### search
@@ -183,13 +187,13 @@ orch agents --json
 Search public agents and skills.
 
 ```bash
-orch search "invoice" --sort stars
+orchagent search "invoice" --sort stars
 
 # Filter to agents only
-orch search "invoice" --type agents
+orchagent search "invoice" --type agents
 
 # Filter to skills only
-orch search "react" --type skills
+orchagent search "react" --type skills
 ```
 
 ## Skills
@@ -202,13 +206,13 @@ List public skills.
 
 ```bash
 # List all public skills
-orch skill list
+orchagent skill list
 
 # Filter by name
-orch skill list --filter "react"
+orchagent skill list --filter "react"
 
 # JSON output
-orch skill list --json
+orchagent skill list --json
 ```
 
 ### skill install
@@ -217,13 +221,13 @@ Install a skill to your local AI tool directories. This writes the skill to mult
 
 ```bash
 # Install to current directory (project-specific)
-orch skill install yourorg/react-best-practices
+orchagent skill install yourorg/react-best-practices
 
 # Install to home directory (global)
-orch skill install yourorg/react-best-practices --global
+orchagent skill install yourorg/react-best-practices --global
 
 # Specify version
-orch skill install yourorg/react-best-practices@v2
+orchagent skill install yourorg/react-best-practices@v2
 ```
 
 **Install locations (current directory):**
@@ -250,13 +254,13 @@ When calling OrchAgent agents, you can pass skills via flags:
 
 ```bash
 # Add skills to an agent call
-orch call acme/code-reviewer code.py --skills yourorg/react-best-practices
+orchagent call acme/code-reviewer code.py --skills yourorg/react-best-practices
 
 # Use ONLY specific skills (ignore agent's default_skills)
-orch call acme/code-reviewer code.py --skills-only yourorg/react-rules
+orchagent call acme/code-reviewer code.py --skills-only yourorg/react-rules
 
 # Ignore all skills
-orch call acme/code-reviewer code.py --no-skills
+orchagent call acme/code-reviewer code.py --no-skills
 ```
 
 Agent authors can also define `default_skills` in their agent manifest - these are automatically injected when the agent runs.
@@ -268,7 +272,7 @@ Agent authors can also define `default_skills` in their agent manifest - these a
 Star or unstar an agent.
 
 ```bash
-orch star acme/invoice-scanner
+orchagent star acme/invoice-scanner
 ```
 
 ### fork
@@ -276,7 +280,7 @@ orch star acme/invoice-scanner
 Fork a public agent to your account.
 
 ```bash
-orch fork acme/invoice-scanner
+orchagent fork acme/invoice-scanner
 ```
 
 ## Agent Development
@@ -287,13 +291,13 @@ Initialize a new agent or skill directory.
 
 ```bash
 # Initialize a prompt-based agent
-orch init --type prompt
+orchagent init --type prompt
 
 # Initialize a code-based agent
-orch init --type code
+orchagent init --type code
 
 # Initialize a skill
-orch init --type skill
+orchagent init --type skill
 ```
 
 ### publish
@@ -302,16 +306,16 @@ Publish an agent or skill from the current directory.
 
 ```bash
 # Publish as public
-orch publish --public
+orchagent publish --public
 
 # Publish as private (requires paid plan)
-orch publish
+orchagent publish
 
 # Dry run to preview bundle (code agents)
-orch publish --dry-run
+orchagent publish --dry-run
 
 # Override entrypoint for code agents
-orch publish --entrypoint custom.py
+orchagent publish --entrypoint custom.py
 ```
 
 The CLI auto-detects the type:
@@ -320,7 +324,7 @@ The CLI auto-detects the type:
 
 **Code agent bundling:**
 
-For code-based agents, `orch publish` automatically:
+For code-based agents, `orchagent publish` automatically:
 1. Detects your entrypoint (`main.py`, `index.js`, etc.)
 2. Bundles your code into a ZIP file
 3. Excludes `__pycache__/`, `node_modules/`, `.git/`, `.env`, `venv/`
@@ -331,7 +335,7 @@ For code-based agents, `orch publish` automatically:
 Set default LLM configuration for prompt agents.
 
 ```bash
-orch llm-config --endpoint https://api.openai.com/v1 --model gpt-4.1-mini --api-key sk-...
+orchagent llm-config --endpoint https://api.openai.com/v1 --model gpt-4.1-mini --api-key sk-...
 ```
 
 ## Configuration
@@ -368,7 +372,7 @@ Environment variables override config file values:
 ### Human Mode (Default)
 
 ```
-$ orch agents
+$ orchagent agents
 
 Name                    Author    Category
 --------------------------------------------
@@ -380,7 +384,7 @@ pdf-parser              tools     Utilities
 ### JSON Mode
 
 ```bash
-orch agents --json
+orchagent agents --json
 ```
 
 ```json
@@ -410,11 +414,11 @@ The CLI is designed for Unix-style scripting:
 
 ```bash
 # Capture response, see errors
-result=$(orch call acme/scanner doc.pdf)
+result=$(orchagent call acme/scanner doc.pdf)
 
 # Suppress errors, check exit code
-orch call acme/scanner doc.pdf 2>/dev/null && echo "success"
+orchagent call acme/scanner doc.pdf 2>/dev/null && echo "success"
 
 # Process JSON output
-orch call acme/scanner doc.pdf --json | jq '.data.total'
+orchagent call acme/scanner doc.pdf --json | jq '.data.total'
 ```

@@ -3,9 +3,17 @@
   "version": "v1",
   "type": "code",
   "description": "Scans project dependencies for known vulnerabilities (CVEs). Runs npm audit, pip-audit, and similar tools to identify outdated or insecure packages.",
-  "supported_providers": ["any"],
-  "tags": ["security", "dependencies", "cve", "scanning", "devops"],
+  "supported_providers": [
+    "any"
+  ],
+  "tags": [
+    "security",
+    "dependencies",
+    "cve",
+    "scanning",
+    "devops"
+  ],
   "default_endpoint": "scan",
   "source_url": "git+https://github.com/jp730/agents-by-orchagent.git#subdirectory=dep-scanner",
-  "run_command": "python3 -m dep_scanner.cli"
+  "entrypoint": "sandbox_main.py"
 }

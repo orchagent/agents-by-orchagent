@@ -44,7 +44,12 @@ async def _call_leak_finder(
     path: str | None = None,
 ) -> dict[str, Any] | None:
     try:
-        return await client.call_leak_finder(repo_url=repo_url, path=path)
+        input_data = {}
+        if repo_url:
+            input_data["repo_url"] = repo_url
+        if path:
+            input_data["path"] = path
+        return await client.call("orchagent/leak-finder@v1", input_data)
     except Exception as e:
         logger.error(f"leak-finder call failed: {e}")
         return None
@@ -56,7 +61,12 @@ async def _call_dep_scanner(
     path: str | None = None,
 ) -> dict[str, Any] | None:
     try:
-        return await client.call_dep_scanner(repo_url=repo_url, path=path)
+        input_data = {}
+        if repo_url:
+            input_data["repo_url"] = repo_url
+        if path:
+            input_data["path"] = path
+        return await client.call("orchagent/dep-scanner@v1", input_data)
     except Exception as e:
         logger.error(f"dep-scanner call failed: {e}")
         return None
@@ -155,29 +165,27 @@ async def _run_review(
     should_scan_deps = scan_mode in ("full", "deps-only")
     should_scan_patterns = scan_mode in ("full", "patterns-only")
 
-    # Sub-agent calls only work with repo_url (server-side execution can't access local paths)
-    # For local paths, we skip sub-agent calls and rely on pattern scanning only
-    if repo_url:
-        async with AgentClient() as client:
-            tasks = []
+    # Call sub-agents for secrets and dependency scanning
+    # The SDK handles both server mode (HTTP) and local mode (subprocess) automatically
+    if should_scan_secrets or should_scan_deps:
+        client = AgentClient()
+        tasks = []
+
+        if should_scan_secrets:
+            tasks.append(_call_leak_finder(client, repo_url=repo_url, path=local_path))
+        if should_scan_deps:
+            tasks.append(_call_dep_scanner(client, repo_url=repo_url, path=local_path))
+
+        if tasks:
+            results = await asyncio.gather(*tasks)
+            result_idx = 0
 
             if should_scan_secrets:
-                tasks.append(_call_leak_finder(client, repo_url=repo_url))
+                findings.secrets = _parse_leak_finder_results(results[result_idx])
+                result_idx += 1
             if should_scan_deps:
-                tasks.append(_call_dep_scanner(client, repo_url=repo_url))
-
-            if tasks:
-                results = await asyncio.gather(*tasks)
-                result_idx = 0
-
-                if should_scan_secrets:
-                    findings.secrets = _parse_leak_finder_results(results[result_idx])
-                    result_idx += 1
-                if should_scan_deps:
-                    findings.dependencies = _parse_dep_scanner_results(results[result_idx])
-                    result_idx += 1
-    elif local_path and (should_scan_secrets or should_scan_deps):
-        logger.info("Local path provided - skipping sub-agent calls (leak-finder/dep-scanner). Use repo_url for full scan.")
+                findings.dependencies = _parse_dep_scanner_results(results[result_idx])
+                result_idx += 1
 
     if should_scan_patterns:
         if local_path:

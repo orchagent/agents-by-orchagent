@@ -54,7 +54,7 @@ async def health():
 async def _call_leak_finder(client: AgentClient, repo_url: str) -> dict[str, Any] | None:
     """Call leak-finder agent with error handling."""
     try:
-        return await client.call_leak_finder(repo_url)
+        return await client.call("orchagent/leak-finder@v1", {"repo_url": repo_url})
     except Exception as e:
         logger.error(f"leak-finder call failed: {e}")
         return None
@@ -63,7 +63,7 @@ async def _call_leak_finder(client: AgentClient, repo_url: str) -> dict[str, Any
 async def _call_dep_scanner(client: AgentClient, repo_url: str) -> dict[str, Any] | None:
     """Call dep-scanner agent with error handling."""
     try:
-        return await client.call_dep_scanner(repo_url)
+        return await client.call("orchagent/dep-scanner@v1", {"repo_url": repo_url})
     except Exception as e:
         logger.error(f"dep-scanner call failed: {e}")
         return None
@@ -174,29 +174,29 @@ async def review(request: ReviewRequest) -> ReviewResponse:
         should_scan_patterns = request.scan_mode in ("full", "patterns-only")
 
         # Run agent calls in parallel
-        async with AgentClient() as client:
-            tasks = []
-            task_names = []
+        client = AgentClient()
+        tasks = []
+        task_names = []
 
+        if should_scan_secrets:
+            tasks.append(_call_leak_finder(client, request.repo_url))
+            task_names.append("leak-finder")
+        if should_scan_deps:
+            tasks.append(_call_dep_scanner(client, request.repo_url))
+            task_names.append("dep-scanner")
+
+        # Execute all agent calls in parallel
+        if tasks:
+            results = await asyncio.gather(*tasks)
+
+            # Process results
+            result_idx = 0
             if should_scan_secrets:
-                tasks.append(_call_leak_finder(client, request.repo_url))
-                task_names.append("leak-finder")
+                findings.secrets = _parse_leak_finder_results(results[result_idx])
+                result_idx += 1
             if should_scan_deps:
-                tasks.append(_call_dep_scanner(client, request.repo_url))
-                task_names.append("dep-scanner")
-
-            # Execute all agent calls in parallel
-            if tasks:
-                results = await asyncio.gather(*tasks)
-
-                # Process results
-                result_idx = 0
-                if should_scan_secrets:
-                    findings.secrets = _parse_leak_finder_results(results[result_idx])
-                    result_idx += 1
-                if should_scan_deps:
-                    findings.dependencies = _parse_dep_scanner_results(results[result_idx])
-                    result_idx += 1
+                findings.dependencies = _parse_dep_scanner_results(results[result_idx])
+                result_idx += 1
 
         # Run internal pattern scanners (requires local repo clone)
         if should_scan_patterns:

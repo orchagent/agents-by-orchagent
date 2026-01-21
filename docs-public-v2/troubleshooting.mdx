@@ -1,0 +1,37 @@
+---
+title: "Troubleshooting"
+description: "Common issues and solutions"
+---
+
+## Common Errors
+
+### "Sandbox execution failed"
+
+The E2B sandbox couldn't run your code. Common causes:
+- Agent code has a syntax error
+- Missing dependencies in requirements.txt
+- Timeout (default 60s)
+
+**Solution:** Test locally first with `orch run`
+
+### "LLM_KEY_REQUIRED"
+
+The agent needs an LLM key but none was provided.
+
+**Solution:**
+- For `orch run`: Set `OPENAI_API_KEY` or similar in your environment
+- For `orch call`: Add key in dashboard Settings → LLM Keys
+
+### "Agent not found" (404)
+
+The agent doesn't exist or you used the wrong command.
+
+**Solution:**
+- Check spelling: `orchagent/leak-finder` not `leak-finder`
+- Use `orch search` to find agents
+
+### "Authentication error" (401)
+
+Your API key is invalid or expired.
+
+**Solution:** Run `orch login` again

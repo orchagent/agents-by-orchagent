@@ -23,14 +23,12 @@ The CLI also installs `orch` as a shorthand alias. All commands work with either
 |---------|---------|
 | `orchagent login` | Authenticate and store API key |
 | `orchagent whoami` | Show current user/org info |
+| `orchagent search` | Search and discover agents and skills |
 | `orchagent call <agent>` | Call an agent on the server |
-| `orchagent run <agent>` | Download and run an agent or skill locally |
+| `orchagent run <agent>` | Download and run an agent locally |
+| `orchagent skill install <skill>` | Install skill to local AI tool directories |
 | `orchagent init` | Initialize agent or skill directory structure |
 | `orchagent publish` | Publish agent or skill from local files |
-| `orchagent agents` | List public agents |
-| `orchagent skill list` | List public skills |
-| `orchagent skill install <skill>` | Install skill to local AI tool directories |
-| `orchagent search <query>` | Search public agents and skills |
 | `orchagent star <agent>` | Star or unstar an agent or skill |
 | `orchagent fork <agent>` | Fork a public agent or skill |
 | `orchagent llm-config` | Set default LLM config |
@@ -60,6 +58,39 @@ Show current user and organization info.
 ```bash
 orchagent whoami
 ```
+
+## Discovery
+
+### search
+
+Search and discover agents and skills. This is the primary way to find what's available on the platform.
+
+```bash
+# Search by keyword
+orchagent search invoice
+
+# Show top agents/skills by stars
+orchagent search --popular
+
+# Show most recently published
+orchagent search --recent
+
+# Filter to agents only
+orchagent search invoice --type agents
+
+# Filter to skills only
+orchagent search react --type skills
+
+# Limit results (default: 20)
+orchagent search invoice --limit 50
+
+# JSON output for scripting
+orchagent search invoice --json
+```
+
+<Tip>
+For browsing all agents and skills, visit [orchagent.io/explore](https://orchagent.io/explore).
+</Tip>
 
 ## Calling Agents
 
@@ -165,54 +196,23 @@ Choose [1/2/3]:
 
 Use `--with-deps` to skip the prompt and auto-download all available dependencies.
 
-## Discovery
-
-### agents
-
-List public agents.
-
-```bash
-# List all public agents
-orchagent agents
-
-# Filter by name
-orchagent agents --filter "invoice"
-
-# JSON output
-orchagent agents --json
-```
-
-### search
-
-Search public agents and skills.
-
-```bash
-orchagent search "invoice" --sort stars
-
-# Filter to agents only
-orchagent search "invoice" --type agents
-
-# Filter to skills only
-orchagent search "react" --type skills
-```
-
 ## Skills
 
 Skills are passive knowledge (instructions, rules, guidelines) that enhance agents. Install them locally for use with any AI coding tool (Claude Code, Cursor, Codex, etc.).
 
-### skill list
+### Finding Skills
 
-List public skills.
+Use the search command with the `--type skills` filter:
 
 ```bash
-# List all public skills
-orchagent skill list
+# Search for skills
+orchagent search react --type skills
 
-# Filter by name
-orchagent skill list --filter "react"
+# Show popular skills
+orchagent search --popular --type skills
 
-# JSON output
-orchagent skill list --json
+# Show recent skills
+orchagent search --recent --type skills
 ```
 
 ### skill install
@@ -372,7 +372,7 @@ Environment variables override config file values:
 ### Human Mode (Default)
 
 ```
-$ orchagent agents
+$ orchagent search --popular
 
 Name                    Author    Category
 --------------------------------------------
@@ -384,7 +384,7 @@ pdf-parser              tools     Utilities
 ### JSON Mode
 
 ```bash
-orchagent agents --json
+orchagent search --popular --json
 ```
 
 ```json

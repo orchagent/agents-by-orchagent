@@ -1,6 +1,6 @@
 {
   "name": "code-stats",
-  "version": "v1",
+  "version": "v2",
   "type": "code",
   "description": "Analyzes code for quality metrics. Returns line counts, function counts, and warnings for files/functions that are too long.",
   "supported_providers": ["any"],
@@ -9,12 +9,20 @@
   "input_schema": {
     "type": "object",
     "properties": {
+      "path": {
+        "type": "string",
+        "description": "Local directory path to scan for code files"
+      },
       "files": {
         "type": "array",
         "description": "Source code files to analyze",
         "accepts_files": true,
         "accept": [".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs"],
         "max_files": 20
+      },
+      "code": {
+        "type": "string",
+        "description": "Raw code string to analyze"
       },
       "metadata": {
         "type": "object",

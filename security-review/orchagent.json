@@ -1,6 +1,6 @@
 {
   "name": "security-review",
-  "version": "v1",
+  "version": "v2",
   "type": "code",
   "description": "Comprehensive security review combining secret scanning, dependency auditing, and code pattern analysis",
   "supported_providers": [
@@ -33,5 +33,24 @@
     "per_call_downstream_cap": 50,
     "downstream_spend_cap": 500
   },
-  "entrypoint": "sandbox_main.py"
+  "entrypoint": "sandbox_main.py",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "repo_url": {
+        "type": "string",
+        "description": "URL of the git repository to scan (use this OR path)"
+      },
+      "path": {
+        "type": "string",
+        "description": "Local directory path to scan (use this OR repo_url)"
+      },
+      "scan_mode": {
+        "type": "string",
+        "enum": ["full", "secrets-only", "deps-only", "patterns-only"],
+        "default": "full",
+        "description": "What to scan: full (everything), secrets-only, deps-only, or patterns-only"
+      }
+    }
+  }
 }

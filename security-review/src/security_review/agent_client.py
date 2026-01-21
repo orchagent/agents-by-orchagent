@@ -82,40 +82,56 @@ class AgentClient:
 
         return response.json()
 
-    async def call_leak_finder(self, repo_url: str) -> dict[str, Any]:
+    async def call_leak_finder(
+        self,
+        repo_url: str | None = None,
+        path: str | None = None,
+    ) -> dict[str, Any]:
         """Call the leak-finder agent to scan for secrets.
 
         Args:
-            repo_url: URL of the git repository to scan.
+            repo_url: URL of the git repository to scan (use this OR path).
+            path: Local directory path to scan (use this OR repo_url).
 
         Returns:
             Scan results from leak-finder.
         """
+        payload: dict[str, Any] = {}
+        if repo_url:
+            payload["repo_url"] = repo_url
+        if path:
+            payload["path"] = path
+
         return await self.call_agent(
             agent_name="leak-finder",
             endpoint="scan",
-            payload={"repo_url": repo_url},
+            payload=payload,
         )
 
     async def call_dep_scanner(
         self,
-        repo_url: str,
+        repo_url: str | None = None,
+        path: str | None = None,
         severity_threshold: str = "low",
     ) -> dict[str, Any]:
         """Call the dep-scanner agent to scan for vulnerabilities.
 
         Args:
-            repo_url: URL of the git repository to scan.
+            repo_url: URL of the git repository to scan (use this OR path).
+            path: Local directory path to scan (use this OR repo_url).
             severity_threshold: Minimum severity to include.
 
         Returns:
             Scan results from dep-scanner.
         """
+        payload: dict[str, Any] = {"severity_threshold": severity_threshold}
+        if repo_url:
+            payload["repo_url"] = repo_url
+        if path:
+            payload["path"] = path
+
         return await self.call_agent(
             agent_name="dep-scanner",
             endpoint="scan",
-            payload={
-                "repo_url": repo_url,
-                "severity_threshold": severity_threshold,
-            },
+            payload=payload,
         )

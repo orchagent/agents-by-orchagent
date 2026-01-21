@@ -20,13 +20,21 @@ def main() -> None:
         print(json.dumps({"error": f"Invalid JSON input: {e}"}))
         sys.exit(1)
 
+    # Support multiple input formats:
+    # - repo_url: Clone and scan a remote repository
+    # - path/directory: Scan a local directory
     repo_url = input_data.get("repo_url")
-    if not repo_url:
+    local_path = input_data.get("path") or input_data.get("directory")
+
+    if not repo_url and not local_path:
         print(
             json.dumps(
                 {
-                    "error": "Missing required input: 'repo_url'",
-                    "example": {"repo_url": "https://github.com/user/repo"},
+                    "error": "Missing required input. Provide either 'repo_url' (GitHub URL) or 'path'/'directory' (local path)",
+                    "examples": {
+                        "remote": {"repo_url": "https://github.com/user/repo"},
+                        "local": {"path": "."},
+                    },
                 }
             )
         )
@@ -38,6 +46,7 @@ def main() -> None:
     try:
         response = scan_repository(
             repo_url=repo_url,
+            local_path=local_path,
             package_managers=package_managers,
             severity_threshold=severity_threshold,
         )

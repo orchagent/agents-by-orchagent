@@ -351,6 +351,61 @@ def generate_warnings(
     return warnings
 
 
+# Supported file extensions for directory scanning
+SUPPORTED_EXTENSIONS = {".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs"}
+
+# Directories to skip when scanning
+SKIP_DIRS = {
+    "node_modules", ".git", "__pycache__", ".venv", "venv", "env",
+    ".env", "dist", "build", ".next", ".nuxt", "target", ".pytest_cache",
+    ".mypy_cache", ".ruff_cache", "coverage", ".coverage"
+}
+
+
+def collect_files_from_directory(directory: str, max_files: int = 100) -> list[dict]:
+    """
+    Collect all supported code files from a directory.
+
+    Args:
+        directory: Path to the directory to scan
+        max_files: Maximum number of files to collect
+
+    Returns:
+        List of file info dicts compatible with analyze_multiple_files
+    """
+    from pathlib import Path
+
+    dir_path = Path(directory).resolve()
+    if not dir_path.exists():
+        raise ValueError(f"Path does not exist: {directory}")
+    if not dir_path.is_dir():
+        raise ValueError(f"Path is not a directory: {directory}")
+
+    files = []
+    for file_path in dir_path.rglob("*"):
+        # Skip directories in SKIP_DIRS
+        if any(skip_dir in file_path.parts for skip_dir in SKIP_DIRS):
+            continue
+
+        # Only include supported file types
+        if file_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+            continue
+
+        if not file_path.is_file():
+            continue
+
+        # Create file info dict
+        files.append({
+            "path": str(file_path),
+            "original_name": str(file_path.relative_to(dir_path)),
+        })
+
+        if len(files) >= max_files:
+            break
+
+    return files
+
+
 def main():
     """Main entry point."""
     try:
@@ -369,6 +424,29 @@ def main():
             max_file_lines = input_data.get("max_file_lines", 300)
             max_function_lines = input_data.get("max_function_lines", 50)
 
+        # Support multiple input formats:
+        # - path/directory: Scan a local directory
+        # - files: List of file objects
+        # - code: Raw code string
+        local_path = input_data.get("path") or input_data.get("directory")
+
+        if local_path:
+            # Scan directory for code files
+            try:
+                files = collect_files_from_directory(local_path)
+                if not files:
+                    result = {
+                        'error': f'No supported code files found in {local_path}',
+                        'supported_extensions': sorted(SUPPORTED_EXTENSIONS),
+                    }
+                    print(json.dumps(result))
+                    return
+                result = analyze_multiple_files(files, max_file_lines, max_function_lines)
+                print(json.dumps(result, indent=2))
+            except ValueError as e:
+                print(json.dumps({'error': str(e)}))
+            return
+
         files = input_data.get("files", [])
         if isinstance(files, list) and files:
             result = analyze_multiple_files(files, max_file_lines, max_function_lines)
@@ -380,7 +458,12 @@ def main():
 
         if not code:
             result = {
-                'error': 'No code or files provided. Send {"code": "your code here"} or include "files".'
+                'error': "Missing required input. Provide 'path'/'directory' (local path), 'files' (array), or 'code' (string).",
+                'examples': {
+                    'local': {'path': '.'},
+                    'files': {'files': [{'path': '/tmp/file.py', 'original_name': 'file.py'}]},
+                    'code': {'code': 'def hello(): pass'},
+                },
             }
             print(json.dumps(result))
             return

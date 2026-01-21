@@ -16,7 +16,8 @@ SEVERITY_ORDER = ["low", "medium", "high", "critical"]
 
 
 def scan_repository(
-    repo_url: str,
+    repo_url: str | None = None,
+    local_path: str | Path | None = None,
     package_managers: list[str] | None = None,
     severity_threshold: str = "low",
 ) -> ScanResponse:
@@ -24,37 +25,39 @@ def scan_repository(
     Scan a repository for dependency vulnerabilities.
 
     Args:
-        repo_url: URL of the git repository to scan
+        repo_url: URL of the git repository to scan (mutually exclusive with local_path)
+        local_path: Local directory path to scan (mutually exclusive with repo_url)
         package_managers: Optional list of package managers to scan (auto-detect if None)
         severity_threshold: Minimum severity to include (low/medium/high/critical)
 
     Returns:
         ScanResponse with findings and summary
     """
+    if not repo_url and not local_path:
+        raise ValueError("Either repo_url or local_path must be provided")
+
     scan_id = str(uuid.uuid4())
     all_findings: list[Finding] = []
     detected_managers: list[str] = []
     total_packages = 0
 
-    with cloned_repo(repo_url) as repo_path:
-        # Determine which scanners to run
-        scanners_to_run = _determine_scanners(repo_path, package_managers)
+    if local_path:
+        # Scan local directory directly
+        repo_path = Path(local_path).resolve()
+        if not repo_path.exists():
+            raise ValueError(f"Path does not exist: {local_path}")
+        if not repo_path.is_dir():
+            raise ValueError(f"Path is not a directory: {local_path}")
 
-        # Run each scanner
-        for manager in scanners_to_run:
-            logger.info(f"Running {manager} scanner...")
-
-            if manager == "npm":
-                findings = run_npm_audit(repo_path)
-                all_findings.extend(findings)
-                detected_managers.append("npm")
-                total_packages += get_npm_package_count(repo_path)
-
-            elif manager == "pip":
-                findings = run_pip_audit(repo_path)
-                all_findings.extend(findings)
-                detected_managers.append("pip")
-                total_packages += get_pip_package_count(repo_path)
+        all_findings, detected_managers, total_packages = _run_scanners(
+            repo_path, package_managers
+        )
+    else:
+        # Clone and scan remote repository
+        with cloned_repo(repo_url) as repo_path:
+            all_findings, detected_managers, total_packages = _run_scanners(
+                repo_path, package_managers
+            )
 
     # Filter findings by severity threshold
     filtered_findings = _filter_by_severity(all_findings, severity_threshold)
@@ -68,6 +71,36 @@ def scan_repository(
         findings=filtered_findings,
         summary=summary,
     )
+
+
+def _run_scanners(
+    repo_path: Path, package_managers: list[str] | None
+) -> tuple[list[Finding], list[str], int]:
+    """Run the appropriate scanners on a directory."""
+    all_findings: list[Finding] = []
+    detected_managers: list[str] = []
+    total_packages = 0
+
+    # Determine which scanners to run
+    scanners_to_run = _determine_scanners(repo_path, package_managers)
+
+    # Run each scanner
+    for manager in scanners_to_run:
+        logger.info(f"Running {manager} scanner...")
+
+        if manager == "npm":
+            findings = run_npm_audit(repo_path)
+            all_findings.extend(findings)
+            detected_managers.append("npm")
+            total_packages += get_npm_package_count(repo_path)
+
+        elif manager == "pip":
+            findings = run_pip_audit(repo_path)
+            all_findings.extend(findings)
+            detected_managers.append("pip")
+            total_packages += get_pip_package_count(repo_path)
+
+    return all_findings, detected_managers, total_packages
 
 
 def _filter_by_severity(

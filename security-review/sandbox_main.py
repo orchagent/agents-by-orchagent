@@ -38,17 +38,25 @@ logger = logging.getLogger(__name__)
 VALID_SCAN_MODES = {"full", "secrets-only", "deps-only", "patterns-only"}
 
 
-async def _call_leak_finder(client: AgentClient, repo_url: str) -> dict[str, Any] | None:
+async def _call_leak_finder(
+    client: AgentClient,
+    repo_url: str | None = None,
+    path: str | None = None,
+) -> dict[str, Any] | None:
     try:
-        return await client.call_leak_finder(repo_url)
+        return await client.call_leak_finder(repo_url=repo_url, path=path)
     except Exception as e:
         logger.error(f"leak-finder call failed: {e}")
         return None
 
 
-async def _call_dep_scanner(client: AgentClient, repo_url: str) -> dict[str, Any] | None:
+async def _call_dep_scanner(
+    client: AgentClient,
+    repo_url: str | None = None,
+    path: str | None = None,
+) -> dict[str, Any] | None:
     try:
-        return await client.call_dep_scanner(repo_url)
+        return await client.call_dep_scanner(repo_url=repo_url, path=path)
     except Exception as e:
         logger.error(f"dep-scanner call failed: {e}")
         return None
@@ -136,7 +144,11 @@ def _calculate_summary(findings: FindingsCollection) -> ReviewSummary:
     return summary
 
 
-async def _run_review(repo_url: str, scan_mode: str) -> ReviewResponse:
+async def _run_review(
+    repo_url: str | None = None,
+    local_path: str | None = None,
+    scan_mode: str = "full",
+) -> ReviewResponse:
     findings = FindingsCollection()
 
     should_scan_secrets = scan_mode in ("full", "secrets-only")
@@ -147,9 +159,9 @@ async def _run_review(repo_url: str, scan_mode: str) -> ReviewResponse:
         tasks = []
 
         if should_scan_secrets:
-            tasks.append(_call_leak_finder(client, repo_url))
+            tasks.append(_call_leak_finder(client, repo_url=repo_url, path=local_path))
         if should_scan_deps:
-            tasks.append(_call_dep_scanner(client, repo_url))
+            tasks.append(_call_dep_scanner(client, repo_url=repo_url, path=local_path))
 
         if tasks:
             results = await asyncio.gather(*tasks)
@@ -163,13 +175,25 @@ async def _run_review(repo_url: str, scan_mode: str) -> ReviewResponse:
                 result_idx += 1
 
     if should_scan_patterns:
-        try:
-            with cloned_repo(repo_url) as repo_path:
-                findings.frontend_security = scan_frontend_patterns(repo_path)
-                findings.api_security = scan_api_patterns(repo_path)
-                findings.logging = scan_logging_patterns(repo_path)
-        except GitCommandError as e:
-            raise RuntimeError(f"Failed to clone repository: {e}") from e
+        if local_path:
+            # Use local path directly
+            scan_path = Path(local_path).resolve()
+            if not scan_path.exists():
+                raise ValueError(f"Path does not exist: {local_path}")
+            if not scan_path.is_dir():
+                raise ValueError(f"Path is not a directory: {local_path}")
+            findings.frontend_security = scan_frontend_patterns(scan_path)
+            findings.api_security = scan_api_patterns(scan_path)
+            findings.logging = scan_logging_patterns(scan_path)
+        else:
+            # Clone repo for pattern scanning
+            try:
+                with cloned_repo(repo_url) as repo_path:
+                    findings.frontend_security = scan_frontend_patterns(repo_path)
+                    findings.api_security = scan_api_patterns(repo_path)
+                    findings.logging = scan_logging_patterns(repo_path)
+            except GitCommandError as e:
+                raise RuntimeError(f"Failed to clone repository: {e}") from e
 
     summary = _calculate_summary(findings)
     recommendations = generate_recommendations(findings, max_recommendations=3)
@@ -189,13 +213,21 @@ def main() -> None:
         print(json.dumps({"error": f"Invalid JSON input: {e}"}))
         sys.exit(1)
 
+    # Support multiple input formats:
+    # - repo_url: Clone and scan a remote repository
+    # - path/directory: Scan a local directory
     repo_url = input_data.get("repo_url")
-    if not repo_url:
+    local_path = input_data.get("path") or input_data.get("directory")
+
+    if not repo_url and not local_path:
         print(
             json.dumps(
                 {
-                    "error": "Missing required input: 'repo_url'",
-                    "example": {"repo_url": "https://github.com/user/repo"},
+                    "error": "Missing required input. Provide either 'repo_url' (GitHub URL) or 'path'/'directory' (local path)",
+                    "examples": {
+                        "remote": {"repo_url": "https://github.com/user/repo"},
+                        "local": {"path": "."},
+                    },
                 }
             )
         )
@@ -214,7 +246,11 @@ def main() -> None:
         sys.exit(1)
 
     try:
-        response = asyncio.run(_run_review(repo_url, scan_mode))
+        response = asyncio.run(_run_review(
+            repo_url=repo_url,
+            local_path=local_path,
+            scan_mode=scan_mode,
+        ))
         print(json.dumps(response.model_dump()))
     except Exception as e:
         print(json.dumps({"error": str(e)}))

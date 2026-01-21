@@ -72,8 +72,9 @@ class AgentClient:
         if not self._client:
             raise RuntimeError("AgentClient must be used as an async context manager")
 
-        # OrchAgent API URL pattern: /{agent-name}/{version}/{endpoint}
-        url = f"/{agent_name}/{version}/{endpoint}"
+        # OrchAgent API URL pattern: /{agent-name}/{version}/{endpoint}/
+        # Trailing slash required to avoid 307 redirects that httpx won't follow for POST
+        url = f"/{agent_name}/{version}/{endpoint}/"
 
         logger.info(f"Calling agent: {agent_name}/{version}/{endpoint}")
 

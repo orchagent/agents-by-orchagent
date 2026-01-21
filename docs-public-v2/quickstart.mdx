@@ -33,6 +33,12 @@ Run an agent on your machine with a single command:
 
 ```bash
 npx @orchagent/cli run orchagent/secrets-scanner https://github.com/your/repo
+
+# Output:
+# {
+#   "findings": [...],
+#   "summary": "Found 2 potential secrets in 47 files"
+# }
 ```
 
 **What happens:**
@@ -68,6 +74,12 @@ This opens your browser for authentication and stores your API key.
 
 ```bash
 orchagent call orchagent/secrets-scanner https://github.com/your/repo
+
+# Output:
+# {
+#   "findings": [...],
+#   "summary": "Found 2 potential secrets in 47 files"
+# }
 ```
 
 **What happens:**

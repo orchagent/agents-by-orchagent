@@ -4,8 +4,6 @@ import json
 import os
 from pathlib import Path
 
-import google.generativeai as genai
-
 from .models import Finding
 
 
@@ -37,9 +35,129 @@ Common false positives:
 """
 
 
+def _detect_provider() -> tuple[str | None, str | None]:
+    """
+    Detect which LLM provider is available based on environment variables.
+
+    Returns:
+        Tuple of (provider_name, api_key) or (None, None) if no provider available.
+    """
+    # Check providers in order: OpenAI, Anthropic, Gemini
+    if api_key := os.environ.get("OPENAI_API_KEY"):
+        return ("openai", api_key)
+    if api_key := os.environ.get("ANTHROPIC_API_KEY"):
+        return ("anthropic", api_key)
+    if api_key := os.environ.get("GEMINI_API_KEY"):
+        return ("gemini", api_key)
+    return (None, None)
+
+
+async def _validate_with_openai(full_prompt: str, api_key: str) -> list[dict] | None:
+    """Validate findings using OpenAI API."""
+    from openai import AsyncOpenAI
+
+    client = AsyncOpenAI(api_key=api_key)
+
+    response = await client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a security expert. Respond only with valid JSON."},
+            {"role": "user", "content": full_prompt}
+        ],
+        response_format={"type": "json_object"},
+        temperature=0.1,
+    )
+
+    content = response.choices[0].message.content
+    if not content:
+        return None
+
+    result = json.loads(content)
+    # Handle both direct array and wrapped object responses
+    if isinstance(result, list):
+        return result
+    if isinstance(result, dict) and "findings" in result:
+        return result["findings"]
+    if isinstance(result, dict) and "results" in result:
+        return result["results"]
+    return None
+
+
+async def _validate_with_anthropic(full_prompt: str, api_key: str) -> list[dict] | None:
+    """Validate findings using Anthropic API."""
+    from anthropic import AsyncAnthropic
+
+    client = AsyncAnthropic(api_key=api_key)
+
+    response = await client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=4096,
+        messages=[
+            {"role": "user", "content": full_prompt + "\n\nRespond with only valid JSON array, no other text."}
+        ],
+        temperature=0.1,
+    )
+
+    content = response.content[0].text
+    if not content:
+        return None
+
+    # Anthropic may wrap JSON in markdown code blocks
+    content = content.strip()
+    if content.startswith("```json"):
+        content = content[7:]
+    if content.startswith("```"):
+        content = content[3:]
+    if content.endswith("```"):
+        content = content[:-3]
+    content = content.strip()
+
+    result = json.loads(content)
+    if isinstance(result, list):
+        return result
+    if isinstance(result, dict) and "findings" in result:
+        return result["findings"]
+    if isinstance(result, dict) and "results" in result:
+        return result["results"]
+    return None
+
+
+async def _validate_with_gemini(full_prompt: str, api_key: str) -> list[dict] | None:
+    """Validate findings using Google Gemini API."""
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client(api_key=api_key)
+
+    response = await client.aio.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=full_prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            temperature=0.1,
+        ),
+    )
+
+    content = response.text
+    if not content:
+        return None
+
+    result = json.loads(content)
+    if isinstance(result, list):
+        return result
+    if isinstance(result, dict) and "findings" in result:
+        return result["findings"]
+    if isinstance(result, dict) and "results" in result:
+        return result["results"]
+    return None
+
+
 async def validate_findings(findings: list[Finding]) -> list[Finding]:
     """
-    Use Gemini to validate findings and filter out false positives.
+    Use an LLM to validate findings and filter out false positives.
+
+    Automatically detects available LLM provider from environment variables.
+    Checks in order: OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY.
 
     Args:
         findings: List of findings to validate
@@ -50,19 +168,12 @@ async def validate_findings(findings: list[Finding]) -> list[Finding]:
     if not findings:
         return []
 
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        # Return findings unchanged if no API key
+    provider, api_key = _detect_provider()
+    if not provider or not api_key:
+        # Return findings unchanged if no API key available
         return findings
 
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.5-flash")
-        generation_config = genai.GenerationConfig(
-            response_mime_type="application/json",
-            temperature=0.1,
-        )
-
         # Build the prompt with findings
         prompt = get_analysis_prompt()
         findings_text = "\n".join([
@@ -71,17 +182,17 @@ async def validate_findings(findings: list[Finding]) -> list[Finding]:
         ])
         full_prompt = f"{prompt}\n\nFindings to analyze:\n{findings_text}"
 
-        # Call Gemini
-        response = await model.generate_content_async(
-            full_prompt,
-            generation_config=generation_config
-        )
+        # Call the appropriate provider
+        if provider == "openai":
+            validations = await _validate_with_openai(full_prompt, api_key)
+        elif provider == "anthropic":
+            validations = await _validate_with_anthropic(full_prompt, api_key)
+        elif provider == "gemini":
+            validations = await _validate_with_gemini(full_prompt, api_key)
+        else:
+            return findings
 
-        # Parse response
-        try:
-            validations = json.loads(response.text)
-        except json.JSONDecodeError:
-            # If parsing fails, return original findings
+        if not validations:
             return findings
 
         # Filter findings based on LLM validation

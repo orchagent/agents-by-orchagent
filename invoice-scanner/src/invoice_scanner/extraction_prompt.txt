@@ -1,0 +1,68 @@
+Analyze this invoice image/PDF and extract the following information in JSON format.
+For each field, also provide a confidence score between 0 and 1 based on how clearly you can read it.
+
+Extract:
+1. Supplier/Vendor name (the company sending the invoice)
+2. Invoice number
+3. Invoice date (in ISO 8601 format: YYYY-MM-DD)
+4. Currency (GBP, USD, EUR, etc.)
+5. Total amount (the final amount to pay)
+6. Shipping/delivery costs (if listed separately, otherwise 0)
+7. Line items: For each product/item, extract:
+   - Product name/description (clean it up, remove codes if there's a clear name)
+   - Quantity (as a number)
+   - Unit price
+   - Line total
+
+Return ONLY valid JSON in this exact format (no markdown, no explanation):
+{
+    "supplier": {"value": "Company Name Ltd", "confidence": 0.95},
+    "invoiceNumber": {"value": "INV-2024-0892", "confidence": 0.98},
+    "invoiceDate": {"value": "2024-12-15", "confidence": 0.90},
+    "currency": {"value": "GBP", "confidence": 0.99},
+    "totalAmount": {"value": 495.00, "confidence": 0.95},
+    "shippingAmount": {"value": 12.50, "confidence": 0.80},
+    "lineItems": [
+        {
+            "name": {"value": "Vitamin B12 1000mcg", "confidence": 0.85},
+            "quantity": {"value": 50, "confidence": 0.95},
+            "unitCost": {"value": 2.40, "confidence": 0.90},
+            "totalCost": {"value": 120.00, "confidence": 0.92}
+        }
+    ]
+}
+
+=== EXTRACTION RULES ===
+
+General rules:
+- If you cannot read or are uncertain about a field, use a low confidence score (below 0.5)
+- For quantities, always return integers
+- For amounts, return numbers (not strings), use 2 decimal places
+- Parse dates carefully - UK invoices use DD/MM/YYYY format, convert to YYYY-MM-DD
+- For product names, use the clearest/most descriptive name available
+- If there are no shipping costs visible, use 0
+- Currency should be the 3-letter code (GBP, USD, EUR)
+
+=== CUSTOM RULES (add your own below) ===
+
+CRITICAL - Shipping/Delivery charges:
+- NEVER add delivery or shipping charges as line items
+- Any line containing "Delivery", "Shipping", "Postage", "P&P", "Carriage", "Freight" must be EXCLUDED from lineItems
+- Instead, sum ALL delivery/shipping charges and put the total in shippingAmount
+- This includes "Delivery Charge - Standard VAT", "Delivery Charge - Zero rate", etc.
+- Even if there are multiple delivery charge lines, add them together into shippingAmount
+
+Line item rules:
+- lineItems should ONLY contain physical products that will be stocked
+- EXCLUDE: delivery charges, shipping fees, administrative fees, handling charges, VAT lines, subtotals
+- INCLUDE: only actual products/goods being purchased
+
+Product name rules (IMPORTANT):
+- Use the EXACT product name as written on the invoice line
+- Do NOT simplify, shorten, or extract parts of the name
+- Each line item must have its own unique name - never repeat the same name for different lines
+- Remove only SKU codes and reference numbers (like "3004509000")
+- Keep size/strength info (e.g., "10ml", "1000mcg", "1200mg")
+- Example: "Cindella Set (Luthione, Cindella, Vitamin C)" stays as "Cindella Set" - do NOT extract just "Vitamin C"
+- Example: "Vitamin B12" stays as "Vitamin B12" - do NOT change to "Vitamin C" or any other vitamin
+- Example: "Glutanex 1200mg" stays as "Glutanex 1200mg"

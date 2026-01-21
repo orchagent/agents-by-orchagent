@@ -1,0 +1,22 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "input": {
+        "type": "string",
+        "description": "The user's input or question"
+      }
+    },
+    "required": ["input"]
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "result": {
+        "type": "string",
+        "description": "The agent's response"
+      }
+    },
+    "required": ["result"]
+  }
+}

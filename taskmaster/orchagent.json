@@ -1,0 +1,23 @@
+{
+  "name": "taskmaster",
+  "version": "v1",
+  "type": "prompt",
+  "description": "Coordinator agent that delegates tasks to sub-agents while keeping its context clean",
+  "supported_providers": ["anthropic", "openai"],
+  "tags": ["orchestration", "productivity", "coordination", "meta"],
+  "prompt_template": "prompt.md",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "task": {
+        "type": "string",
+        "description": "The high-level task to coordinate"
+      },
+      "context": {
+        "type": "string",
+        "description": "Any relevant context or constraints"
+      }
+    },
+    "required": ["task"]
+  }
+}

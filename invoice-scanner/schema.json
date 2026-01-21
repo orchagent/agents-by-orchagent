@@ -1,0 +1,45 @@
+{
+  "input": {
+    "type": "object",
+    "description": "Upload an invoice file (PDF, JPEG, or PNG) via 'orch call'",
+    "properties": {
+      "files": {
+        "type": "array",
+        "description": "Invoice file(s) to scan - uploaded automatically when using 'orch call agent file.pdf'"
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "supplier": {
+        "type": "object",
+        "description": "Vendor/company name with confidence score"
+      },
+      "invoiceNumber": {
+        "type": "object",
+        "description": "Invoice reference number with confidence score"
+      },
+      "invoiceDate": {
+        "type": "object",
+        "description": "Invoice date (ISO 8601 format) with confidence score"
+      },
+      "currency": {
+        "type": "object",
+        "description": "Currency code (GBP, USD, EUR) with confidence score"
+      },
+      "totalAmount": {
+        "type": "object",
+        "description": "Total amount to pay with confidence score"
+      },
+      "shippingAmount": {
+        "type": "object",
+        "description": "Shipping/delivery costs with confidence score"
+      },
+      "lineItems": {
+        "type": "array",
+        "description": "List of items on the invoice (name, quantity, unitCost, totalCost)"
+      }
+    }
+  }
+}

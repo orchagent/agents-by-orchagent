@@ -1,0 +1,9 @@
+{
+  "name": "billing-doc-analyzer",
+  "version": "v1",
+  "description": "Analyzes billing documents (PDFs) and extracts structured data including provider, amounts, dates, and threat level",
+  "type": "code",
+  "entrypoint": "sandbox_main.py",
+  "supported_providers": ["gemini"],
+  "tags": ["pdf", "billing", "document-analysis"]
+}

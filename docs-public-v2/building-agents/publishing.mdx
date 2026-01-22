@@ -27,6 +27,29 @@ orch publish --public
 orch publish
 ```
 
+## Visibility & Pricing
+
+orchagent supports both public and private agents/skills:
+
+| Visibility | Plan | Who Can Access | Marketplace |
+|------------|------|----------------|-------------|
+| **Public** | Free | Anyone | Listed |
+| **Private** | Pro | Your org only | Hidden |
+
+### Public (Free)
+- Visible in marketplace and search
+- Anyone can discover and call your agent
+- Great for open-source tools and community sharing
+
+### Private (Pro)
+- Hidden from marketplace and search
+- Only accessible with your org's API key
+- Ideal for proprietary tools, internal workflows, or client-specific agents
+
+<Note>
+Private agents require a Pro subscription. [Contact us](mailto:hello@orchagent.io) for pricing.
+</Note>
+
 ## Publishing Skills
 
 Skills use a simpler format than agents. Create a `SKILL.md` file:
@@ -109,8 +132,8 @@ orch run .
 # Publish as public (visible in marketplace)
 orch publish --public
 
-# Publish as private (only you can access)
-orch publish
+# Publish as private (Pro plan required, only your org can access)
+orch publish --private
 ```
 
 ## What Happens on Publish
@@ -307,8 +330,8 @@ export ORCHAGENT_SERVICE_KEY="sk_agent_..."
 
 | Flag | Description |
 |------|-------------|
-| `--public` | Make agent publicly visible |
-| `--private` | Keep agent private (default) |
+| `--public` | Make agent publicly visible in marketplace |
+| `--private` | Keep agent private to your org (Pro plan required) |
 | `--dry-run` | Validate and preview bundle without publishing |
 | `--entrypoint <file>` | Override entrypoint for code agents |
 

@@ -1,6 +1,7 @@
 """File and directory scanning for secrets."""
 
 import os
+import re
 from pathlib import Path
 
 from .models import Finding
@@ -45,6 +46,50 @@ def redact_secret(value: str) -> str:
     if len(value) <= 8:
         return "*" * len(value)
     return f"{value[:4]}{'*' * (len(value) - 8)}{value[-4:]}"
+
+
+# Patterns that indicate fake/test data
+FAKE_VALUE_INDICATORS = [
+    "fake", "test", "example", "placeholder", "xxx", "dummy", "sample",
+    "changeme", "your_", "my_", "todo", "fixme", "replace",
+]
+
+FAKE_CREDENTIAL_PATTERNS = [
+    r"user:pass@localhost",
+    r"admin:password@",
+    r"password123",
+    r"secret12345",
+    r"secret_12345",
+    r"sk_test_secret",
+    r"api_key_here",
+]
+
+def is_fake_value(value: str) -> tuple[bool, str | None]:
+    """Check if a value looks like fake test data. Returns (is_fake, indicator_found)."""
+    value_lower = value.lower()
+    for indicator in FAKE_VALUE_INDICATORS:
+        if indicator in value_lower:
+            return True, indicator
+    for pattern in FAKE_CREDENTIAL_PATTERNS:
+        if re.search(pattern, value_lower):
+            return True, pattern
+    return False, None
+
+
+# File context indicators
+DOC_INDICATORS = ["/docs/", ".md", "readme", "changelog", "example"]
+TEST_INDICATORS = ["/tests/", "/test/", "test_", "_test.", ".test.", ".spec."]
+
+def get_file_context_reason(file_path: str) -> str | None:
+    """Return reasoning if file is likely docs/test, else None."""
+    path_lower = file_path.lower()
+    for ind in DOC_INDICATORS:
+        if ind in path_lower:
+            return f"File appears to be documentation ({ind} in path)"
+    for ind in TEST_INDICATORS:
+        if ind in path_lower:
+            return f"File appears to be a test ({ind} in path)"
+    return None
 
 
 def is_binary_file(file_path: Path) -> bool:
@@ -115,6 +160,16 @@ def scan_file(file_path: str | Path, base_path: str | Path | None = None) -> lis
                         except IndexError:
                             secret_value = match.group(0)
 
+                        # Build reasoning from multiple signals
+                        reasons = []
+                        if file_context_reason := get_file_context_reason(display_path):
+                            reasons.append(file_context_reason)
+                        is_fake, fake_indicator = is_fake_value(secret_value)
+                        if is_fake:
+                            reasons.append(f"Value looks like test data (contains '{fake_indicator}')")
+
+                        fp_reason = "; ".join(reasons) if reasons else None
+
                         finding = Finding(
                             type=pattern_name,
                             severity=pattern_info["severity"],
@@ -124,6 +179,8 @@ def scan_file(file_path: str | Path, base_path: str | Path | None = None) -> lis
                             in_history=False,
                             rotated=False,
                             recommendation=get_recommendation(pattern_name, pattern_info["severity"]),
+                            likely_false_positive=fp_reason is not None,
+                            fp_reason=fp_reason,
                         )
                         findings.append(finding)
     except (IOError, OSError):

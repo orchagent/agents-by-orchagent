@@ -15,6 +15,8 @@ class Finding(BaseModel):
     in_history: bool = Field(default=False, description="Whether the secret was found in git history")
     rotated: bool = Field(default=False, description="Whether the secret has been marked as rotated")
     recommendation: str = Field(default="", description="Recommended action to remediate")
+    likely_false_positive: bool = Field(default=False, description="Whether this is likely a false positive")
+    fp_reason: Optional[str] = Field(default=None, description="Explanation of why this might be a false positive")
 
 
 class ScanRequest(BaseModel):

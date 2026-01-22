@@ -86,6 +86,8 @@ def _parse_leak_finder_results(result: dict[str, Any] | None) -> list[SecretFind
                 line=finding.get("line", 0),
                 preview=finding.get("preview", ""),
                 recommendation=finding.get("recommendation", ""),
+                likely_false_positive=finding.get("likely_false_positive", False),
+                fp_reason=finding.get("fp_reason"),
             )
         )
 
@@ -98,6 +100,8 @@ def _parse_leak_finder_results(result: dict[str, Any] | None) -> list[SecretFind
                 line=finding.get("line", 0),
                 preview=finding.get("preview", "") + " [in git history]",
                 recommendation=finding.get("recommendation", ""),
+                likely_false_positive=finding.get("likely_false_positive", False),
+                fp_reason=finding.get("fp_reason"),
             )
         )
 
@@ -123,6 +127,41 @@ def _parse_dep_scanner_results(result: dict[str, Any] | None) -> list[Dependency
         )
 
     return findings
+
+
+def _group_findings(findings: FindingsCollection) -> tuple[FindingsCollection, FindingsCollection]:
+    """Separate real issues from likely false positives."""
+    real_issues = FindingsCollection()
+    likely_fps = FindingsCollection()
+
+    for finding in findings.secrets:
+        if getattr(finding, 'likely_false_positive', False):
+            likely_fps.secrets.append(finding)
+        else:
+            real_issues.secrets.append(finding)
+
+    for finding in findings.frontend_security:
+        if getattr(finding, 'likely_false_positive', False):
+            likely_fps.frontend_security.append(finding)
+        else:
+            real_issues.frontend_security.append(finding)
+
+    for finding in findings.api_security:
+        if getattr(finding, 'likely_false_positive', False):
+            likely_fps.api_security.append(finding)
+        else:
+            real_issues.api_security.append(finding)
+
+    for finding in findings.logging:
+        if getattr(finding, 'likely_false_positive', False):
+            likely_fps.logging.append(finding)
+        else:
+            real_issues.logging.append(finding)
+
+    # Dependencies don't have false positive detection yet
+    real_issues.dependencies = findings.dependencies
+
+    return real_issues, likely_fps
 
 
 def _calculate_summary(findings: FindingsCollection) -> ReviewSummary:
@@ -208,12 +247,17 @@ async def _run_review(
             except GitCommandError as e:
                 raise RuntimeError(f"Failed to clone repository: {e}") from e
 
-    summary = _calculate_summary(findings)
-    recommendations = generate_recommendations(findings, max_recommendations=3)
+    # Group findings into real issues and likely false positives
+    real_issues, likely_fps = _group_findings(findings)
+
+    # Calculate summary based only on real issues
+    summary = _calculate_summary(real_issues)
+    recommendations = generate_recommendations(real_issues, max_recommendations=3)
 
     return ReviewResponse(
         scan_id=str(uuid.uuid4()),
-        findings=findings,
+        findings=real_issues,
+        likely_false_positives=likely_fps,
         summary=summary,
         recommendations=recommendations,
     )

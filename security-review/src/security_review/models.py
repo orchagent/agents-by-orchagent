@@ -23,6 +23,8 @@ class SecretFinding(BaseModel):
     line: int = Field(description="Line number")
     preview: str = Field(description="Redacted preview of the secret")
     recommendation: str = Field(default="", description="Recommended action")
+    likely_false_positive: bool = Field(default=False, description="Whether this is likely a false positive")
+    fp_reason: Optional[str] = Field(default=None, description="Explanation of why this might be a false positive")
 
 
 class DependencyFinding(BaseModel):
@@ -47,6 +49,8 @@ class PatternFinding(BaseModel):
     line: int = Field(description="Line number")
     snippet: str = Field(description="Code snippet showing the issue")
     recommendation: str = Field(description="Recommended action")
+    likely_false_positive: bool = Field(default=False, description="Whether this is likely a false positive")
+    fp_reason: Optional[str] = Field(default=None, description="Explanation of why this might be a false positive")
 
 
 class FindingsCollection(BaseModel):
@@ -83,10 +87,14 @@ class ReviewResponse(BaseModel):
 
     scan_id: str = Field(description="Unique identifier for this review")
     findings: FindingsCollection = Field(
-        default_factory=FindingsCollection, description="All findings by category"
+        default_factory=FindingsCollection, description="Real issues by category"
+    )
+    likely_false_positives: FindingsCollection = Field(
+        default_factory=FindingsCollection,
+        description="Findings that are likely false positives, with explanations"
     )
     summary: ReviewSummary = Field(
-        default_factory=ReviewSummary, description="Summary counts by severity"
+        default_factory=ReviewSummary, description="Summary counts by severity (real issues only)"
     )
     recommendations: list[str] = Field(
         default_factory=list, description="Top actionable recommendations"

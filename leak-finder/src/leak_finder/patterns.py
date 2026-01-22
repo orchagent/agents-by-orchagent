@@ -71,22 +71,22 @@ SECRET_PATTERNS: dict[str, dict] = {
     },
     # Private Keys
     "private_key_rsa": {
-        "regex": re.compile(r"-----BEGIN RSA PRIVATE KEY-----"),
+        "regex": re.compile(r"-----BEGIN RSA PRIVATE KEY-----\n[A-Za-z0-9+/=\n]{64,}"),
         "severity": "critical",
         "description": "RSA Private Key",
     },
     "private_key_openssh": {
-        "regex": re.compile(r"-----BEGIN OPENSSH PRIVATE KEY-----"),
+        "regex": re.compile(r"-----BEGIN OPENSSH PRIVATE KEY-----\n[A-Za-z0-9+/=\n]{64,}"),
         "severity": "critical",
         "description": "OpenSSH Private Key",
     },
     "private_key_ec": {
-        "regex": re.compile(r"-----BEGIN EC PRIVATE KEY-----"),
+        "regex": re.compile(r"-----BEGIN EC PRIVATE KEY-----\n[A-Za-z0-9+/=\n]{64,}"),
         "severity": "critical",
         "description": "EC Private Key",
     },
     "private_key_pgp": {
-        "regex": re.compile(r"-----BEGIN PGP PRIVATE KEY BLOCK-----"),
+        "regex": re.compile(r"-----BEGIN PGP PRIVATE KEY BLOCK-----\n[A-Za-z0-9+/=\n]{64,}"),
         "severity": "critical",
         "description": "PGP Private Key",
     },

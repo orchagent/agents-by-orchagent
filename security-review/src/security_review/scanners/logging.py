@@ -43,7 +43,10 @@ LOGGING_PATTERNS: list[PatternMatch] = [
         description="Logging secret or API key data",
         recommendation="Remove logging of secrets; never log API keys or tokens",
         regex=re.compile(
-            r'console\.(?:log|info|warn|debug|error)\s*\([^)]*(?:secret|apiKey|api_key|token|bearer|auth)',
+            r'console\.(?:log|info|warn|debug|error)\s*\(\s*(?:'
+            r'(?:secret|apiKey|api_key|token|bearer|auth)\b'  # Direct variable
+            r'|`[^`]*\$\{(?:secret|apiKey|api_key|token|bearer|auth)\}'  # Template literal
+            r')',
             re.IGNORECASE,
         ),
     ),
@@ -137,7 +140,7 @@ LOGGING_PATTERNS: list[PatternMatch] = [
         description="Python traceback exposed in response",
         recommendation="Never send tracebacks to clients; log them server-side only",
         regex=re.compile(
-            r'(?:traceback\.format_exc|traceback\.print_exc|exc_info)',
+            r'(?:return|response|JSONResponse|HTTPException).*(?:traceback\.format_exc|format_exception)',
             re.IGNORECASE,
         ),
     ),
@@ -148,7 +151,10 @@ LOGGING_PATTERNS: list[PatternMatch] = [
         description="Print statement with potentially sensitive data",
         recommendation="Remove debug print statements; use proper logging with redaction",
         regex=re.compile(
-            r'print\s*\([^)]*(?:password|secret|token|key|credential|api_key)',
+            r'print\s*\(\s*(?:'
+            r'(?:password|secret|token|api_key|credential)\b'  # Direct variable
+            r'|f["\'][^"\']*\{(?:password|secret|token|api_key|credential)\}'  # f-string interpolation
+            r')',
             re.IGNORECASE,
         ),
     ),
@@ -224,8 +230,11 @@ def scan_file(file_path: Path, base_path: Path) -> list[PatternFinding]:
 
                         # Lower severity for test files (still report but less critical)
                         severity = pattern.severity
-                        if is_test and severity in ("critical", "high"):
-                            severity = "low"
+                        fp_reason = None
+                        if is_test:
+                            if severity in ("critical", "high"):
+                                severity = "low"
+                            fp_reason = "Finding is in a test file - may be intentional for testing"
 
                         findings.append(
                             PatternFinding(
@@ -236,6 +245,8 @@ def scan_file(file_path: Path, base_path: Path) -> list[PatternFinding]:
                                 line=line_num,
                                 snippet=snippet,
                                 recommendation=pattern.recommendation,
+                                likely_false_positive=fp_reason is not None,
+                                fp_reason=fp_reason,
                             )
                         )
     except (IOError, OSError):

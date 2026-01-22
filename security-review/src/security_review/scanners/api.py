@@ -46,6 +46,26 @@ EXPRESS_AUTH_MIDDLEWARE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
+# Alternative auth patterns (manual auth without Depends)
+ALT_AUTH_PATTERNS = [
+    re.compile(r"get_caller\s*\(", re.IGNORECASE),
+    re.compile(r"verify_token\s*\(", re.IGNORECASE),
+    re.compile(r"authenticate\s*\(", re.IGNORECASE),
+    re.compile(r"check_auth\s*\(", re.IGNORECASE),
+    re.compile(r"require_auth\s*\(", re.IGNORECASE),
+    re.compile(r"validate_token\s*\(", re.IGNORECASE),
+    re.compile(r"await\s+auth\s*\(", re.IGNORECASE),
+    re.compile(r"authorization\s*:\s*str\s*=\s*Header", re.IGNORECASE),
+]
+
+def has_alt_auth_pattern(content: str) -> tuple[bool, str | None]:
+    """Check if content uses alternative auth patterns. Returns (has_alt_auth, pattern_name)."""
+    for pattern in ALT_AUTH_PATTERNS:
+        match = pattern.search(content)
+        if match:
+            return True, match.group(0).strip()
+    return False, None
+
 # Rate limiting patterns
 RATE_LIMITER_PATTERNS = [
     re.compile(r'(?:RateLimiter|slowdown|rate.?limit)', re.IGNORECASE),
@@ -151,10 +171,20 @@ def _check_fastapi_auth(file_path: Path, content: str, lines: list[str], base_pa
             context = "\n".join(lines[context_start:context_end])
 
             if not FASTAPI_DEPENDS_PATTERN.search(context):
-                # Skip common exceptions
+                # Skip common exceptions (expanded list)
                 route_path = line.lower()
-                if any(skip in route_path for skip in ["/health", "/ping", "/ready", "/docs", "/openapi", "/redoc"]):
+                if any(skip in route_path for skip in [
+                    "/health", "/ping", "/ready", "/docs", "/openapi", "/redoc",
+                    "/login", "/logout", "/signup", "/register", "/auth/",
+                    "/webhook", "/callback", "/public"
+                ]):
                     continue
+
+                # Check for alternative auth patterns
+                fp_reason = None
+                has_alt, alt_pattern = has_alt_auth_pattern(context)
+                if has_alt:
+                    fp_reason = f"Route uses manual auth pattern ({alt_pattern}) instead of Depends()"
 
                 snippet = line.strip()[:100]
                 if len(line.strip()) > 100:
@@ -169,6 +199,8 @@ def _check_fastapi_auth(file_path: Path, content: str, lines: list[str], base_pa
                         line=line_num,
                         snippet=snippet,
                         recommendation="Add authentication using Depends() with an auth dependency",
+                        likely_false_positive=fp_reason is not None,
+                        fp_reason=fp_reason,
                     )
                 )
 

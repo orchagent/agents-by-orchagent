@@ -31,6 +31,7 @@ The CLI also installs `orch` as a shorthand alias. All commands work with either
 | `orchagent publish` | Publish agent or skill from local files |
 | `orchagent star <agent>` | Star or unstar an agent or skill |
 | `orchagent fork <agent>` | Fork a public agent or skill |
+| `orchagent delete <agent>` | Delete an agent or skill |
 | `orchagent llm-config` | Set default LLM config |
 
 ## Authentication
@@ -282,6 +283,31 @@ Fork a public agent to your account.
 ```bash
 orchagent fork acme/invoice-scanner
 ```
+
+### delete
+
+Delete an agent or skill you own. Uses soft delete - data is retained for 30 days before permanent deletion.
+
+```bash
+# Delete an agent (prompts for confirmation)
+orchagent delete my-agent
+
+# Delete specific version
+orchagent delete my-agent --version v2
+
+# Skip confirmation prompt
+orchagent delete my-agent --yes
+```
+
+<Warning>
+For agents with 10+ stars or 1+ forks, you must type the agent name to confirm deletion (similar to GitHub repository deletion).
+</Warning>
+
+**What happens when you delete:**
+- The agent is hidden from searches and listings immediately
+- Stars, execution logs, and service keys are deleted
+- Forked agents remain but their `forked_from` reference becomes null
+- Data is permanently deleted after 30 days
 
 ## Agent Development
 

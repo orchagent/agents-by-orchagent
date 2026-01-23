@@ -1,45 +1,35 @@
 ---
 title: "Agent Types"
-description: "Agents vs skills - active executors and passive knowledge"
+description: "Understanding agents and skills on orchagent"
 ---
 
-# Agent Types
+orchagent hosts two types of content: **agents** that execute tasks, and **skills** that provide reusable knowledge.
 
-orchagent supports **agents** (active executors) and **skills** (passive knowledge).
+<Info>
+**Quick distinction:** Agents *do* things. Skills *inform* agents how to do things better.
+</Info>
 
-## The Key Difference
+## At a Glance
 
-- **Agents** do things - they take input, process it, and return output
-- **Skills** inform agents - they're reusable knowledge/instructions that can be injected into agents
-
-Think of it this way: a skill tells an agent HOW to do something, while an agent actually DOES it.
-
-## Comparison
-
-| | Prompt-based Agent | Code-based Agent | Skill |
+| | Prompt Agent | Code Agent | Skill |
 |-|--------------|------------|-------|
-| **What it is** | Active executor | Active executor | Passive knowledge |
-| **What you provide** | Prompt + input/output schema | Python/JS code | SKILL.md file |
-| **Publish time** | Minutes | Hours | Minutes |
+| **Purpose** | Execute via LLM | Execute via code | Provide knowledge |
+| **You provide** | Prompt + schemas | Python/JS code | SKILL.md file |
 | **Complexity** | Single LLM call | Any logic | Instructions only |
-| **Forking** | Easy (edit prompt) | Harder (understand code) | Easy (edit markdown) |
-| **Best for** | Extraction, summarization | Multi-step workflows, APIs | Coding standards, style guides, domain rules |
+| **Best for** | Extraction, summarization | Multi-step workflows, APIs | Standards, guidelines, domain rules |
 
-## Agents
-
-Agents are active executors. They take input, do work, and return output. orchagent supports two agent types:
+---
 
 ## Prompt-Based Agents
 
-Prompt-based agents are the simplest way to create an agent. You provide:
+The simplest agent type. You provide a prompt template with variable placeholders, and orchagent handles the LLM call.
 
-1. A prompt template with variable placeholders
-2. An input schema (what callers send)
-3. An output schema (what the LLM returns)
+**When to use:**
+- Single LLM call is sufficient
+- No external API calls needed
+- No complex logic or branching
 
-orchagent handles the LLM call for you.
-
-### Example
+### Example Configuration
 
 ```json
 {
@@ -61,13 +51,12 @@ orchagent handles the LLM call for you.
     "properties": {
       "sentiment": { "type": "string", "enum": ["positive", "negative", "neutral"] },
       "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
-    },
-    "required": ["sentiment", "confidence"]
+    }
   }
 }
 ```
 
-### Prompt Template Variables
+### Prompt Variables
 
 Use `{{variable}}` syntax in your prompt template:
 
@@ -79,45 +68,41 @@ Summarize the following {{document_type}} in {{language}}:
 Focus on: {{focus_areas}}
 ```
 
-Variables are replaced with values from the input at runtime.
+Variables are replaced with input values at runtime.
 
-### When to Use Prompt-Based
+### Directory Structure
 
-- Single LLM call is sufficient
-- No external API calls needed
-- No complex logic or branching
-- Want quick iteration on prompts
+```
+my-prompt-agent/
+├── orchagent.json      # Agent configuration
+└── README.md           # Documentation (optional)
+```
+
+---
 
 ## Code-Based Agents
 
-Code-based agents run your code in **E2B sandboxes** - secure, ephemeral execution environments. Each call spins up a fresh sandbox, runs your script, and returns the result. You have full control over:
+Code agents run your Python or JavaScript in **E2B sandboxes** - secure, isolated environments. Each call spins up a fresh sandbox, runs your script, and returns the result.
 
-- Multiple LLM calls
+**When to use:**
+- Multiple LLM calls needed
 - External API integrations
-- Complex business logic
-- Data processing pipelines
+- Complex data processing or conditional logic
+- Need to call other agents (orchestration)
 
 ### Example
 
-Create a simple Python script that reads from stdin and writes to stdout:
-
 ```python
-# main.py - Code agent that analyzes a repository
+# main.py
 import json
 import sys
-import subprocess
 
 def main():
     # Read input from stdin
     input_data = json.load(sys.stdin)
     repo_url = input_data.get("repo_url")
 
-    # Your custom logic here
-    # - Clone repo
-    # - Scan files
-    # - Call LLM for analysis
-    # - Aggregate results
-
+    # Your logic here: clone repo, scan files, call LLM, etc.
     result = {
         "issues": ["Found hardcoded API key in config.py"],
         "risk_score": 0.7
@@ -132,27 +117,14 @@ if __name__ == "__main__":
 
 ### Input/Output Contract
 
-Code agents communicate via stdin/stdout:
+Code agents communicate via stdin/stdout as JSON.
 
-**Input (stdin):** JSON object with your input data:
-
+**Standard input:**
 ```json
-{
-  "repo_url": "https://github.com/user/repo"
-}
+{"repo_url": "https://github.com/user/repo"}
 ```
 
-**Output (stdout):** JSON object with your result:
-
-```json
-{
-  "issues": ["..."],
-  "risk_score": 0.7
-}
-```
-
-**File Input:** When files are uploaded, you receive a manifest:
-
+**File uploads:** When files are uploaded, you receive a manifest:
 ```json
 {
   "files": [
@@ -162,93 +134,45 @@ Code agents communicate via stdin/stdout:
       "content_type": "application/pdf",
       "size_bytes": 1234567
     }
-  ],
-  "metadata": {"format": "detailed"}
+  ]
 }
 ```
 
-Your code reads files from the `path` locations and processes them.
-
-### When to Use Code-Based
-
-- Multiple LLM calls needed
-- External API integrations
-- Complex data processing
-- Conditional logic based on intermediate results
-- Need to call other agents (orchestration)
-
-## Directory Structure
-
-### Prompt-Based Agent
-
-```
-my-prompt-agent/
-├── orchagent.json      # Agent configuration
-└── README.md           # Documentation (optional)
+**Standard output:**
+```json
+{"issues": ["..."], "risk_score": 0.7}
 ```
 
-### Code-Based Agent
+### Directory Structure
 
 ```
 my-code-agent/
 ├── orchagent.json      # Agent configuration
-├── main.py             # Entry point (or index.js for Node.js)
-├── requirements.txt    # Python dependencies (or package.json)
+├── main.py             # Entry point
+├── requirements.txt    # Dependencies
 └── README.md           # Documentation (optional)
 ```
 
-The CLI auto-detects your entrypoint. Detection order: `main.py`, `app.py`, `index.py`, `main.js`, `index.js`. You can override this in your manifest:
+The CLI auto-detects entrypoints: `main.py`, `app.py`, `index.py`, `main.js`, `index.js`. Override with:
 
 ```json
-{
-  "entrypoint": "run.py"
-}
+{"entrypoint": "run.py"}
 ```
 
-## LLM Provider Configuration
-
-Agents specify which LLM providers they support:
-
-```json
-{
-  "supported_providers": ["openai", "anthropic", "gemini"]
-}
-```
-
-Use `"any"` if your agent works with any provider:
-
-```json
-{
-  "supported_providers": ["any"]
-}
-```
-
-### Fallback Configuration
-
-For code-based agents, specify fallback LLMs:
-
-```python
-# In your code
-llm_config = {
-    "primary": "gemini-2.5-flash",
-    "fallbacks": ["gpt-4o-mini", "claude-3-haiku"]
-}
-```
+---
 
 ## Skills
 
-Skills are passive knowledge - markdown files containing instructions, rules, or domain expertise that can be injected into agents.
+Skills are passive knowledge - markdown files containing instructions, rules, or expertise that enhance agents.
 
-### What Skills Are For
-
-- **Coding standards** - React best practices, security rules, style guides
-- **Domain knowledge** - Legal requirements, industry regulations, company policies
-- **Writing rules** - Tone guidelines, formatting standards, brand voice
-- **Decision frameworks** - How to evaluate options, prioritize tasks, handle edge cases
+**Use cases:**
+- Coding standards (React patterns, security rules)
+- Domain knowledge (legal requirements, company policies)
+- Writing guidelines (tone, formatting, brand voice)
 
 ### SKILL.md Format
 
-Skills use the industry-standard Agent Skills format (adopted by Anthropic, Google, Microsoft, OpenAI, Cursor):
+Skills use the [Agent Skills](https://agentskills.io) standard:
 
 ```markdown
 ---
@@ -265,69 +189,59 @@ metadata:
 - Use functional components over class components
 - Memoize expensive computations with useMemo
 - Avoid inline function definitions in JSX
-- ...
 ```
 
-### YAML Frontmatter Fields
+### Frontmatter Fields
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `name` | Yes | Max 64 chars, lowercase, hyphens only |
+| `name` | Yes | Lowercase, hyphens only, max 64 chars |
 | `description` | Yes | When to use this skill (max 1024 chars) |
-| `license` | No | License name (e.g., MIT) |
-| `metadata` | No | Author, version, and other info |
-
-### Directory Structure
-
-```
-my-skill/
-├── SKILL.md              # Required - YAML frontmatter + instructions
-├── references/           # Optional - additional docs
-└── assets/               # Optional - templates, examples
-```
+| `license` | No | e.g., MIT |
+| `metadata` | No | Author, version, etc. |
 
 ### Using Skills
 
-Skills can be used in two ways:
-
-**1. Install locally** - Use with any AI coding tool (Claude Code, Cursor, Codex, etc.):
+**Install locally** for any AI coding tool:
 
 ```bash
-# Install to current directory
 orch skill install yourorg/react-best-practices
-
-# Install globally
 orch skill install yourorg/react-best-practices --global
 ```
 
-This writes the skill to multiple directories:
-- `.claude/skills/` (Claude Code)
-- `.cursor/skills/` (Cursor)
-- `.codex/skills/` (Codex)
-- `.agent/skills/` (Universal)
+Writes to `.claude/skills/`, `.cursor/skills/`, `.codex/skills/`, `.agent/skills/`.
 
-**2. Compose with OrchAgent agents** - Inject skill knowledge into an agent call:
+**Compose with agents** at call time:
 
 ```bash
-# Add skills to an agent call
 orch call yourorg/code-reviewer --skills yourorg/react-best-practices
-
-# Use only specific skills (ignore agent's default_skills)
-orch call yourorg/code-reviewer --skills-only yourorg/react-best-practices
-
-# Ignore all skills
-orch call yourorg/code-reviewer --no-skills
 ```
 
-Agent authors can define `default_skills` in their manifest - these are automatically injected when the agent runs.
+---
 
-### When to Create a Skill vs an Agent
+## LLM Provider Configuration
+
+Specify supported providers in your manifest:
+
+```json
+{"supported_providers": ["openai", "anthropic", "gemini"]}
+```
+
+Use `"any"` if your agent works with any provider:
+
+```json
+{"supported_providers": ["any"]}
+```
+
+---
+
+## Choosing the Right Type
 
 | Create a **Skill** when... | Create an **Agent** when... |
 |---------------------------|----------------------------|
 | You have knowledge to share | You have a task to automate |
 | Content is reusable across contexts | Logic is specific to one workflow |
-| No structured input/output needed | You need defined schemas |
+| No structured I/O needed | You need defined schemas |
 | Instructions could help any agent | You need code execution |
 
 ## Next Steps

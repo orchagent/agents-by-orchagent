@@ -3,35 +3,101 @@ title: "Troubleshooting"
 description: "Common issues and solutions"
 ---
 
-## Common Errors
+## CLI Errors
 
-### "Sandbox execution failed"
+### "Agent exited with code X (no output)"
 
-The E2B sandbox couldn't run your code. Common causes:
+The agent process terminated without producing any output. Common causes:
+
+- **Missing dependency** - Check your `requirements.txt` has all required packages
+- **Syntax error in entrypoint** - Python couldn't parse your code
+- **Agent crashed before writing output** - Check for exceptions in your code
+
+**Solutions:**
+1. Run with `--verbose` flag for more details: `orch run myagent --verbose`
+2. Test locally: `python sandbox_main.py < input.json`
+3. Check agent logs in the [dashboard](https://orchagent.io/dashboard)
+
+### "Failed to extract bundle"
+
+The downloaded agent bundle couldn't be extracted. This usually means:
+- The bundle file is corrupted
+- The agent was published incorrectly
+
+**Solution:** Re-publish the agent with `orch publish`
+
+### "No LLM key found"
+
+The agent requires an LLM provider but no API key is available.
+
+**Solutions:**
+- **For local execution (`orch run`)**: Set environment variable:
+  ```bash
+  export OPENAI_API_KEY=sk-...
+  # or
+  export ANTHROPIC_API_KEY=sk-ant-...
+  ```
+- **For server execution (`orch call`)**: Add key in [Settings → LLM Keys](https://orchagent.io/settings)
+
+---
+
+## API / Server Errors
+
+### "Sandbox execution failed" / "Code execution failed"
+
+The E2B sandbox couldn't run your agent code.
+
+**Common causes:**
 - Agent code has a syntax error
-- Missing dependencies in requirements.txt
-- Timeout (default 60s)
+- Missing dependencies in `requirements.txt`
+- Timeout exceeded (default: 60 seconds)
+- Agent crashed without output
 
-**Solution:** Test locally first with `orch run`
+**Solutions:**
+1. Test locally first with `orch run`
+2. Check agent logs in the [dashboard](https://orchagent.io/dashboard)
+3. Ensure all dependencies are in `requirements.txt`
 
-### "LLM_KEY_REQUIRED"
+### "Failed to decrypt LLM key"
 
-The agent needs an LLM key but none was provided.
+Your stored LLM API key couldn't be decrypted. This can happen if the server's encryption key was rotated.
 
-**Solution:**
-- For `orch run`: Set `OPENAI_API_KEY` or similar in your environment
-- For `orch call`: Add key in dashboard Settings → LLM Keys
+**Solution:** Delete and re-add your LLM key in [Settings → LLM API Keys](https://orchagent.io/settings)
 
 ### "Agent not found" (404)
 
-The agent doesn't exist or you used the wrong command.
+The agent doesn't exist or you used the wrong format.
 
-**Solution:**
-- Check spelling: `orchagent/leak-finder` not `leak-finder`
-- Use `orch search` to find agents
+**Solutions:**
+- Use full format: `orchagent/leak-finder` not just `leak-finder`
+- Check spelling and version: `orch info orchagent/leak-finder`
+- Search for agents: `orch search leak`
 
 ### "Authentication error" (401)
 
 Your API key is invalid or expired.
 
-**Solution:** Run `orch login` again
+**Solution:** Run `orch login` to re-authenticate
+
+### "Rate limit exceeded" (429)
+
+You've exceeded the API rate limit.
+
+**Solution:** Wait a moment and retry. See [Rate Limits](/concepts/rate-limits) for details.
+
+---
+
+## Dashboard Errors
+
+If you see an error toast in the dashboard:
+- The toast message shows the actual error from the server
+- Common issues: network connectivity, expired session, invalid input
+
+**Solution:** Try refreshing the page. If the issue persists, check the browser console for details.
+
+---
+
+## Still stuck?
+
+- Check the [Discord community](https://discord.gg/orchagent) for help
+- Open an issue on [GitHub](https://github.com/orchagent/orchagent/issues)

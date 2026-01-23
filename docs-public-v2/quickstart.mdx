@@ -70,7 +70,15 @@ orchagent login
 
 This opens your browser for authentication and stores your API key.
 
-### Step 4: Call an Agent
+### Step 4: Verify Setup (Optional)
+
+```bash
+orchagent doctor
+```
+
+This checks your environment, config, and connectivity. If everything shows green checkmarks, you're ready to go.
+
+### Step 5: Call an Agent
 
 ```bash
 orchagent call orchagent/secrets-scanner https://github.com/your/repo

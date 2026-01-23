@@ -33,6 +33,7 @@ The CLI also installs `orch` as a shorthand alias. All commands work with either
 | `orchagent fork <agent>` | Fork a public agent or skill |
 | `orchagent delete <agent>` | Delete an agent or skill |
 | `orchagent llm-config` | Set default LLM config |
+| `orchagent doctor` | Diagnose CLI setup issues |
 
 ## Authentication
 
@@ -363,6 +364,34 @@ Set default LLM configuration for prompt agents.
 ```bash
 orchagent llm-config --endpoint https://api.openai.com/v1 --model gpt-4.1-mini --api-key sk-...
 ```
+
+## Diagnostics
+
+### doctor
+
+Diagnose CLI setup issues. Run this first when troubleshooting.
+
+```bash
+# Check your setup
+orchagent doctor
+
+# Show extra details
+orchagent doctor --verbose
+
+# JSON output (for CI/CD)
+orchagent doctor --json
+```
+
+**Checks performed:**
+- **Environment** - Node.js version, CLI version, Git availability
+- **Configuration** - Config file exists, file permissions
+- **Connectivity** - Gateway reachable, response latency
+- **Authentication** - API key configured and valid
+- **LLM Configuration** - Server and local LLM keys
+
+<Tip>
+Exit code is `0` when all checks pass, `1` when warnings or errors are found. Use this in CI/CD pipelines.
+</Tip>
 
 ## Configuration
 

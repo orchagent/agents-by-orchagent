@@ -288,6 +288,9 @@ orchagent fork acme/invoice-scanner
 Delete an agent or skill you own. Uses soft delete - data is retained for 30 days before permanent deletion.
 
 ```bash
+# Preview what would be deleted (no changes made)
+orchagent delete my-agent --dry-run
+
 # Delete an agent (prompts for confirmation)
 orchagent delete my-agent
 
@@ -330,18 +333,24 @@ orchagent init --type skill
 Publish an agent or skill from the current directory.
 
 ```bash
+# Preview what would be published (no changes made)
+orchagent publish --dry-run
+
 # Publish as public
 orchagent publish --public
 
 # Publish as private (requires paid plan)
 orchagent publish
 
-# Dry run to preview bundle (code agents)
-orchagent publish --dry-run
-
 # Override entrypoint for code agents
 orchagent publish --entrypoint custom.py
 ```
+
+**The `--dry-run` flag** runs all validation and shows exactly what would be published without making any changes:
+- Validates manifest, prompt, and schema files
+- Shows the version that would be assigned (e.g., v1, v2)
+- For code agents: shows bundle preview (file count, size, entrypoint)
+- Displays the API endpoint that would be created
 
 The CLI auto-detects the type:
 - If `SKILL.md` exists → publishes as skill

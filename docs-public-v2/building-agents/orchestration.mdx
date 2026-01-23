@@ -3,12 +3,7 @@ title: "Orchestration"
 description: "Compose agents with other agents and skills"
 ---
 
-# Orchestration
-
-orchagent supports two types of composition:
-
-1. **Skill composition** - Inject knowledge/instructions into agent prompts
-2. **Agent composition** - Call other agents from within your agent
+orchagent supports two types of composition: **skill composition** (inject knowledge into prompts) and **agent composition** (call other agents at runtime).
 
 ## Skill Composition
 
@@ -62,9 +57,9 @@ orch call yourorg/code-reviewer --no-skills
 
 ## Agent Composition
 
-Orchestrator agents call other agents to build complex workflows. This section covers how to create agents that compose multiple agents together.
+Orchestrator agents call other agents to build complex workflows.
 
-## Concepts
+### Concepts
 
 | Term | Definition |
 |------|------------|
@@ -72,7 +67,7 @@ Orchestrator agents call other agents to build complex workflows. This section c
 | **Leaf agent** | An agent with no dependencies. Does one focused task. |
 | **Dependency** | An agent that an orchestrator is allowed to call. Must be declared explicitly. |
 
-## How It Works
+### How It Works
 
 ```
 ┌─────────────────────────────────────────────────────────┐

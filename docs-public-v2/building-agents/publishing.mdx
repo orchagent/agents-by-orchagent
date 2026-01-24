@@ -73,6 +73,11 @@ Then publish:
 
 ```bash
 cd my-skill
+
+# Publish as private (default)
+orch publish
+
+# Publish as public (opt-in)
 orch publish --public
 ```
 
@@ -127,11 +132,11 @@ orch run .
 ### Step 4: Publish
 
 ```bash
+# Publish as private (default)
+orch publish
+
 # Publish as public (visible in marketplace)
 orch publish --public
-
-# Publish as private (Pro plan required, only your org can access)
-orch publish --private
 ```
 
 ## What Happens on Publish
@@ -329,7 +334,7 @@ export ORCHAGENT_SERVICE_KEY="sk_agent_..."
 | Flag | Description |
 |------|-------------|
 | `--public` | Make agent publicly visible in marketplace |
-| `--private` | Keep agent private to your org (Pro plan required) |
+| `--private` | (Deprecated) Private is now the default - this flag still works but is no longer needed |
 | `--dry-run` | Validate and preview bundle without publishing |
 | `--entrypoint <file>` | Override entrypoint for code agents |
 

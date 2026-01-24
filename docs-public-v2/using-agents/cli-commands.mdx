@@ -32,6 +32,12 @@ The CLI also installs `orch` as a shorthand alias. All commands work with either
 | `orchagent delete <agent>` | Delete an agent or skill |
 | `orchagent llm-config` | Set default LLM config |
 | `orchagent doctor` | Diagnose CLI setup issues |
+| `orchagent workspace list` | List your workspaces |
+| `orchagent workspace create <name>` | Create a team workspace |
+| `orchagent workspace use <slug>` | Set default workspace |
+| `orchagent workspace members` | List workspace members and invites |
+| `orchagent workspace invite <email>` | Invite member to workspace |
+| `orchagent workspace leave` | Leave a workspace |
 
 ## Authentication
 
@@ -58,6 +64,100 @@ Show current user and organization info.
 ```bash
 orchagent whoami
 ```
+
+## Workspaces
+
+Workspaces let you organize team access, share agents privately, and manage billing. Every user has a personal workspace, and can create or join team workspaces.
+
+### workspace list
+
+List all workspaces you have access to.
+
+```bash
+# List workspaces
+orchagent workspace list
+
+# JSON output for scripting
+orchagent workspace list --json
+```
+
+### workspace create
+
+Create a new team workspace.
+
+```bash
+# Create a workspace (slug auto-generated from name)
+orchagent workspace create "My Team"
+
+# Create with custom slug
+orchagent workspace create "My Team" --slug my-team
+```
+
+<Tip>
+The workspace slug is used in agent names and URLs. Choose something short and memorable.
+</Tip>
+
+### workspace use
+
+Set the default workspace for CLI operations. This affects where agents are published and which workspace context is used.
+
+```bash
+# Set default workspace
+orchagent workspace use my-team
+
+# Verify with whoami
+orchagent whoami
+```
+
+### workspace members
+
+List all members and pending invites in a workspace.
+
+```bash
+# List members of current workspace
+orchagent workspace members
+
+# List members of specific workspace
+orchagent workspace members my-team
+
+# JSON output for scripting
+orchagent workspace members --json
+```
+
+### workspace invite
+
+Invite a new member to a workspace.
+
+```bash
+# Invite with default role (member)
+orchagent workspace invite alice@example.com
+
+# Invite as owner
+orchagent workspace invite alice@example.com --role owner
+
+# Invite to specific workspace
+orchagent workspace invite alice@example.com --workspace my-team
+```
+
+**Available roles:**
+- `member` - Can use and publish agents
+- `owner` - Can manage members, invites, and workspace settings
+
+### workspace leave
+
+Leave a workspace you're a member of.
+
+```bash
+# Leave current workspace (prompts for confirmation)
+orchagent workspace leave
+
+# Leave specific workspace
+orchagent workspace leave my-team
+```
+
+<Warning>
+You cannot leave your personal workspace. If you're the last owner of a team workspace, you must assign another owner before leaving.
+</Warning>
 
 ## Discovery
 
@@ -408,7 +508,8 @@ Config is stored at `~/.orchagent/config.json`:
 {
   "api_key": "sk_live_xxx",
   "api_url": "https://api.orchagent.io",
-  "default_org": "acme"
+  "default_org": "acme",
+  "workspace": "my-team"
 }
 ```
 

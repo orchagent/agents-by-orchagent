@@ -32,7 +32,7 @@ When called, the agent's prompt becomes: `[skill 1 content] + [skill 2 content] 
 
 ### Caller Override
 
-Callers can modify skill behavior:
+Callers can modify skill behavior (unless the author has locked skills):
 
 ```bash
 # Add more skills to agent's defaults
@@ -45,6 +45,27 @@ orch call yourorg/code-reviewer --skills-only yourorg/security-rules
 orch call yourorg/code-reviewer --no-skills
 ```
 
+### Locking Skills
+
+Authors can lock skills to prevent caller overrides. This is useful for agents where specific skills are critical for correct behavior (security rules, compliance guidelines, etc.).
+
+```json
+{
+  "name": "secure-reviewer",
+  "type": "prompt",
+  "default_skills": ["yourorg/owasp-rules", "yourorg/security-guidelines"],
+  "skills_locked": true
+}
+```
+
+When `skills_locked: true`:
+- **Server (`orch call`)**: Caller override flags (`--skills`, `--skills-only`, `--no-skills`) are silently ignored
+- **Local (`orch run`)**: CLI shows a warning and asks for confirmation before overriding
+
+<Note>
+`skills_locked` is immutable after publish. To change it, publish a new version.
+</Note>
+
 ### Skills vs Agent Dependencies
 
 | | Skills | Agent Dependencies |
@@ -52,7 +73,8 @@ orch call yourorg/code-reviewer --no-skills
 | **What they are** | Knowledge injected into prompt | Agents called at runtime |
 | **When evaluated** | Before LLM call | During execution |
 | **Declared in** | `default_skills` | `manifest.dependencies` |
-| **Can be overridden** | Yes (--skills flags) | No (fixed in manifest) |
+| **Can be locked** | Yes (`skills_locked: true`) | Always locked |
+| **Override when unlocked** | Yes (--skills flags) | No (never) |
 | **Best for** | Style guides, rules, domain knowledge | Complex workflows, multi-step tasks |
 
 ---

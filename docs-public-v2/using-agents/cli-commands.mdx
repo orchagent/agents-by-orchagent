@@ -365,6 +365,10 @@ orchagent call acme/code-reviewer code.py --no-skills
 
 Agent authors can also define `default_skills` in their agent manifest - these are automatically injected when the agent runs.
 
+<Note>
+**Locked skills:** If an agent has `skills_locked: true`, your override flags are ignored on server calls (`orch call`). For local runs (`orch run`), the CLI will warn you and ask for confirmation before overriding.
+</Note>
+
 ## Social Features
 
 ### star
@@ -444,6 +448,12 @@ orchagent publish
 
 # Override entrypoint for code agents
 orchagent publish --entrypoint custom.py
+
+# Publish with default skills
+orchagent publish --skills yourorg/style@v1,yourorg/rules@v1
+
+# Lock skills (callers cannot override)
+orchagent publish --skills yourorg/owasp@v1 --skills-locked
 ```
 
 **The `--dry-run` flag** runs all validation and shows exactly what would be published without making any changes:

@@ -44,6 +44,7 @@ Every agent needs an `orchagent.json` file that defines its configuration, depen
 | `tags` | array | `[]` | Searchable tags |
 | `is_public` | boolean | `true` | Public (free) or private (Pro plan required) |
 | `default_skills` | array | `[]` | Skills to inject into agent prompts (e.g., `["yourorg/writing-style"]`) |
+| `skills_locked` | boolean | `false` | When true, callers cannot override default_skills via flags (immutable after publish) |
 
 ## Code-Based Agent Fields
 
@@ -148,11 +149,25 @@ Agents can include skills by default using the `default_skills` field. Skills ar
 }
 ```
 
-When called, the agent's prompt is prepended with the content from each skill. Callers can override this behavior:
+When called, the agent's prompt is prepended with the content from each skill. Callers can override this behavior (unless skills are locked):
 
 - `--skills org/skill` - Add more skills
 - `--skills-only org/skill` - Replace default_skills entirely
 - `--no-skills` - Ignore all skills
+
+### Locking Skills
+
+Add `skills_locked: true` to prevent callers from overriding your default skills:
+
+```json
+{
+  "name": "secure-reviewer",
+  "default_skills": ["yourorg/owasp-rules"],
+  "skills_locked": true
+}
+```
+
+See [Orchestration - Locking Skills](/building-agents/orchestration#locking-skills) for details.
 
 ## Manifest Section (for Orchestrator Agents)
 

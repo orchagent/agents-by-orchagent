@@ -1,0 +1,101 @@
+{
+  "input": {
+    "type": "object",
+    "description": "Input parameters for analyzing React component code",
+    "properties": {
+      "code": {
+        "type": "string",
+        "description": "React component code to analyze"
+      },
+      "context": {
+        "type": "string",
+        "description": "Additional context about the component"
+      },
+      "strictness": {
+        "type": "string",
+        "enum": ["lenient", "standard", "strict"],
+        "default": "standard",
+        "description": "Analysis strictness level - lenient allows more useEffects, strict flags more as unnecessary"
+      }
+    },
+    "required": ["code"]
+  },
+  "output": {
+    "type": "object",
+    "description": "Analysis results from the useEffect checker",
+    "properties": {
+      "summary": {
+        "type": "object",
+        "description": "Summary statistics of the analysis",
+        "properties": {
+          "total_useEffects": {
+            "type": "integer",
+            "description": "Total number of useEffect hooks found in the code"
+          },
+          "unnecessary_count": {
+            "type": "integer",
+            "description": "Number of useEffects flagged as unnecessary"
+          },
+          "necessary_count": {
+            "type": "integer",
+            "description": "Number of useEffects deemed necessary"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["none", "low", "medium", "high"],
+            "description": "Overall severity level based on the ratio of unnecessary useEffects"
+          }
+        },
+        "required": ["total_useEffects", "unnecessary_count", "necessary_count", "severity"]
+      },
+      "findings": {
+        "type": "array",
+        "description": "Detailed findings for each useEffect hook analyzed",
+        "items": {
+          "type": "object",
+          "properties": {
+            "line_number": {
+              "type": "integer",
+              "description": "Line number where the useEffect is located"
+            },
+            "current_code": {
+              "type": "string",
+              "description": "The current useEffect code snippet"
+            },
+            "verdict": {
+              "type": "string",
+              "enum": ["unnecessary", "necessary", "needs_review"],
+              "description": "Assessment of whether the useEffect is necessary"
+            },
+            "category": {
+              "type": "string",
+              "description": "Category of the useEffect pattern (e.g., 'derived state', 'event handler', 'subscription', 'data fetching')"
+            },
+            "reason": {
+              "type": "string",
+              "description": "Explanation of why the verdict was given"
+            },
+            "suggested_fix": {
+              "type": "string",
+              "description": "Suggested code or approach to fix unnecessary useEffects"
+            },
+            "confidence": {
+              "type": "string",
+              "enum": ["high", "medium", "low"],
+              "description": "Confidence level of the assessment"
+            }
+          },
+          "required": ["line_number", "current_code", "verdict", "category", "reason", "suggested_fix", "confidence"]
+        }
+      },
+      "recommendations": {
+        "type": "array",
+        "description": "General improvement suggestions for the component",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": ["summary", "findings", "recommendations"]
+  }
+}

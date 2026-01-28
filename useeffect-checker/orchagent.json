@@ -1,0 +1,14 @@
+{
+  "name": "useeffect-checker",
+  "version": "v1",
+  "type": "prompt",
+  "description": "Analyzes React components for unnecessary useEffect hooks. Identifies anti-patterns and suggests cleaner alternatives using derived state, event handlers, or React APIs.",
+  "tags": ["react", "code-review", "hooks", "refactoring", "best-practices"],
+  "supported_providers": ["anthropic", "openai", "gemini"],
+  "default_models": {
+    "anthropic": "claude-sonnet-4-20250514",
+    "openai": "gpt-4o",
+    "gemini": "gemini-2.5-flash"
+  },
+  "default_endpoint": "analyze"
+}

@@ -1,6 +1,5 @@
 {
   "name": "dep-scanner",
-  "version": "v2",
   "type": "code",
   "description": "Scans project dependencies for known vulnerabilities (CVEs). Runs npm audit, pip-audit, and similar tools to identify outdated or insecure packages.",
   "supported_providers": [

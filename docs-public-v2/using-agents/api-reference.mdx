@@ -42,6 +42,9 @@ Accept: application/json
 |--------|-------------|
 | `X-Orchagent-Max-Hops` | Maximum call chain depth (for orchestrator agents) |
 | `X-Orchagent-Tenant` | Tenant ID for multi-tenant usage attribution |
+| `X-Orchagent-Skills` | Comma-separated skill refs to add (e.g., `org/skill@v1,org/other@v1`) |
+| `X-Orchagent-Skills-Only` | Use only these skills, ignoring agent defaults |
+| `X-Orchagent-No-Skills` | Set to `true` to disable all skills |
 
 ## Response Format
 

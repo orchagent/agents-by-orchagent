@@ -59,7 +59,6 @@ description: React optimization patterns for code review
 license: MIT
 metadata:
   author: yourname
-  version: "1.0"
 ---
 
 ## Rules
@@ -108,7 +107,6 @@ Edit `orchagent.json` with your agent's configuration:
 ```json
 {
   "name": "my-agent",
-  "version": "v1",
   "type": "prompt",
   "description": "What my agent does",
   "supported_providers": ["openai", "anthropic"]
@@ -158,35 +156,33 @@ For code-based agents, the platform also:
 
 ## Versioning
 
-Each publish creates or updates a version:
+Versions are **automatically assigned** by the server each time you publish. The first publish creates `v1`, the next creates `v2`, and so on.
 
 ```
 https://api.orchagent.io/yourorg/my-agent/v1/analyze
 https://api.orchagent.io/yourorg/my-agent/v2/analyze
 ```
 
-### Version Strategy
+### How It Works
 
-- Increment version for breaking changes
-- Old versions remain accessible for 60 days after deprecation
-- Callers should pin to specific versions
+- **Every `orch publish` creates a new version** - v1, v2, v3, etc.
+- **Authors cannot control version numbers** - this is intentional for simplicity
+- **All versions remain accessible** - old versions stay available for 60 days after deprecation
 
-### Updating an Existing Version
+### Calling a Specific Version
 
-To update an existing version (non-breaking changes):
+Use the `@version` syntax to pin to a specific version:
 
 ```bash
-orch publish
+# Call the latest version
+orch call yourorg/my-agent
+
+# Call a specific version
+orch call yourorg/my-agent@v1
+orch call yourorg/my-agent@v2
 ```
 
-To publish a new version:
-
-```json
-// orchagent.json
-{
-  "version": "v2"  // Increment version
-}
-```
+Callers should pin to specific versions for stability in production environments.
 
 ## Code Agent Bundling
 

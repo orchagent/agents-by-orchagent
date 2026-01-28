@@ -35,7 +35,6 @@ The simplest agent type. You provide a prompt template with variable placeholder
 {
   "name": "sentiment-analyzer",
   "type": "prompt",
-  "version": "v1",
   "description": "Analyze sentiment of text",
   "supported_providers": ["openai", "anthropic"],
   "prompt_template": "Analyze the sentiment of the following text and return a JSON object with 'sentiment' (positive, negative, or neutral) and 'confidence' (0-1).\n\nText: {{text}}",
@@ -158,6 +157,32 @@ The CLI auto-detects entrypoints: `main.py`, `app.py`, `index.py`, `main.js`, `i
 ```json
 {"entrypoint": "run.py"}
 ```
+
+### Skills in Code Agents
+
+Code agents can access skills at runtime. When skills are passed via the `--skills` flag or `X-Orchagent-Skills` header, they are mounted as files in your sandbox:
+
+```python
+import os
+from pathlib import Path
+
+skills_dir = os.environ.get("ORCHAGENT_SKILLS_DIR")
+if skills_dir:
+    skills_path = Path(skills_dir)
+
+    # Read all skill files
+    for skill_file in skills_path.glob("*.md"):
+        content = skill_file.read_text()
+        # Use skill content in your prompts or logic
+
+    # Or read the manifest for metadata
+    import json
+    manifest = json.loads((skills_path / "manifest.json").read_text())
+    for skill in manifest:
+        print(f"Skill: {skill['org']}/{skill['name']}@{skill['version']}")
+```
+
+Skills are written to `/home/user/orchagent/skills/` with filenames like `org_name_version.md`. A `manifest.json` file provides metadata for programmatic access.
 
 ---
 

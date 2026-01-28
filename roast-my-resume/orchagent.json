@@ -1,6 +1,5 @@
 {
   "name": "roast-my-resume",
-  "version": "v2",
   "type": "prompt",
   "description": "Deliver brutally honest, entertaining feedback on resumes that exposes real weaknesses users are too polite to hear",
   "supported_providers": ["openai", "anthropic", "gemini"],

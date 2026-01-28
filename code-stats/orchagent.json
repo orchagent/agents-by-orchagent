@@ -1,6 +1,5 @@
 {
   "name": "code-stats",
-  "version": "v2",
   "type": "code",
   "description": "Analyzes code for quality metrics. Returns line counts, function counts, and warnings for files/functions that are too long.",
   "supported_providers": ["any"],

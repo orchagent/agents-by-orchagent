@@ -1,6 +1,5 @@
 {
   "name": "content-humanizer",
-  "version": "v2",
   "type": "prompt",
   "description": "Transform AI-generated text into natural, human-sounding writing",
   "supported_providers": ["openai", "anthropic", "gemini"],

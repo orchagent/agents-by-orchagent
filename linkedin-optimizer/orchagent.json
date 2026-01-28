@@ -1,6 +1,5 @@
 {
   "name": "linkedin-optimizer",
-  "version": "v1",
   "type": "prompt",
   "description": "Optimize LinkedIn profiles and posts for visibility and engagement",
   "supported_providers": ["openai", "anthropic", "gemini"],

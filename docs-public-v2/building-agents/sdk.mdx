@@ -148,6 +148,7 @@ The SDK uses these environment variables:
 | `ORCHAGENT_LOCAL_EXECUTION` | No | Set to `true` to route calls locally |
 | `ORCHAGENT_CALL_CHAIN` | No | Propagated automatically; tracks call ancestry |
 | `ORCHAGENT_DEADLINE` | No | Propagated automatically; deadline timestamp |
+| `ORCHAGENT_SKILLS_DIR` | No | Path to mounted skills directory (only set when skills are passed). Contains `.md` files and `manifest.json`. |
 
 <Tip>
 When running on orchagent's servers, `ORCHAGENT_SERVICE_KEY` is automatically injected into your agent's environment.

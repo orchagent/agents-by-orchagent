@@ -14,7 +14,6 @@ Every agent needs an `orchagent.json` file that defines its configuration, depen
 ```json
 {
   "name": "my-agent",
-  "version": "v1",
   "type": "code",
   "description": "What my agent does",
   "supported_providers": ["openai", "anthropic"],
@@ -23,12 +22,15 @@ Every agent needs an `orchagent.json` file that defines its configuration, depen
 }
 ```
 
+<Note>
+**Versions are auto-assigned.** You don't need to specify a `version` field in your manifest. The server automatically assigns versions on each publish (v1, v2, v3...).
+</Note>
+
 ## Required Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `name` | string | Agent name (lowercase, hyphens allowed) |
-| `version` | string | Version string (e.g., `v1`, `v2`) |
 | `type` | string | `"code"` or `"prompt"` |
 | `description` | string | Short description of what the agent does |
 | `supported_providers` | array | LLM providers: `["openai", "anthropic", "gemini", "any"]` |
@@ -78,7 +80,6 @@ Control what files are included in your code bundle:
 ```json
 {
   "name": "leak-finder",
-  "version": "v5",
   "type": "code",
   "description": "Finds leaked secrets in codebases",
   "supported_providers": ["gemini"],
@@ -107,7 +108,6 @@ Additional fields for prompt agents:
 ```json
 {
   "name": "summarizer",
-  "version": "v1",
   "type": "prompt",
   "description": "Summarizes text content",
   "supported_providers": ["openai", "anthropic"],
@@ -137,7 +137,6 @@ Agents can include skills by default using the `default_skills` field. Skills ar
 ```json
 {
   "name": "code-reviewer",
-  "version": "v1",
   "type": "prompt",
   "description": "Reviews code with best practices",
   "supported_providers": ["anthropic", "openai"],
@@ -162,7 +161,6 @@ Agents that call other agents need a `manifest` section:
 ```json
 {
   "name": "security-review",
-  "version": "v1",
   "type": "code",
   "description": "Comprehensive security review",
   "manifest": {
@@ -214,7 +212,6 @@ The platform validates manifests on publish:
 ```json
 {
   "name": "security-review",
-  "version": "v1",
   "type": "code",
   "description": "Comprehensive security review combining multiple scanners",
   "supported_providers": ["any"],

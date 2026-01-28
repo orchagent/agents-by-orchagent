@@ -1,6 +1,5 @@
 {
   "name": "taskmaster",
-  "version": "v1",
   "type": "prompt",
   "description": "Coordinator agent that delegates tasks to sub-agents while keeping its context clean",
   "supported_providers": ["anthropic", "openai"],

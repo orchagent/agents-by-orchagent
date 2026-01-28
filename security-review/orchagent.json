@@ -1,6 +1,5 @@
 {
   "name": "security-review",
-  "version": "v2",
   "type": "code",
   "description": "Comprehensive security review combining secret scanning, dependency auditing, and code pattern analysis",
   "supported_providers": [

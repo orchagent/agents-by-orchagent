@@ -7,7 +7,10 @@ orchagent supports two types of composition: **skill composition** (inject knowl
 
 ## Skill Composition
 
-Skills are passive knowledge that can be injected into agents. Unlike agent-to-agent calls, skill composition happens at the prompt level - skill content is prepended to the agent's prompt before the LLM call.
+Skills are passive knowledge that can be injected into agents. Skills work for both prompt and code agents:
+
+- **For prompt agents:** skill content is prepended to the agent's prompt before the LLM call
+- **For code agents:** skills are mounted as files at `$ORCHAGENT_SKILLS_DIR` (see [Agent Types](/building-agents/agent-types#skills-in-code-agents))
 
 ### Using default_skills
 
@@ -16,7 +19,6 @@ Agents can declare skills they always use:
 ```json
 {
   "name": "code-reviewer",
-  "version": "v1",
   "type": "prompt",
   "default_skills": [
     "yourorg/react-best-practices",
@@ -103,7 +105,6 @@ Add a `manifest` section to your `orchagent.json`:
 ```json
 {
   "name": "security-review",
-  "version": "v1",
   "type": "code",
   "description": "Comprehensive security review combining multiple scanners",
   "manifest": {

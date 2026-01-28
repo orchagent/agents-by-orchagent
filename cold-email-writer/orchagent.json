@@ -1,6 +1,5 @@
 {
   "name": "cold-email-writer",
-  "version": "v1",
   "type": "prompt",
   "description": "Write personalized cold outreach emails that get responses",
   "supported_providers": ["openai", "anthropic", "gemini"],

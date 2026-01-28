@@ -1,6 +1,5 @@
 {
   "name": "leak-finder",
-  "version": "v8",
   "type": "code",
   "description": "Scans repositories for exposed secrets and credentials. Detects 23+ secret types including AWS keys, Stripe tokens, GitHub PATs, private keys, and database URIs.",
   "supported_providers": ["any"],

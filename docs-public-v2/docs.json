@@ -82,5 +82,11 @@
   "openapi": ["/api-reference/openapi.json"],
   "api": {
     "baseUrl": "https://api.orchagent.io"
-  }
+  },
+  "redirects": [
+    { "source": "/getting-started", "destination": "/quickstart" },
+    { "source": "/docs/cli", "destination": "/using-agents/cli-commands" },
+    { "source": "/docs/agents", "destination": "/building-agents/agent-types" },
+    { "source": "/docs/:path*", "destination": "/:path*" }
+  ]
 }

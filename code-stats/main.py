@@ -288,7 +288,8 @@ def analyze_single_file(
 def analyze_multiple_files(
     files: list,
     max_file_lines: int,
-    max_function_lines: int
+    max_function_lines: int,
+    summary_only: bool = False
 ) -> dict:
     """Analyze multiple files and return aggregated results."""
     results = []
@@ -319,6 +320,13 @@ def analyze_multiple_files(
         f"{files_analyzed} file{'s' if files_analyzed != 1 else ''} analyzed. "
         f"{warning_total} warning{'s' if warning_total != 1 else ''} total."
     )
+
+    if summary_only:
+        return {
+            "files_analyzed": files_analyzed,
+            "summary": summary,
+            "aggregate": aggregate,
+        }
 
     return {
         "files_analyzed": files_analyzed,
@@ -424,6 +432,8 @@ def main():
             max_file_lines = input_data.get("max_file_lines", 300)
             max_function_lines = input_data.get("max_function_lines", 50)
 
+        summary_only = input_data.get("summary", False)
+
         # Support multiple input formats:
         # - path/directory: Scan a local directory
         # - files: List of file objects
@@ -441,7 +451,7 @@ def main():
                     }
                     print(json.dumps(result))
                     return
-                result = analyze_multiple_files(files, max_file_lines, max_function_lines)
+                result = analyze_multiple_files(files, max_file_lines, max_function_lines, summary_only)
                 print(json.dumps(result, indent=2))
             except ValueError as e:
                 print(json.dumps({'error': str(e)}))
@@ -449,7 +459,7 @@ def main():
 
         files = input_data.get("files", [])
         if isinstance(files, list) and files:
-            result = analyze_multiple_files(files, max_file_lines, max_function_lines)
+            result = analyze_multiple_files(files, max_file_lines, max_function_lines, summary_only)
             print(json.dumps(result, indent=2))
             return
 

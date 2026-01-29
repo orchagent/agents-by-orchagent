@@ -87,6 +87,11 @@
     { "source": "/getting-started", "destination": "/quickstart" },
     { "source": "/docs/cli", "destination": "/using-agents/cli-commands" },
     { "source": "/docs/agents", "destination": "/building-agents/agent-types" },
+    { "source": "/cli", "destination": "/using-agents/cli-commands" },
+    { "source": "/agents", "destination": "/building-agents/agent-types" },
+    { "source": "/skills", "destination": "/building-agents/orchestration" },
+    { "source": "/sdk", "destination": "/building-agents/sdk" },
+    { "source": "/api", "destination": "/api-reference/overview" },
     { "source": "/docs/:path*", "destination": "/:path*" }
   ]
 }

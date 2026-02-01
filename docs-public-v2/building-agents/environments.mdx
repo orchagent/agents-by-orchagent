@@ -1,0 +1,116 @@
+---
+title: "Custom Environments"
+description: "Add dependencies to your code agents with Docker environments"
+---
+
+Code agents run in E2B sandboxes with a base Python image. Custom environments let you add dependencies beyond the defaults.
+
+## Predefined Environments
+
+Four ready-to-use environments are available to all users:
+
+| Name | Packages |
+|------|----------|
+| `python-ml` | numpy, pandas, scikit-learn, torch, torchvision |
+| `python-ffmpeg` | ffmpeg, ffmpeg-python, moviepy |
+| `python-image` | pillow, opencv-python-headless |
+| `python-scraping` | requests, beautifulsoup4, lxml, playwright + chromium |
+
+### Set as Workspace Default
+
+All agents in your workspace can use a default environment:
+
+**Via CLI:**
+```bash
+orch env list                        # Find environment ID
+orch env set-default <environment-id>
+```
+
+**Via Web UI:**
+Settings → Workspace → Default Environment
+
+Agents without their own Dockerfile use this default.
+
+---
+
+## Custom Environments
+
+Need specific packages? Include a `Dockerfile` in your agent directory.
+
+### Quick Start
+
+```dockerfile
+FROM e2bdev/code-interpreter:latest
+RUN pip install numpy pandas scikit-learn --no-cache-dir
+```
+
+Publish with the `--docker` flag:
+
+```bash
+orch publish --docker
+```
+
+The platform builds your custom environment. First build takes 2-5 minutes; subsequent publishes with the same Dockerfile reuse the cached build.
+
+<Note>
+You don't need Docker installed locally. The platform handles all building.
+</Note>
+
+### Dockerfile Guidelines
+
+**Base image** (required):
+```dockerfile
+FROM e2bdev/code-interpreter:latest
+```
+
+**What works:**
+```dockerfile
+# Python packages
+RUN pip install package1 package2 --no-cache-dir
+
+# System packages
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+
+# Environment variables
+ENV MY_VAR=value
+```
+
+**What doesn't work:**
+```dockerfile
+EXPOSE 8080      # Rejected - sandboxes don't expose ports
+ENTRYPOINT [...]  # Ignored - overridden by sandbox
+CMD [...]         # Ignored - overridden by sandbox
+```
+
+### Example: Video Processing Agent
+
+```dockerfile
+FROM e2bdev/code-interpreter:latest
+
+RUN apt-get update && \
+    apt-get install -y ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN pip install ffmpeg-python moviepy --no-cache-dir
+```
+
+---
+
+## CLI Commands
+
+```bash
+orch env list                          # List available environments
+orch env status <id>                   # Check build status
+orch env create -f Dockerfile -n name  # Create from Dockerfile
+orch env delete <id>                   # Delete (if no agents use it)
+orch env set-default <id>              # Set workspace default
+orch env clear-default                 # Clear workspace default
+```
+
+## Environment Priority
+
+When running a code agent:
+
+1. **Agent-specific** — Dockerfile in bundle creates dedicated environment
+2. **Workspace default** — Falls back to workspace's default environment
+3. **Base image** — Uses E2B's base `code-interpreter` if neither set

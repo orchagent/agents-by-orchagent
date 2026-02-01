@@ -50,6 +50,7 @@
                 "pages": [
                   "building-agents/agent-types",
                   "building-agents/manifest-format",
+                  "building-agents/environments",
                   "building-agents/publishing",
                   "building-agents/orchestration",
                   "building-agents/sdk"

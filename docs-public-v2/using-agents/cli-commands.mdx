@@ -42,6 +42,7 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch call <agent>` | Execute agent via API | Cloud (E2B sandbox) |
 | `orch install <agent>` | Export agent as sub-agent | Local files (for AI tools) |
 | `orch skill install <skill>` | Download skill files | Local files (for AI tools) |
+| `orch test` | Run agent tests locally | Your machine |
 | `orch update` | Update installed agents | - |
 | `orch formats` | List available export formats | - |
 
@@ -547,6 +548,72 @@ orch delete my-agent
 # Delete specific version
 orch delete my-agent --version v2
 ```
+
+### test
+
+Run tests for your agent locally. Supports Python (pytest), JavaScript/TypeScript (vitest/npm test), and fixture-based testing for prompt agents.
+
+```bash
+# Run tests in current directory
+orch test
+
+# Run tests in a specific directory
+orch test ./my-agent
+
+# Verbose output
+orch test --verbose
+
+# Watch mode - re-run on file changes
+orch test --watch
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `-v, --verbose` | Show detailed test output |
+| `-w, --watch` | Watch for file changes and re-run tests |
+
+**Test Discovery:**
+
+The CLI automatically discovers tests based on file patterns:
+
+| Type | Patterns |
+|------|----------|
+| Python | `test_*.py`, `*_test.py` |
+| JavaScript/TypeScript | `*.test.ts`, `*.test.js`, `*.spec.ts`, `*.spec.js` |
+| Fixtures | `tests/fixture-*.json` (for prompt agents) |
+
+**Fixture Format:**
+
+For prompt agents, create fixture files in `tests/` to test your prompts against an LLM:
+
+```json
+{
+  "input": {"text": "Hello world"},
+  "expected_output": {"greeting": "Hello!"},
+  "expected_contains": ["Hello"],
+  "description": "Tests greeting response"
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `input` | Yes | Input data passed to the prompt |
+| `expected_output` | No* | Exact match comparison (deep equality) |
+| `expected_contains` | No* | Substrings that must appear in output |
+| `description` | No | Human-readable test description |
+
+*At least one of `expected_output` or `expected_contains` is required.
+
+**Requirements for fixture tests:**
+
+- LLM API key in environment (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.)
+- A `prompt.md` or `SKILL.md` file in the agent directory
+
+<Tip>
+Watch mode works on all platforms (macOS, Linux, Windows) and automatically picks up new test files as you create them.
+</Tip>
 
 ---
 

@@ -11,10 +11,10 @@ Four ready-to-use environments are available to all users:
 
 | Name | Packages |
 |------|----------|
-| `python-ml` | numpy, pandas, scikit-learn, torch, torchvision |
-| `python-ffmpeg` | ffmpeg, ffmpeg-python, moviepy |
+| `python-ml` | numpy, pandas, scikit-learn, matplotlib, seaborn |
+| `python-ffmpeg` | ffmpeg-python, moviepy, imageio-ffmpeg |
 | `python-image` | pillow, opencv-python-headless |
-| `python-scraping` | requests, beautifulsoup4, lxml, playwright + chromium |
+| `python-scraping` | requests, beautifulsoup4, lxml, httpx |
 
 ### Set as Workspace Default
 
@@ -92,13 +92,12 @@ COPY and ADD commands are rejected because Dockerfiles are built in isolation wi
 
 ```dockerfile
 FROM e2bdev/code-interpreter:latest
-
-RUN apt-get update && \
-    apt-get install -y ffmpeg && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN pip install ffmpeg-python moviepy --no-cache-dir
+RUN pip install ffmpeg-python moviepy imageio-ffmpeg --no-cache-dir
 ```
+
+<Tip>
+Prefer `pip install` over `apt-get` when possible. Many system packages (like ffmpeg) have pure-Python alternatives (like `imageio-ffmpeg`) that work better in cloud sandboxes.
+</Tip>
 
 ---
 

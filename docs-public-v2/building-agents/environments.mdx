@@ -77,10 +77,16 @@ ENV MY_VAR=value
 
 **What doesn't work:**
 ```dockerfile
-EXPOSE 8080      # Rejected - sandboxes don't expose ports
-ENTRYPOINT [...]  # Ignored - overridden by sandbox
-CMD [...]         # Ignored - overridden by sandbox
+COPY ./data /app   # Rejected - no build context available
+ADD ./file /app    # Rejected - no build context available
+EXPOSE 8080        # Rejected - sandboxes don't expose ports
+ENTRYPOINT [...]   # Ignored - overridden by sandbox
+CMD [...]          # Ignored - overridden by sandbox
 ```
+
+<Warning>
+COPY and ADD commands are rejected because Dockerfiles are built in isolation without access to your bundle files. Install dependencies via pip/apt instead, or download files at runtime in your agent code.
+</Warning>
 
 ### Example: Video Processing Agent
 
@@ -114,3 +120,7 @@ When running a code agent:
 1. **Agent-specific** — Dockerfile in bundle creates dedicated environment
 2. **Workspace default** — Falls back to workspace's default environment
 3. **Base image** — Uses E2B's base `code-interpreter` if neither set
+
+<Note>
+**Dynamic workspace defaults:** Changing your workspace default immediately affects all agents that don't have their own Dockerfile. Existing agents without agent-specific environments will use the new default on their next run.
+</Note>

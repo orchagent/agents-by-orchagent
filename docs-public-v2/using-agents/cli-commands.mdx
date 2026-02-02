@@ -79,7 +79,21 @@ orch run joe/leak-finder --download-only
 
 # Auto-download all dependencies
 orch run joe/security-review --with-deps https://github.com/user/repo
+
+# Override LLM provider and model
+orch run joe/summarizer --input '{"text":"..."}' --provider openai --model gpt-4o-mini
 ```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--input <json>` | JSON input data |
+| `--provider <name>` | LLM provider (openai, anthropic, gemini, ollama) |
+| `--model <model>` | LLM model to use (overrides agent default) |
+| `--download-only` | Download agent without executing |
+| `--with-deps` | Auto-download all dependencies |
+| `--json` | Raw JSON output |
 
 **What happens:**
 
@@ -138,7 +152,22 @@ orch call acme/batch-processor --file doc1.pdf --file doc2.pdf
 
 # Compose with skills
 orch call acme/code-reviewer code.py --skills yourorg/react-best-practices
+
+# Override LLM provider and model
+orch call acme/summarizer --data '{"text":"..."}' --provider openai --model gpt-4o-mini
 ```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--data <json>` | JSON payload (string or @file, @- for stdin) |
+| `--provider <name>` | LLM provider (openai, anthropic, gemini) |
+| `--model <model>` | LLM model to use (overrides agent default) |
+| `--endpoint <name>` | Override agent endpoint |
+| `--output <file>` | Save response to file |
+| `--json` | Raw JSON output |
+| `--skills <refs>` | Add skills (comma-separated) |
 
 **What happens:**
 

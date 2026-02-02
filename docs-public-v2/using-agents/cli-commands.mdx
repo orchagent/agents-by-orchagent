@@ -15,319 +15,293 @@ npm install -g @orchagent/cli
 The CLI also installs `orch` as a shorthand alias. All commands work with either `orchagent` or `orch`.
 </Tip>
 
-## Commands Overview
+---
 
-| Command | Purpose |
-|---------|---------|
-| `orchagent login` | Authenticate and store API key |
-| `orchagent whoami` | Show current user/org info |
-| `orchagent search` | Search and discover agents and skills |
-| `orchagent call <agent>` | Call an agent on the server |
-| `orchagent run <agent>` | Download and run an agent locally |
-| `orchagent skill install <skill>` | Install skill to local AI tool directories |
-| `orchagent init` | Initialize agent or skill directory structure |
-| `orchagent publish` | Publish agent or skill from local files |
-| `orchagent star <agent>` | Star or unstar an agent or skill |
-| `orchagent fork <agent>` | Fork a public agent or skill |
-| `orchagent delete <agent>` | Delete an agent or skill |
-| `orchagent llm-config` | Set default LLM config |
-| `orchagent doctor` | Diagnose CLI setup issues |
-| `orchagent workspace list` | List your workspaces |
-| `orchagent workspace create <name>` | Create a team workspace |
-| `orchagent workspace use <slug>` | Set default workspace |
-| `orchagent workspace members` | List workspace members and invites |
-| `orchagent workspace invite <email>` | Invite member to workspace |
-| `orchagent workspace leave` | Leave a workspace |
+## Understanding Agents vs Skills
 
-## Authentication
+Before diving into commands, understand the two types of content on orchagent:
 
-### login
+| | Agents | Skills |
+|---|--------|--------|
+| **What they are** | Active executors that DO things | Passive knowledge that TEACHES things |
+| **Purpose** | Execute tasks and return results | Provide context, rules, guidelines |
+| **Example** | `code-reviewer` analyzes your code | `react-best-practices` teaches React patterns |
+| **How to use** | `run`, `call`, or `install` | `skill install` |
 
-Authenticate and store your API key.
+**Simple rule:**
+- Want AI to **DO** something? Use an **agent**
+- Want AI to **KNOW** something? Use a **skill**
 
-```bash
-# Interactive mode (recommended)
-orchagent login
+---
 
-# Non-interactive mode (for CI/CD)
-orchagent login --key sk_live_xxx
+## Quick Reference
+
+| Command | What It Does | Where It Runs |
+|---------|--------------|---------------|
+| `orch run <agent>` | Download and execute agent | Your machine |
+| `orch call <agent>` | Execute agent via API | Cloud (E2B sandbox) |
+| `orch install <agent>` | Export agent as sub-agent | Local files (for AI tools) |
+| `orch skill install <skill>` | Download skill files | Local files (for AI tools) |
+| `orch update` | Update installed agents | - |
+| `orch formats` | List available export formats | - |
+
+### When to Use What
+
+```
+Want AI to DO something now?
+  ├─ Need it local/private? → orch run
+  └─ Want managed infra?    → orch call
+
+Want AI to KNOW something?
+  └─ Download knowledge     → orch skill install
+
+Want to DELEGATE to sub-agents?
+  └─ Export for AI tools    → orch install
 ```
 
-<Warning>
-The `--key` flag exposes the key in shell history. For CI/CD, use the `ORCHAGENT_API_KEY` environment variable instead.
-</Warning>
+---
 
-### whoami
-
-Show current user and organization info.
-
-```bash
-orchagent whoami
-```
-
-## Workspaces
-
-Workspaces let you organize team access, share agents privately, and manage billing. Every user has a personal workspace, and can create or join team workspaces.
-
-### workspace list
-
-List all workspaces you have access to.
-
-```bash
-# List workspaces
-orchagent workspace list
-
-# JSON output for scripting
-orchagent workspace list --json
-```
-
-### workspace create
-
-Create a new team workspace.
-
-```bash
-# Create a workspace (slug auto-generated from name)
-orchagent workspace create "My Team"
-
-# Create with custom slug
-orchagent workspace create "My Team" --slug my-team
-```
-
-<Tip>
-The workspace slug is used in agent names and URLs. Choose something short and memorable.
-</Tip>
-
-### workspace use
-
-Set the default workspace for CLI operations. This affects where agents are published and which workspace context is used.
-
-```bash
-# Set default workspace
-orchagent workspace use my-team
-
-# Verify with whoami
-orchagent whoami
-```
-
-### workspace members
-
-List all members and pending invites in a workspace.
-
-```bash
-# List members of current workspace
-orchagent workspace members
-
-# List members of specific workspace
-orchagent workspace members my-team
-
-# JSON output for scripting
-orchagent workspace members --json
-```
-
-### workspace invite
-
-Invite a new member to a workspace.
-
-```bash
-# Invite with default role (member)
-orchagent workspace invite alice@example.com
-
-# Invite as owner
-orchagent workspace invite alice@example.com --role owner
-
-# Invite to specific workspace
-orchagent workspace invite alice@example.com --workspace my-team
-```
-
-**Available roles:**
-- `member` - Can use and publish agents
-- `owner` - Can manage members, invites, and workspace settings
-
-### workspace leave
-
-Leave a workspace you're a member of.
-
-```bash
-# Leave current workspace (prompts for confirmation)
-orchagent workspace leave
-
-# Leave specific workspace
-orchagent workspace leave my-team
-```
-
-<Warning>
-You cannot leave your personal workspace. If you're the last owner of a team workspace, you must assign another owner before leaving.
-</Warning>
-
-## Discovery
-
-### search
-
-Search and discover agents and skills. This is the primary way to find what's available on the platform.
-
-```bash
-# Search by keyword
-orchagent search invoice
-
-# Show top agents/skills by stars
-orchagent search --popular
-
-# Show most recently published
-orchagent search --recent
-
-# Filter to agents only
-orchagent search invoice --type agents
-
-# Filter to skills only
-orchagent search react --type skills
-
-# Limit results (default: 20)
-orchagent search invoice --limit 50
-
-# JSON output for scripting
-orchagent search invoice --json
-```
-
-<Tip>
-For browsing all agents and skills, visit [orchagent.io/explore](https://orchagent.io/explore).
-</Tip>
-
-## Calling Agents
-
-### call
-
-Call an agent on orchagent's servers.
-
-```bash
-# Call with file
-orchagent call acme/invoice-scanner invoice.pdf
-
-# Agent name only (uses default_org from config)
-orchagent call invoice-scanner invoice.pdf
-
-# Pipe input via stdin
-cat document.pdf | orchagent call acme/pdf-parser
-
-# JSON payload
-orchagent call acme/text-extractor --data '{"text":"hello world"}'
-
-# JSON from file
-orchagent call acme/text-extractor --data @input.json
-
-# Specify version (default: v1)
-orchagent call acme/invoice-scanner@v2 invoice.pdf
-
-# Override endpoint
-orchagent call acme/invoice-scanner invoice.pdf --endpoint extract
-
-# JSON output for scripts
-orchagent call acme/invoice-scanner invoice.pdf --json
-
-# Save response to file
-orchagent call acme/image-processor photo.jpg --output result.png
-
-# Pass tenant ID (multi-tenant callers)
-orchagent call acme/invoice-scanner invoice.pdf --tenant customer-123
-
-# Multiple files
-orchagent call acme/batch-processor --file doc1.pdf --file doc2.pdf
-
-# Files with metadata
-orchagent call acme/invoice-scanner --file invoice.pdf --metadata '{"format":"detailed"}'
-
-# Compose with skills (add skill knowledge to the agent)
-orchagent call acme/code-reviewer code.py --skills yourorg/react-best-practices
-
-# Use only specific skills (ignore agent's default_skills)
-orchagent call acme/code-reviewer code.py --skills-only yourorg/react-best-practices
-
-# Ignore all skills (even if agent has default_skills)
-orchagent call acme/code-reviewer code.py --no-skills
-```
-
-**Input handling:**
-
-- `--data` provided: sends JSON (`application/json`)
-- File argument provided: reads file, sends as `multipart/form-data`
-- `--file` provided: sends files as `multipart/form-data` with `files[]` array
-- `--metadata` provided: adds JSON metadata field to multipart request
-- No file but stdin has data: reads stdin, sends as `multipart/form-data`
-- Neither: sends empty request body
+## Running Agents
 
 ### run
 
-Download and run an agent locally (no server execution).
+Download and run an agent locally on your machine. No server execution.
 
 ```bash
-# Run a code agent locally
-orchagent run joe/leak-finder https://github.com/user/repo
+# Run agent with a URL input
+orch run joe/leak-finder https://github.com/user/repo
 
-# Run a prompt-based agent with JSON input
-orchagent run joe/summarizer --input '{"text": "..."}'
+# Run with JSON input
+orch run joe/summarizer --input '{"text": "..."}'
 
 # Just download without running
-orchagent run joe/leak-finder --download-only
+orch run joe/leak-finder --download-only
 
 # Auto-download all dependencies
-orchagent run joe/security-review --with-deps https://github.com/user/repo
+orch run joe/security-review --with-deps https://github.com/user/repo
 ```
 
-**Dependency handling for orchestrator agents:**
+**What happens:**
 
-When running an agent that has dependencies, the CLI prompts:
+1. CLI downloads agent code from orchagent registry
+2. Agent runs locally on your machine
+3. Agent calls LLM API using YOUR environment keys
+4. Results returned to terminal
 
-```
-$ orchagent run joe/security-review .
+**When to use `run`:**
 
-Checking dependencies...
+- Development and testing
+- Keep data on your machine (privacy)
+- Try agents without an account
+- Debug agent behavior
 
-This agent has dependencies:
-  joe/leak-finder@v1 (downloadable)
-  joe/vuln-scanner@v1 (downloadable)
-  acme/premium-scan@v1 (cloud-only)
+**Requirements:**
 
-Options:
-  [1] Run on server (orchagent call) - recommended
-  [2] Download 2 available deps, run locally
-  [3] Cancel
+- LLM API key in environment (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.)
+- Agent must be downloadable (has `source_url` in manifest)
 
-Choose [1/2/3]:
-```
+<Note>
+**Dependency handling:** If an agent has dependencies, the CLI prompts you to choose between server execution or downloading available dependencies. Use `--with-deps` to auto-download.
+</Note>
 
-Use `--with-deps` to skip the prompt and auto-download all available dependencies.
+### call
 
-## Skills
-
-Skills are passive knowledge (instructions, rules, guidelines) that enhance agents. Install them locally for use with any AI coding tool (Claude Code, Cursor, Codex, etc.).
-
-### Finding Skills
-
-Use the search command with the `--type skills` filter:
+Execute an agent on orchagent's cloud servers.
 
 ```bash
-# Search for skills
-orchagent search react --type skills
+# Basic call with file
+orch call acme/invoice-scanner invoice.pdf
 
-# Show popular skills
-orchagent search --popular --type skills
+# JSON payload
+orch call acme/text-extractor --data '{"text":"hello world"}'
 
-# Show recent skills
-orchagent search --recent --type skills
+# JSON from file
+orch call acme/text-extractor --data @input.json
+
+# Pipe input via stdin
+cat document.pdf | orch call acme/pdf-parser
+
+# Specify version (default: v1)
+orch call acme/invoice-scanner@v2 invoice.pdf
+
+# Override endpoint
+orch call acme/invoice-scanner invoice.pdf --endpoint extract
+
+# JSON output for scripts
+orch call acme/invoice-scanner invoice.pdf --json
+
+# Save response to file
+orch call acme/image-processor photo.jpg --output result.png
+
+# Multiple files
+orch call acme/batch-processor --file doc1.pdf --file doc2.pdf
+
+# Compose with skills
+orch call acme/code-reviewer code.py --skills yourorg/react-best-practices
 ```
+
+**What happens:**
+
+1. CLI sends request to gateway (`api.orchagent.io`)
+2. Gateway spins up an E2B sandbox (ephemeral, isolated)
+3. Agent runs with your stored LLM keys
+4. Response returned through gateway
+
+**When to use `call`:**
+
+- Production integrations
+- Agents with complex dependencies
+- Managed infrastructure (auto-scaling, health checks)
+- Usage tracking and logs
+
+**Requirements:**
+
+- orchagent account (free)
+- API key from dashboard
+- LLM key stored in account
+
+---
+
+## Installing Agents as Sub-Agents
+
+### install
+
+Export an agent as a sub-agent for AI coding tools (Claude Code, Cursor, etc.). This writes configuration files that your AI tool reads.
+
+```bash
+# Install to home directory (available in all projects)
+orch install joe/code-reviewer
+
+# Install to current project only
+orch install joe/code-reviewer --scope project
+
+# Specify format (default: claude-code)
+orch install joe/code-reviewer --format cursor
+
+# Install to multiple formats
+orch install joe/code-reviewer --format claude-code,cursor
+
+# Preview what would be installed
+orch install joe/code-reviewer --dry-run
+
+# Specify version
+orch install joe/code-reviewer@v2
+```
+
+**What happens:**
+
+1. CLI downloads agent metadata from registry
+2. Converts to target format (Claude Code, Cursor, AGENTS.md)
+3. Writes configuration file to AI tool directory
+4. Tracks installation for updates
+
+**Install locations by format:**
+
+| Format | User Scope (`--scope user`) | Project Scope (`--scope project`) |
+|--------|----------------------------|----------------------------------|
+| `claude-code` | `~/.claude/agents/` | `./.claude/agents/` |
+| `cursor` | `~/.cursor/rules/` | `./.cursor/rules/` |
+| `agents-md` | `~/AGENTS.md` | `./AGENTS.md` |
+
+**When to use `install`:**
+
+- You want Claude Code or Cursor to delegate tasks to specialized agents
+- You want sub-agents available across all your projects
+- You're building a team workflow with shared agents
+
+<Tip>
+**Set default format:** Run `orch config set default-format claude-code,cursor` to install to multiple formats automatically.
+</Tip>
+
+### update
+
+Update installed agents to their latest versions.
+
+```bash
+# Update all installed agents
+orch update
+
+# Update specific agent
+orch update joe/code-reviewer
+
+# Check for updates without installing
+orch update --check
+
+# Force update even if locally modified
+orch update --force
+```
+
+**What happens:**
+
+1. CLI reads `~/.orchagent/installed.json` to find installed agents
+2. Checks registry for newer versions
+3. Downloads and writes updated files
+4. Preserves local modifications (unless `--force`)
+
+<Note>
+If you've manually edited an installed agent file, `orch update` will skip it to preserve your changes. Use `--force` to overwrite.
+</Note>
+
+### formats
+
+List available export formats for agents.
+
+```bash
+# List formats
+orch formats
+
+# JSON output
+orch formats --json
+```
+
+**Example output:**
+
+```
+Available export formats:
+
+  claude-code    Claude Code Sub-Agent
+                 Supports: prompt, skill agents
+                 Format version: 2026-01
+                 user: ~/.claude/agents/
+                 project: ./.claude/agents/
+
+  cursor         Cursor Rules
+                 Supports: prompt, skill agents
+                 Format version: 2026-01
+                 user: ~/.cursor/rules/
+                 project: ./.cursor/rules/
+
+  agents-md      AGENTS.md (Universal)
+                 Supports: prompt, skill agents
+                 Format version: 1.0
+                 project: ./AGENTS.md
+
+Use with: orch install <agent> --format <id>
+Set default: orch config set default-format <ids>
+```
+
+---
+
+## Working with Skills
+
+Skills are passive knowledge files that enhance AI tools. Install them locally to give your AI assistant domain expertise.
 
 ### skill install
 
-Install a skill to your local AI tool directories. This writes the skill to multiple locations so it works with Claude Code, Cursor, Codex, and other AI coding tools.
+Install a skill to your local AI tool directories.
 
 ```bash
 # Install to current directory (project-specific)
-orchagent skill install yourorg/react-best-practices
+orch skill install yourorg/react-best-practices
 
 # Install to home directory (global)
-orchagent skill install yourorg/react-best-practices --global
+orch skill install yourorg/react-best-practices --global
 
 # Specify version
-orchagent skill install yourorg/react-best-practices@v2
+orch skill install yourorg/react-best-practices@v2
+
+# Specify format(s)
+orch skill install yourorg/react-best-practices --format claude-code,cursor
 ```
 
 **Install locations (current directory):**
@@ -346,74 +320,154 @@ orchagent skill install yourorg/react-best-practices@v2
 ~/.agent/skills/react-best-practices.md
 ```
 
-The skill is saved in standard markdown format, compatible with the [Agent Skills specification](https://agentskills.io).
+### Finding Skills
 
-### Using Skills with OrchAgent Agents
+```bash
+# Search for skills
+orch search react --type skills
 
-When calling OrchAgent agents, you can pass skills via flags:
+# Show popular skills
+orch search --popular --type skills
+
+# Show recent skills
+orch search --recent --type skills
+```
+
+### Using Skills with Agents
+
+When calling orchagent agents, you can compose skills:
 
 ```bash
 # Add skills to an agent call
-orchagent call acme/code-reviewer code.py --skills yourorg/react-best-practices
+orch call acme/code-reviewer code.py --skills yourorg/react-best-practices
 
 # Use ONLY specific skills (ignore agent's default_skills)
-orchagent call acme/code-reviewer code.py --skills-only yourorg/react-rules
+orch call acme/code-reviewer code.py --skills-only yourorg/react-rules
 
 # Ignore all skills
-orchagent call acme/code-reviewer code.py --no-skills
+orch call acme/code-reviewer code.py --no-skills
 ```
 
-Agent authors can also define `default_skills` in their agent manifest - these are automatically injected when the agent runs.
+---
 
-<Note>
-**Locked skills:** If an agent has `skills_locked: true`, your override flags are ignored on server calls (`orch call`). For local runs (`orch run`), the CLI will warn you and ask for confirmation before overriding.
-</Note>
+## Discovery
 
-## Social Features
+### search
 
-### star
-
-Star or unstar an agent.
+Search and discover agents and skills.
 
 ```bash
-orchagent star acme/invoice-scanner
+# Search by keyword
+orch search invoice
+
+# Show top agents/skills by stars
+orch search --popular
+
+# Show most recently published
+orch search --recent
+
+# Filter to agents only
+orch search invoice --type agents
+
+# Filter to skills only
+orch search react --type skills
+
+# Limit results (default: 20)
+orch search invoice --limit 50
+
+# JSON output for scripting
+orch search invoice --json
 ```
 
-### fork
+---
 
-Fork a public agent to your account.
+## Authentication
 
-```bash
-orchagent fork acme/invoice-scanner
-```
+### login
 
-### delete
-
-Delete an agent or skill you own. Uses soft delete - data is retained for 30 days before permanent deletion.
+Authenticate and store your API key.
 
 ```bash
-# Preview what would be deleted (no changes made)
-orchagent delete my-agent --dry-run
+# Interactive mode (recommended)
+orch login
 
-# Delete an agent (prompts for confirmation)
-orchagent delete my-agent
-
-# Delete specific version
-orchagent delete my-agent --version v2
-
-# Skip confirmation prompt
-orchagent delete my-agent --yes
+# Non-interactive mode (for CI/CD)
+orch login --key sk_live_xxx
 ```
 
 <Warning>
-For agents with 10+ stars or 1+ forks, you must type the agent name to confirm deletion (similar to GitHub repository deletion).
+The `--key` flag exposes the key in shell history. For CI/CD, use the `ORCHAGENT_API_KEY` environment variable instead.
 </Warning>
 
-**What happens when you delete:**
-- The agent is hidden from searches and listings immediately
-- Stars, execution logs, and service keys are deleted
-- Forked agents remain but their `forked_from` reference becomes null
-- Data is permanently deleted after 30 days
+### whoami
+
+Show current user and organization info.
+
+```bash
+orch whoami
+```
+
+---
+
+## Workspaces
+
+Workspaces let you organize team access, share agents privately, and manage billing.
+
+### workspace list
+
+```bash
+# List workspaces
+orch workspace list
+
+# JSON output
+orch workspace list --json
+```
+
+### workspace create
+
+```bash
+# Create a workspace (slug auto-generated)
+orch workspace create "My Team"
+
+# Create with custom slug
+orch workspace create "My Team" --slug my-team
+```
+
+### workspace use
+
+Set the default workspace for CLI operations.
+
+```bash
+orch workspace use my-team
+```
+
+### workspace members
+
+```bash
+# List members of current workspace
+orch workspace members
+
+# List members of specific workspace
+orch workspace members my-team
+```
+
+### workspace invite
+
+```bash
+# Invite with default role (member)
+orch workspace invite alice@example.com
+
+# Invite as owner
+orch workspace invite alice@example.com --role owner
+```
+
+### workspace leave
+
+```bash
+orch workspace leave
+```
+
+---
 
 ## Agent Development
 
@@ -423,13 +477,13 @@ Initialize a new agent or skill directory.
 
 ```bash
 # Initialize a prompt-based agent
-orchagent init --type prompt
+orch init --type prompt
 
 # Initialize a code-based agent
-orchagent init --type code
+orch init --type code
 
 # Initialize a skill
-orchagent init --type skill
+orch init --type skill
 ```
 
 ### publish
@@ -437,95 +491,91 @@ orchagent init --type skill
 Publish an agent or skill from the current directory.
 
 ```bash
-# Preview what would be published (no changes made)
-orchagent publish --dry-run
+# Preview what would be published
+orch publish --dry-run
 
 # Publish as public
-orchagent publish --public
+orch publish --public
 
 # Publish as private (requires paid plan)
-orchagent publish
-
-# Override entrypoint for code agents
-orchagent publish --entrypoint custom.py
+orch publish
 
 # Publish with default skills
-orchagent publish --skills yourorg/style@v1,yourorg/rules@v1
-
-# Lock skills (callers cannot override)
-orchagent publish --skills yourorg/owasp@v1 --skills-locked
+orch publish --skills yourorg/style@v1,yourorg/rules@v1
 ```
 
-**The `--dry-run` flag** runs all validation and shows exactly what would be published without making any changes:
-- Validates manifest, prompt, and schema files
-- Shows the version that would be assigned (e.g., v1, v2)
-- For code agents: shows bundle preview (file count, size, entrypoint)
-- Displays the API endpoint that would be created
+### delete
 
-The CLI auto-detects the type:
-- If `SKILL.md` exists → publishes as skill
-- If `orchagent.json` exists → publishes as agent (prompt or code based on config)
-
-**Code agent bundling:**
-
-For code-based agents, `orchagent publish` automatically:
-1. Detects your entrypoint (`main.py`, `index.js`, etc.)
-2. Bundles your code into a ZIP file
-3. Excludes `__pycache__/`, `node_modules/`, `.git/`, `.env`, `venv/`
-4. Uploads to the platform (25MB max)
-
-### llm-config
-
-Set default LLM configuration for prompt agents.
+Delete an agent or skill you own.
 
 ```bash
-orchagent llm-config --endpoint https://api.openai.com/v1 --model gpt-4.1-mini --api-key sk-...
+# Preview what would be deleted
+orch delete my-agent --dry-run
+
+# Delete (prompts for confirmation)
+orch delete my-agent
+
+# Delete specific version
+orch delete my-agent --version v2
 ```
 
-## Diagnostics
-
-### doctor
-
-Diagnose CLI setup issues. Run this first when troubleshooting.
-
-```bash
-# Check your setup
-orchagent doctor
-
-# Show extra details
-orchagent doctor --verbose
-
-# JSON output (for CI/CD)
-orchagent doctor --json
-```
-
-**Checks performed:**
-- **Environment** - Node.js version, CLI version, Git availability
-- **Configuration** - Config file exists, file permissions
-- **Connectivity** - Gateway reachable, response latency
-- **Authentication** - API key configured and valid
-- **LLM Configuration** - Server and local LLM keys
-
-<Tip>
-Exit code is `0` when all checks pass, `1` when warnings or errors are found. Use this in CI/CD pipelines.
-</Tip>
+---
 
 ## Configuration
 
-Config is stored at `~/.orchagent/config.json`:
+### config
+
+Manage CLI configuration.
+
+```bash
+# Set default export format(s)
+orch config set default-format claude-code,cursor
+
+# Set default scope
+orch config set default-scope user
+
+# Get current value
+orch config get default-format
+```
+
+### llm-config
+
+Set default LLM configuration for server-side execution.
+
+```bash
+orch llm-config --endpoint https://api.openai.com/v1 --model gpt-4o-mini --api-key sk-...
+```
+
+### Config File
+
+The CLI stores configuration at `~/.orchagent/config.json`:
 
 ```json
 {
   "api_key": "sk_live_xxx",
   "api_url": "https://api.orchagent.io",
-  "default_org": "acme",
-  "workspace": "my-team"
+  "default_org": "myorg",
+  "workspace": "optional-workspace-slug",
+  "profiles": {
+    "staging": {
+      "api_key": "sk_staging_xxx",
+      "api_url": "https://staging.api.orchagent.io"
+    }
+  },
+  "default_formats": ["claude-code", "cursor"]
 }
 ```
 
-### Environment Variables
+| Field | Description |
+|-------|-------------|
+| `api_key` | Your orchagent API key |
+| `api_url` | API base URL (default: `https://api.orchagent.io`) |
+| `default_org` | Default organization for agent lookups |
+| `workspace` | Optional workspace slug for team operations |
+| `profiles` | Named profiles with their own api_key and api_url |
+| `default_formats` | Default export formats for `orch install` |
 
-Environment variables override config file values:
+### Environment Variables
 
 | Variable | Description |
 |----------|-------------|
@@ -533,38 +583,56 @@ Environment variables override config file values:
 | `ORCHAGENT_API_URL` | API base URL |
 | `ORCHAGENT_DEFAULT_ORG` | Default org for agent lookups |
 
-### Resolution Order
+**Resolution order:** Command-line flags > Environment variables > Config file > Defaults
 
-1. Command-line flags
-2. Environment variables
-3. Config file
-4. Built-in defaults
+---
 
-## Output Modes
+## Diagnostics
 
-### Human Mode (Default)
+### doctor
 
-```
-$ orchagent search --popular
-
-Name                    Author    Category
---------------------------------------------
-invoice-scanner         acme      Document Processing
-billing-doc-analyzer    acme      Document Processing
-pdf-parser              tools     Utilities
-```
-
-### JSON Mode
+Diagnose CLI setup issues.
 
 ```bash
-orchagent search --popular --json
+# Check your setup
+orch doctor
+
+# Show extra details
+orch doctor --verbose
+
+# JSON output
+orch doctor --json
 ```
 
-```json
-[
-  {"name": "invoice-scanner", "org": "acme", "category": "Document Processing"}
-]
+**Checks performed:**
+
+- Environment (Node.js, CLI version, Git)
+- Configuration (config file, permissions)
+- Connectivity (gateway reachable, latency)
+- Authentication (API key valid)
+- LLM Configuration (keys configured)
+
+---
+
+## Social Features
+
+### star
+
+Star or unstar an agent.
+
+```bash
+orch star acme/invoice-scanner
 ```
+
+### fork
+
+Fork a public agent to your account.
+
+```bash
+orch fork acme/invoice-scanner
+```
+
+---
 
 ## Exit Codes
 
@@ -581,17 +649,20 @@ orchagent search --popular --json
 | `8` | Server error |
 | `9` | Network error |
 
-## Scripting
+---
 
-The CLI is designed for Unix-style scripting:
+## Scripting Examples
 
 ```bash
 # Capture response, see errors
-result=$(orchagent call acme/scanner doc.pdf)
+result=$(orch call acme/scanner doc.pdf)
 
 # Suppress errors, check exit code
-orchagent call acme/scanner doc.pdf 2>/dev/null && echo "success"
+orch call acme/scanner doc.pdf 2>/dev/null && echo "success"
 
 # Process JSON output
-orchagent call acme/scanner doc.pdf --json | jq '.data.total'
+orch call acme/scanner doc.pdf --json | jq '.data.total'
+
+# Install agents in CI
+orch install acme/code-reviewer --format claude-code --scope project
 ```

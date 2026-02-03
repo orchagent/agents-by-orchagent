@@ -69,7 +69,7 @@ def _check_password_auth(config_output: str) -> CheckResult:
             severity="critical",
             message=f"Password authentication is enabled (current: {value}). Should be disabled for security.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 
@@ -93,7 +93,7 @@ def _check_root_login(config_output: str) -> CheckResult:
             severity="critical",
             message=f"Root login is not properly restricted (current: {value}). Should be 'no' or 'prohibit-password'.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 
@@ -117,7 +117,7 @@ def _check_empty_passwords(config_output: str) -> CheckResult:
             severity="high",
             message=f"Empty passwords may be permitted (current: {value}). Should be 'no'.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 
@@ -146,7 +146,7 @@ def _check_max_auth_tries(config_output: str) -> CheckResult:
             severity="high",
             message=f"MaxAuthTries is set to {max_tries}. Consider reducing to 3 or less.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 
@@ -184,7 +184,7 @@ def _check_login_grace_time(config_output: str) -> CheckResult:
             severity="high",
             message=f"LoginGraceTime is set to {grace_time}s. Consider reducing to 60s or less.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 
@@ -208,7 +208,7 @@ def _check_x11_forwarding(config_output: str) -> CheckResult:
             severity="high",
             message=f"X11 forwarding is enabled (current: {value}). Disable unless required.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 
@@ -249,7 +249,7 @@ def _check_protocol_version(config_output: str) -> CheckResult:
             severity="high",
             message=f"Insecure SSH protocol version detected (current: {value}). Use version 2 only.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 
@@ -286,7 +286,7 @@ def _check_weak_ciphers(config_output: str) -> CheckResult:
             severity="high",
             message=f"Weak CBC ciphers detected: {', '.join(weak_ciphers)}. These are vulnerable to Terrapin attack (CVE-2023-48795).",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 

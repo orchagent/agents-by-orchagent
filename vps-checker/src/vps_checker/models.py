@@ -22,7 +22,7 @@ class CheckResult(BaseModel):
     severity: str = Field(description="Severity level: critical, high, medium, low")
     message: str = Field(description="Human-readable description of the finding")
     fix_available: bool = Field(default=False, description="Whether an automated fix exists")
-    fix_agent: Optional[str] = Field(default=None, description="Agent that can fix this (e.g., 'joe/vps-fixer')")
+    fix_agent: Optional[str] = Field(default=None, description="Agent that can fix this (e.g., 'orchagent/vps-fixer')")
 
 
 class AttackSummary(BaseModel):

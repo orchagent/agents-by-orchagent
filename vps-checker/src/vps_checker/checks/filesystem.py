@@ -103,7 +103,7 @@ def _check_shadow_permissions() -> CheckResult:
             severity="high",
             message=f"/etc/shadow has insecure permissions ({oct(perms)}). Should be 640 or stricter (600, 400).",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
     # Check if permissions are 640 or stricter
@@ -123,7 +123,7 @@ def _check_shadow_permissions() -> CheckResult:
             severity="high",
             message=f"/etc/shadow has insecure permissions ({oct(perms)}). Should be 640 or stricter.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 
@@ -155,7 +155,7 @@ def _check_sshd_config_permissions() -> CheckResult:
             severity="high",
             message=f"/etc/ssh/sshd_config is world-readable ({oct(perms)}). Remove world-read permission.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
     else:
         return CheckResult(
@@ -206,7 +206,7 @@ def _check_world_writable_etc() -> CheckResult:
                 severity="medium",
                 message=f"World-writable files found in /etc: {files_str}",
                 fix_available=True,
-                fix_agent="joe/vps-fixer",
+                fix_agent="orchagent/vps-fixer",
             )
 
     except FileNotFoundError:

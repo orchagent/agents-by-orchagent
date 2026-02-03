@@ -87,7 +87,7 @@ def _check_aslr() -> CheckResult:
             severity="high",
             message=f"ASLR is partially enabled (current: {value}). Should be 2 for full randomization.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
     else:
         return CheckResult(
@@ -96,7 +96,7 @@ def _check_aslr() -> CheckResult:
             severity="high",
             message=f"ASLR is disabled or misconfigured (current: {value}). Should be 2 for full randomization.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 
@@ -137,7 +137,7 @@ def _check_ptrace_scope() -> CheckResult:
             severity="high",
             message=f"ptrace scope is not restricted (current: {value}). Should be >= 1 to prevent process attachment attacks.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 
@@ -178,7 +178,7 @@ def _check_syn_cookies() -> CheckResult:
             severity="medium",
             message=f"SYN cookies are disabled (current: {value}). Should be 1 to protect against SYN flood attacks.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 
@@ -219,7 +219,7 @@ def _check_source_routing() -> CheckResult:
             severity="medium",
             message=f"Source routing is enabled (current: {value}). Should be 0 to prevent IP spoofing attacks.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 
@@ -259,7 +259,7 @@ def _check_icmp_redirects() -> CheckResult:
             severity="medium",
             message=f"ICMP redirects are enabled (current: {value}). Should be 0 to prevent MITM attacks.",
             fix_available=True,
-            fix_agent="joe/vps-fixer",
+            fix_agent="orchagent/vps-fixer",
         )
 
 

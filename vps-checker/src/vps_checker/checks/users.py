@@ -101,7 +101,7 @@ def _check_empty_passwords() -> CheckResult:
             severity="critical",
             message=f"Users with empty passwords: {', '.join(users_with_empty)}. Set passwords immediately!",
             fix_available=True,
-            fix_agent="orchagent/vps-fixer",
+            fix_agent="joe/vps-fixer",
         )
 
 
@@ -158,7 +158,7 @@ def _check_multiple_uid_zero() -> CheckResult:
                 severity="critical",
                 message=f"Multiple accounts with UID 0: {', '.join(uid_zero_users)}. Non-root UID 0 accounts may indicate compromise!",
                 fix_available=True,
-                fix_agent="orchagent/vps-fixer",
+                fix_agent="joe/vps-fixer",
             )
         else:
             return CheckResult(
@@ -280,7 +280,7 @@ def _check_password_aging() -> CheckResult:
             severity="medium",
             message="PASS_MAX_DAYS not configured in /etc/login.defs. Password aging not enforced.",
             fix_available=True,
-            fix_agent="orchagent/vps-fixer",
+            fix_agent="joe/vps-fixer",
         )
     elif pass_max_days == 99999 or pass_max_days > 365:
         return CheckResult(
@@ -289,7 +289,7 @@ def _check_password_aging() -> CheckResult:
             severity="medium",
             message=f"PASS_MAX_DAYS={pass_max_days} (effectively no expiration). Consider setting to 90 days or less.",
             fix_available=True,
-            fix_agent="orchagent/vps-fixer",
+            fix_agent="joe/vps-fixer",
         )
     elif pass_max_days <= 90:
         details = [f"PASS_MAX_DAYS={pass_max_days}"]
@@ -313,7 +313,7 @@ def _check_password_aging() -> CheckResult:
             severity="medium",
             message=f"PASS_MAX_DAYS={pass_max_days}. Consider reducing to 90 days for better security.",
             fix_available=True,
-            fix_agent="orchagent/vps-fixer",
+            fix_agent="joe/vps-fixer",
         )
 
 

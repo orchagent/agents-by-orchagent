@@ -56,7 +56,7 @@ def _check_ufw_status() -> tuple[CheckResult, Optional[str]]:
                 severity="critical",
                 message="UFW firewall is not installed. Install with: apt install ufw",
                 fix_available=True,
-                fix_agent="orchagent/vps-fixer",
+                fix_agent="joe/vps-fixer",
             ), None
         return CheckResult(
             check="firewall_ufw_status",
@@ -83,7 +83,7 @@ def _check_ufw_status() -> tuple[CheckResult, Optional[str]]:
             severity="critical",
             message="UFW firewall is not active. Enable with: ufw enable",
             fix_available=True,
-            fix_agent="orchagent/vps-fixer",
+            fix_agent="joe/vps-fixer",
         ), None
 
 
@@ -128,7 +128,7 @@ def _check_default_policy() -> CheckResult:
             severity="high",
             message="Default incoming policy is set to ALLOW - this is overly permissive. Set to deny with: ufw default deny incoming",
             fix_available=True,
-            fix_agent="orchagent/vps-fixer",
+            fix_agent="joe/vps-fixer",
         )
     else:
         return CheckResult(
@@ -176,7 +176,7 @@ def _check_ssh_allowed(ufw_output: str) -> CheckResult:
             severity="critical",
             message="SSH (port 22) may not be explicitly allowed. Verify SSH access before enabling firewall to avoid lockout.",
             fix_available=True,
-            fix_agent="orchagent/vps-fixer",
+            fix_agent="joe/vps-fixer",
         )
 
 
@@ -221,7 +221,7 @@ def _check_ssh_rate_limiting() -> CheckResult:
             severity="medium",
             message="SSH does not have rate limiting. Consider: ufw limit ssh",
             fix_available=True,
-            fix_agent="orchagent/vps-fixer",
+            fix_agent="joe/vps-fixer",
         )
 
 
@@ -269,7 +269,7 @@ def _check_dangerous_ports() -> CheckResult:
             severity="high",
             message=f"Dangerous ports exposed to Anywhere: {', '.join(exposed_dangerous)}. These should be restricted to specific IPs or localhost.",
             fix_available=True,
-            fix_agent="orchagent/vps-fixer",
+            fix_agent="joe/vps-fixer",
         )
 
 

@@ -86,7 +86,7 @@ def _check_dangerous_services() -> CheckResult:
             severity="critical",
             message=f"Dangerous services running: {', '.join(running_services)}. These are insecure and should be disabled.",
             fix_available=True,
-            fix_agent="orchagent/vps-fixer",
+            fix_agent="joe/vps-fixer",
         )
     else:
         return CheckResult(
@@ -215,7 +215,7 @@ def _check_service_binding() -> CheckResult:
             severity="medium",
             message=f"Services bound to 0.0.0.0 that should be localhost-only: {', '.join(exposed_services)}",
             fix_available=True,
-            fix_agent="orchagent/vps-fixer",
+            fix_agent="joe/vps-fixer",
         )
     else:
         return CheckResult(
@@ -284,7 +284,7 @@ def _check_auto_updates() -> CheckResult:
         severity="medium",
         message="Automatic security updates are not enabled. Consider enabling unattended-upgrades (Debian/Ubuntu) or dnf-automatic (RHEL/CentOS).",
         fix_available=True,
-        fix_agent="orchagent/vps-fixer",
+        fix_agent="joe/vps-fixer",
     )
 
 

@@ -67,7 +67,7 @@ def _check_fail2ban_installed() -> tuple[bool, CheckResult]:
         severity="critical",
         message="fail2ban is not installed. Install it to protect against brute-force attacks.",
         fix_available=True,
-        fix_agent="orchagent/vps-fixer",
+        fix_agent="joe/vps-fixer",
     )
 
 
@@ -91,7 +91,7 @@ def _check_fail2ban_service_status() -> CheckResult:
             severity="critical",
             message="fail2ban service is inactive. Start and enable it for protection.",
             fix_available=True,
-            fix_agent="orchagent/vps-fixer",
+            fix_agent="joe/vps-fixer",
         )
     else:
         return CheckResult(
@@ -100,7 +100,7 @@ def _check_fail2ban_service_status() -> CheckResult:
             severity="critical",
             message=f"fail2ban service status: {output or error}. Service should be active.",
             fix_available=True,
-            fix_agent="orchagent/vps-fixer",
+            fix_agent="joe/vps-fixer",
         )
 
 
@@ -117,7 +117,7 @@ def _check_ssh_jail_enabled() -> CheckResult:
                 severity="critical",
                 message="fail2ban SSH jail (sshd) is not enabled. Enable it to protect SSH from brute-force attacks.",
                 fix_available=True,
-                fix_agent="orchagent/vps-fixer",
+                fix_agent="joe/vps-fixer",
             )
         else:
             return CheckResult(
@@ -126,7 +126,7 @@ def _check_ssh_jail_enabled() -> CheckResult:
                 severity="critical",
                 message=f"Could not check fail2ban SSH jail status: {error}",
                 fix_available=True,
-                fix_agent="orchagent/vps-fixer",
+                fix_agent="joe/vps-fixer",
             )
 
     # If we got output, the jail exists and is enabled
@@ -146,7 +146,7 @@ def _check_ssh_jail_enabled() -> CheckResult:
         severity="critical",
         message="Could not verify fail2ban SSH jail status",
         fix_available=True,
-        fix_agent="orchagent/vps-fixer",
+        fix_agent="joe/vps-fixer",
     )
 
 

@@ -1,0 +1,37 @@
+{
+  "name": "vps-checker",
+  "type": "code",
+  "is_public": true,
+  "description": "Audits Linux VPS servers for security vulnerabilities, misconfigurations, and active attacks. Read-only scan that checks SSH hardening, firewall, fail2ban, kernel security, file permissions, and compromise indicators.",
+  "supported_providers": ["any"],
+  "tags": ["security", "vps", "linux", "audit", "hardening", "devops"],
+  "default_endpoint": "scan",
+  "source_url": "git+https://github.com/jp730/agents-by-orchagent.git#subdirectory=vps-checker",
+  "entrypoint": "sandbox_main.py",
+  "manifest": {
+    "manifest_version": 1,
+    "dependencies": [
+      {
+        "id": "orchagent/vps-fixer",
+        "version": "v1"
+      }
+    ],
+    "max_hops": 2,
+    "timeout_ms": 120000
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "dry_run": {
+        "type": "boolean",
+        "default": true,
+        "description": "Run in dry-run mode (read-only, no changes)"
+      },
+      "skip_attack_metrics": {
+        "type": "boolean",
+        "default": false,
+        "description": "Skip collection of attack metrics (faster scan)"
+      }
+    }
+  }
+}

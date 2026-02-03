@@ -1,0 +1,41 @@
+{
+  "name": "vps-fixer",
+  "type": "code",
+  "is_public": true,
+  "description": "Applies security hardening fixes to Linux VPS servers. Installs and configures fail2ban, UFW firewall, SSH hardening, and automatic security updates. Requires explicit user confirmation before applying changes.",
+  "supported_providers": ["any"],
+  "tags": ["security", "vps", "linux", "hardening", "remediation", "devops"],
+  "default_endpoint": "fix",
+  "source_url": "git+https://github.com/jp730/agents-by-orchagent.git#subdirectory=vps-fixer",
+  "entrypoint": "sandbox_main.py",
+  "manifest": {
+    "manifest_version": 1,
+    "dependencies": [],
+    "max_hops": 1,
+    "timeout_ms": 180000
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "fixes": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": ["fail2ban", "firewall", "ssh_password_auth", "ssh_root_login", "auto_updates"]
+        },
+        "description": "List of fixes to apply: fail2ban, firewall, ssh_password_auth, ssh_root_login, auto_updates"
+      },
+      "dry_run": {
+        "type": "boolean",
+        "default": true,
+        "description": "Preview changes without applying (default: true)"
+      },
+      "confirm": {
+        "type": "boolean",
+        "default": false,
+        "description": "Must be true to actually apply fixes (safety check)"
+      }
+    },
+    "required": ["fixes"]
+  }
+}

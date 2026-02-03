@@ -74,10 +74,16 @@ def _check_password_auth(config_output: str) -> CheckResult:
 
 
 def _check_root_login(config_output: str) -> CheckResult:
-    """Check if root login is properly restricted."""
+    """Check if root login is properly restricted.
+
+    Note: 'without-password' and 'prohibit-password' are equivalent in OpenSSH.
+    'without-password' is the legacy name, 'prohibit-password' is the modern name.
+    OpenSSH reports 'without-password' in sshd -T output even if config uses 'prohibit-password'.
+    """
     value = _get_config_value(config_output, "permitrootlogin")
 
-    if value in ("no", "prohibit-password"):
+    # 'without-password' and 'prohibit-password' are equivalent - both allow key-only root login
+    if value in ("no", "prohibit-password", "without-password"):
         return CheckResult(
             check="ssh_root_login",
             status=CheckStatus.PASS,

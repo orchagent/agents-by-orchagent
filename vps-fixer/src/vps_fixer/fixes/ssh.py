@@ -54,25 +54,37 @@ def _test_sshd_config() -> tuple[bool, str]:
 def _reload_sshd() -> tuple[bool, str]:
     """Reload SSH daemon to apply configuration changes.
 
+    Tries 'ssh' service first (Ubuntu/Debian), then 'sshd' (RHEL/CentOS/Fedora).
+
     Returns:
         Tuple of (success, output/error message).
     """
-    try:
-        result = subprocess.run(
-            ["systemctl", "reload", "sshd"],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        if result.returncode == 0:
-            return True, "SSH daemon reloaded successfully"
-        return False, f"Failed to reload SSH daemon: {result.stderr.strip()}"
-    except FileNotFoundError:
-        return False, "systemctl not found - systemd may not be available"
-    except subprocess.TimeoutExpired:
-        return False, "SSH reload timed out"
-    except Exception as e:
-        return False, f"Error reloading SSH: {str(e)}"
+    # Try service names in order: 'ssh' (Debian/Ubuntu) then 'sshd' (RHEL/CentOS)
+    service_names = ["ssh", "sshd"]
+
+    for service_name in service_names:
+        try:
+            result = subprocess.run(
+                ["systemctl", "reload", service_name],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode == 0:
+                return True, f"SSH daemon ({service_name}) reloaded successfully"
+            # If service not found, try the next one
+            if "not found" in result.stderr.lower() or "could not be found" in result.stderr.lower():
+                continue
+            # Other error - report it
+            return False, f"Failed to reload SSH daemon: {result.stderr.strip()}"
+        except FileNotFoundError:
+            return False, "systemctl not found - systemd may not be available"
+        except subprocess.TimeoutExpired:
+            return False, "SSH reload timed out"
+        except Exception as e:
+            return False, f"Error reloading SSH: {str(e)}"
+
+    return False, "Could not find SSH service (tried 'ssh' and 'sshd')"
 
 
 def _read_existing_config() -> Optional[str]:

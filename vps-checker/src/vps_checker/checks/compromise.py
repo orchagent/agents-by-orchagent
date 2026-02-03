@@ -27,11 +27,32 @@ MINER_PATTERNS = [
 
 # Common legitimate hidden files to ignore
 LEGITIMATE_HIDDEN_FILES = {
+    # X11/display lock files
     ".X0-lock",
     ".X11-unix",
     ".font-unix",
     ".ICE-unix",
     ".XIM-unix",
+    # Common development/config files
+    ".gitignore",
+    ".gitattributes",
+    ".gitmodules",
+    ".gitkeep",
+    ".dockerignore",
+    ".editorconfig",
+    ".env.example",
+    ".env.sample",
+    ".env.template",
+    ".prettierrc",
+    ".eslintrc",
+    ".eslintrc.json",
+    ".eslintrc.js",
+    ".babelrc",
+    ".npmrc",
+    ".nvmrc",
+    ".python-version",
+    ".ruby-version",
+    ".tool-versions",
 }
 
 
@@ -372,10 +393,13 @@ def run_compromise_checks() -> tuple[list[CheckResult], BreachIndicators]:
     # but they trigger investigation
 
     # Check SSH authorized keys
+    # Note: SSH keys are listed for manual review but don't automatically indicate a breach.
+    # They're informational - the admin should verify these are expected keys.
     keys_result, ssh_keys = _check_ssh_keys()
     results.append(keys_result)
     if ssh_keys:
+        # Store for reference but don't mark as breach - these need manual review
         breach_indicators.unknown_ssh_keys.extend(ssh_keys)
-        breach_indicators.found = True
+        # Don't set breach_indicators.found = True here - keys existing is normal
 
     return results, breach_indicators

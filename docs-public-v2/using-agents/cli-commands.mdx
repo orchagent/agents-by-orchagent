@@ -441,12 +441,32 @@ orch whoami
 
 ## Workspaces
 
-Workspaces let you organize team access, share agents privately, and manage billing.
+Workspaces let you organize agents by team, share agents privately, and manage billing.
+
+### How Workspaces Affect Commands
+
+When you set an active workspace, CLI commands will look for agents there by default:
+
+```bash
+# Set active workspace
+orch workspace use marketing-team
+
+# These now look in marketing-team workspace:
+orch call my-agent data.json          # → marketing-team/my-agent
+orch run my-agent --input '{}'        # → marketing-team/my-agent
+orch install my-agent                 # → marketing-team/my-agent
+orch skill install my-skill           # → marketing-team/my-skill
+
+# Explicit org always overrides workspace:
+orch call other-team/my-agent data.json  # → other-team/my-agent
+```
+
+**Resolution order:** Explicit `org/agent` → Active workspace → Default org (from login)
 
 ### workspace list
 
 ```bash
-# List workspaces
+# List workspaces (→ marks active)
 orch workspace list
 
 # JSON output
@@ -465,11 +485,13 @@ orch workspace create "My Team" --slug my-team
 
 ### workspace use
 
-Set the default workspace for CLI operations.
+Set the active workspace for agent lookups.
 
 ```bash
 orch workspace use my-team
 ```
+
+After this, `orch call agent` will look for `my-team/agent`.
 
 ### workspace members
 
@@ -666,10 +688,15 @@ The CLI stores configuration at `~/.orchagent/config.json`:
 |-------|-------------|
 | `api_key` | Your orchagent API key |
 | `api_url` | API base URL (default: `https://api.orchagent.io`) |
-| `default_org` | Default organization for agent lookups |
-| `workspace` | Optional workspace slug for team operations |
+| `default_org` | Default org from login (personal workspace) |
+| `workspace` | Active workspace (set via `orch workspace use`) |
 | `profiles` | Named profiles with their own api_key and api_url |
 | `default_formats` | Default export formats for `orch install` |
+
+**Agent resolution:** When you run `orch call agent`, the CLI looks for the agent in this order:
+1. Explicit org if provided (`org/agent`)
+2. Active `workspace` if set
+3. `default_org` (your personal workspace)
 
 ### Environment Variables
 

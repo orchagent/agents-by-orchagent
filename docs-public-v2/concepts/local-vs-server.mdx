@@ -1,16 +1,22 @@
 ---
 title: "Local vs Server Execution"
-description: "Understanding orch run vs orch call"
+description: "Understanding run, call, and install"
 ---
 
-orchagent supports two execution modes: **local** (`orch run`) and **server** (`orch call`).
+orchagent offers three ways to use agents:
 
-## Quick Comparison
+| Command | Purpose | Where It Runs |
+|---------|---------|---------------|
+| `orch run` | Execute agent now | Your machine |
+| `orch call` | Execute agent now | Cloud (E2B sandbox) |
+| `orch install` | Export for AI tools | Creates local files |
 
-| | Local (`orch run`) | Server (HTTP API) |
+## Quick Comparison: run vs call
+
+| | Local (`orch run`) | Server (`orch call`) |
 |-|-------------------|-------------------|
 | **Primary users** | Power users, devs exploring | Apps in production |
-| **Interface** | CLI | HTTP API (code) |
+| **Interface** | CLI | CLI or HTTP API |
 | **Where code runs** | Your machine | E2B sandboxes (ephemeral) |
 | **Account required** | No | Yes (free) |
 | **LLM keys** | From your environment | From your account |
@@ -145,6 +151,39 @@ orch run joe/security-review --with-deps .
 
 On the server, dependencies are handled automatically. The gateway routes calls between agents.
 
+## Installing Agents as Sub-Agents (`orch install`)
+
+A third option: export agents as configuration files for AI coding tools like Claude Code or Cursor.
+
+```bash
+# Install to Claude Code (default)
+orch install joe/code-reviewer
+
+# Install to Cursor
+orch install joe/code-reviewer --format cursor
+
+# Install to project directory
+orch install joe/code-reviewer --scope project
+```
+
+**What happens:**
+
+1. CLI downloads agent metadata from registry
+2. Converts to target format (Claude Code, Cursor, AGENTS.md)
+3. Writes configuration file to AI tool directory
+
+**When to use `install`:**
+
+- You want Claude Code or Cursor to delegate tasks to specialized agents
+- You want sub-agents available across all your projects
+- You're building a team workflow with shared agents
+
+**Key difference from `run` and `call`:**
+- `run` and `call` execute the agent immediately and return results
+- `install` creates files that your AI tool reads later
+
+See [CLI Commands](/using-agents/cli-commands#install) for full details.
+
 ## CLI Commands Summary
 
 | Command | Mode | Description |
@@ -154,6 +193,9 @@ On the server, dependencies are handled automatically. The gateway routes calls 
 | `orch run --download-only` | Local | Just download, don't execute |
 | `orch run --with-deps` | Local | Auto-download dependencies |
 | `orch call` | Server | Run on orchagent servers |
+| `orch install` | Export | Create sub-agent files for AI tools |
+| `orch update` | Export | Update installed sub-agents |
+| `orch formats` | Export | List available export formats |
 
 ## Choosing the Right Mode
 

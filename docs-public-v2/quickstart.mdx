@@ -98,12 +98,26 @@ orchagent call orchagent/secrets-scanner https://github.com/your/repo
 
 | Command | What It Does | Where It Runs |
 |---------|--------------|---------------|
-| `npx @orchagent/cli run ORG/NAME` | Run agent or skill locally (no account) | Your machine |
-| `orchagent run ORG/NAME` | Run locally (with account) | Your machine |
-| `orchagent call ORG/NAME` | Run on server | Cloud Run |
-| `orchagent call ORG/AGENT --skills ORG/SKILL` | Run agent with skill composed | Cloud Run |
-| `orchagent login` | Authenticate CLI | - |
-| `orchagent publish` | Publish your agent or skill | - |
+| `orch run <agent>` | Download and execute agent locally | Your machine |
+| `orch call <agent>` | Execute agent via API | Cloud (E2B sandbox) |
+| `orch install <agent>` | Export agent as sub-agent for AI tools | Local files |
+| `orch skill install <skill>` | Download skill files for AI tools | Local files |
+| `orch update` | Update installed agents to latest | - |
+| `orch formats` | List available export formats | - |
+
+### When to Use What
+
+```
+Want AI to DO something now?
+  ├─ Need it local/private? → orch run
+  └─ Want managed infra?    → orch call
+
+Want AI to KNOW something?
+  └─ Download knowledge     → orch skill install
+
+Want to DELEGATE to sub-agents?
+  └─ Export for AI tools    → orch install
+```
 
 ## Calling with Files
 

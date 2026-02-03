@@ -5,6 +5,15 @@ description: "Understanding agents and skills on orchagent"
 
 orchagent hosts two types of content: **agents** that execute tasks, and **skills** that provide reusable knowledge.
 
+## Agents vs Skills: The Simple Rule
+
+| | Agents | Skills |
+|---|--------|--------|
+| **What they do** | **DO** things (execute tasks) | **TEACH** things (provide knowledge) |
+| **Nature** | Active executors | Passive knowledge |
+| **Commands** | `orch run`, `orch call`, `orch install` | `orch skill install` |
+| **Output** | Structured results | Context files for AI tools |
+
 <Info>
 **Quick distinction:** Agents *do* things. Skills *inform* agents how to do things better.
 </Info>
@@ -230,8 +239,14 @@ metadata:
 **Install locally** for any AI coding tool:
 
 ```bash
+# Install to current project
 orch skill install yourorg/react-best-practices
+
+# Install globally (available in all projects)
 orch skill install yourorg/react-best-practices --global
+
+# Install to specific formats only
+orch skill install yourorg/react-best-practices --format claude-code,cursor
 ```
 
 Writes to `.claude/skills/`, `.cursor/skills/`, `.codex/skills/`, `.agent/skills/`.
@@ -241,6 +256,26 @@ Writes to `.claude/skills/`, `.cursor/skills/`, `.codex/skills/`, `.agent/skills
 ```bash
 orch call yourorg/code-reviewer --skills yourorg/react-best-practices
 ```
+
+### Using Agents as Sub-Agents
+
+Export agents as sub-agent configuration files for AI tools:
+
+```bash
+# Install agent as Claude Code sub-agent
+orch install yourorg/code-reviewer
+
+# Install to Cursor
+orch install yourorg/code-reviewer --format cursor
+
+# Install to project only
+orch install yourorg/code-reviewer --scope project
+
+# Update installed agents
+orch update
+```
+
+See [CLI Commands](/using-agents/cli-commands#install) for full details.
 
 ---
 

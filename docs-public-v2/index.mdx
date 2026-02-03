@@ -30,8 +30,18 @@ orchagent is an **AI agent and skill marketplace**. Think of it as GitHub for AI
 
 orchagent hosts two types of things:
 
-- **Agents** are active executors - they take input, do work, and return output
-- **Skills** are passive knowledge - reusable instructions that can be injected into agents
+| | Agents | Skills |
+|---|--------|--------|
+| **What they do** | **DO** things (execute tasks) | **TEACH** things (provide knowledge) |
+| **Nature** | Active executors | Passive knowledge |
+| **Output** | Structured results | Context for AI tools |
+
+**Simple rule:**
+- Want AI to **DO** something? Use an **agent** (`orch run` or `orch call`)
+- Want AI to **KNOW** something? Use a **skill** (`orch skill install`)
+- Want to **DELEGATE** to sub-agents? Export agents (`orch install`)
+
+### Agent Types
 
 | Type | What You Provide | Best For |
 |------|------------------|----------|
@@ -45,7 +55,7 @@ Agents are:
 - **Specific** - one task, done well
 - **Callable** - simple API or CLI call
 
-Skills use the industry-standard Agent Skills format (adopted by Anthropic, Google, Microsoft, OpenAI, Cursor) and can be run standalone or composed with agents.
+Skills use the industry-standard Agent Skills format (adopted by Anthropic, Google, Microsoft, OpenAI, Cursor) and can be installed locally or composed with agents.
 
 ## Key Features
 

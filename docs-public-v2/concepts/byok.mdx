@@ -5,6 +5,10 @@ description: "Use your own LLM API keys with orchagent"
 
 orchagent uses a **Bring Your Own Key** model. You provide your own LLM API keys, and agents use them to make LLM calls.
 
+<Info>
+**When BYOK applies:** BYOK is relevant for `orch run` (local execution) and `orch call` (server execution). For `orch install`, no LLM keys are needed since you're just exporting configuration files.
+</Info>
+
 ## Why BYOK?
 
 | Benefit | Description |

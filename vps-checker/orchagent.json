@@ -17,7 +17,9 @@
       }
     ],
     "max_hops": 2,
-    "timeout_ms": 120000
+    "timeout_ms": 120000,
+    "per_call_downstream_cap": 50,
+    "downstream_spend_cap": 500
   },
   "input_schema": {
     "type": "object",

@@ -12,7 +12,9 @@
     "manifest_version": 1,
     "dependencies": [],
     "max_hops": 1,
-    "timeout_ms": 180000
+    "timeout_ms": 180000,
+    "per_call_downstream_cap": 10,
+    "downstream_spend_cap": 100
   },
   "input_schema": {
     "type": "object",

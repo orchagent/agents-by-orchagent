@@ -1,129 +1,136 @@
 # Code Stats
 
-Analyzes code for quality metrics - line counts, function lengths, complexity warnings.
+Analyzes code quality: line counts, function detection, cyclomatic complexity scoring, and warnings. Respects `.gitignore` and skips build artifacts. Supports Python, JavaScript/TypeScript, Go, and Rust.
 
 ## Features
 
-- Counts total lines, code lines, blank lines, comment lines
-- Detects functions and classes
-- Warns when files or functions exceed configurable limits
-- Accepts file uploads (single or multiple)
-- Supports Python and JavaScript/TypeScript (auto-detected)
+- **Line metrics** — total, code, blank, and comment lines per file
+- **Function & class detection** — names, line counts, and start lines
+- **Cyclomatic complexity** — per-function complexity score (branches, logical operators, ternaries)
+- **Configurable warnings** — file length, function length, and complexity thresholds
+- **Smart file filtering** — respects `.gitignore`, skips `node_modules`/`dist`/`_next`/`out`/build artifacts, detects and skips minified files
+- **Multiple input modes** — file uploads, directory scanning, or raw code strings
 
-## Usage (File Uploads)
+## Supported Languages
 
-This agent is designed to run in OrchAgent's E2B sandbox.
+| Language | Functions | Classes | Complexity | Comments |
+|----------|-----------|---------|------------|----------|
+| Python | `def` (top-level + methods) | `class` | `if`/`elif`/`for`/`while`/`except`/`and`/`or` | `#` |
+| JavaScript/TypeScript | `function`, arrow functions, method shorthand | `class` | `if`/`else if`/`for`/`while`/`case`/`catch`/`?`/`&&`/`\|\|`/`??` | `//`, `/* */` |
+| Go | `func`, methods with receivers | `type ... struct` | `if`/`for`/`case`/`select`/`&&`/`\|\|` | `//`, `/* */` |
+| Rust | `fn`, `pub fn`, `async fn` | `struct`, `impl` | `if`/`else if`/`for`/`while`/`loop`/`match`/`=>`/`&&`/`\|\|` | `//`, `/* */` |
 
-**CLI:**
+## Usage
+
+### CLI (file upload)
+
 ```bash
-orch call orchagent/code-stats --file main.py --metadata '{"max_file_lines": 200, "max_function_lines": 40}'
+orch run orchagent/code-stats main.py server.go
 ```
 
-**API (multipart):**
+### CLI (with options)
+
 ```bash
-curl -X POST "https://api.orchagent.io/orchagent/code-stats/v1/run" \
+orch run orchagent/code-stats --input '{"code": "def foo():\n    pass"}'
+```
+
+### API (file upload)
+
+```bash
+curl -X POST "https://api.orchagent.io/orchagent/code-stats/v3/run" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "files[]=@main.py" \
-  -F "metadata={\"max_file_lines\":200,\"max_function_lines\":40}"
+  -F 'metadata={"max_function_lines": 40, "max_complexity": 8}'
 ```
 
-**Output (JSON):**
+### API (JSON code)
+
+```bash
+curl -X POST "https://api.orchagent.io/orchagent/code-stats/v3/run" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"code": "def foo():\n    if x:\n        return 1\n    return 2"}'
+```
+
+## Output
+
+### Single file / code string
+
 ```json
 {
-  "files_analyzed": 2,
+  "language": "python",
+  "metrics": {
+    "total_lines": 23,
+    "code_lines": 19,
+    "blank_lines": 4,
+    "comment_lines": 0,
+    "functions": 1,
+    "classes": 0
+  },
+  "functions": [
+    {"name": "process_request", "lines": 23, "start_line": 1, "complexity": 11}
+  ],
+  "warnings": [
+    "Function 'process_request' has complexity 11 (exceeds 10)"
+  ],
+  "summary": "1 function, 23 lines, 1 warning."
+}
+```
+
+### Multiple files / directory scan
+
+```json
+{
+  "files_analyzed": 12,
   "results": [
     {
-      "filename": "main.py",
+      "filename": "src/server.py",
       "language": "python",
-      "metrics": {
-        "total_lines": 120,
-        "code_lines": 95,
-        "blank_lines": 15,
-        "comment_lines": 10,
-        "functions": 6,
-        "classes": 1
-      },
+      "metrics": {"total_lines": 245, "code_lines": 198, "blank_lines": 30, "comment_lines": 17, "functions": 8, "classes": 2},
       "functions": [
-        {"name": "hello", "lines": 2, "start_line": 1}
+        {"name": "handle_request", "lines": 65, "start_line": 42, "complexity": 14}
       ],
-      "warnings": []
+      "warnings": [
+        "Function 'handle_request' is 65 lines (exceeds 50 line limit)",
+        "Function 'handle_request' has complexity 14 (exceeds 10)"
+      ]
     }
   ],
-  "summary": "2 files analyzed. 0 warnings total.",
+  "summary": "12 files analyzed. 3 warnings total.",
   "aggregate": {
-    "total_lines": 120,
-    "total_functions": 6,
-    "total_classes": 1,
-    "total_warnings": 0,
+    "total_lines": 1840,
+    "total_functions": 47,
+    "total_classes": 8,
+    "total_warnings": 3,
     "errors": 0
   }
 }
 ```
 
-## Usage (JSON Code)
-
-This mode is backward compatible with existing JSON input.
-
-**Input (JSON):**
-```json
-{
-  "code": "def hello():\n    print('hi')\n\ndef world():\n    pass",
-  "language": "python",
-  "max_file_lines": 300,
-  "max_function_lines": 50
-}
-```
-
-**Output (JSON):**
-```json
-{
-  "language": "python",
-  "metrics": {
-    "total_lines": 5,
-    "code_lines": 4,
-    "blank_lines": 1,
-    "comment_lines": 0,
-    "functions": 2,
-    "classes": 0
-  },
-  "functions": [
-    {"name": "hello", "lines": 2, "start_line": 1},
-    {"name": "world", "lines": 2, "start_line": 4}
-  ],
-  "warnings": [],
-  "summary": "2 functions, 5 lines."
-}
-```
-
-## API Call (JSON)
-
-```bash
-curl -X POST "https://api.orchagent.io/orchagent/code-stats/v1/run" \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"code": "def foo():\n    pass"}'
-```
-
-## Local Testing
-
-```bash
-echo '{"files":[{"path":"main.py","original_name":"main.py"}]}' | python main.py
-echo '{"code": "def foo():\n    pass"}' | python main.py
-```
-
-## Supported Languages
-
-| Language | Detection | Functions | Classes |
-|----------|-----------|-----------|---------|
-| Python | Extension or `def` keyword | Yes | Yes |
-| JavaScript/TypeScript | Extension or `function`, `=>` | Yes | Yes |
-| Other | Generic | No | No |
-
 ## Configuration
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `max_file_lines` | 300 | Warn if file exceeds this |
-| `max_function_lines` | 50 | Warn if any function exceeds this |
+| `max_file_lines` | 300 | Warn if a file exceeds this many lines |
+| `max_function_lines` | 50 | Warn if any function exceeds this many lines |
+| `max_complexity` | 10 | Warn if any function's cyclomatic complexity exceeds this |
 
-When using file uploads, pass configuration via the `metadata` object.
+Pass via `metadata` object when using file uploads, or as top-level keys with JSON code input.
+
+## File Filtering (Directory Scan)
+
+When scanning a directory, the agent automatically skips:
+
+- **`.gitignore` patterns** — parsed and respected
+- **Build output** — `dist/`, `build/`, `out/`, `_next/`, `.nuxt/`, `.vercel/`, `.turbo/`, `target/`
+- **Dependencies** — `node_modules/`, `vendor/`, `.venv/`, `venv/`, `site-packages/`
+- **Caches** — `__pycache__/`, `.pytest_cache/`, `.mypy_cache/`, `coverage/`
+- **Minified files** — `*.min.js`, `*.bundle.js`, `*.chunk.js`, or any file with avg line length > 500
+
+## Local Testing
+
+```bash
+echo '{"code": "def foo():\n    if x:\n        pass"}' | python3 main.py
+echo '{"path": "."}' | python3 main.py
+echo '{"files":[{"path":"main.py","original_name":"main.py"}]}' | python3 main.py
+```

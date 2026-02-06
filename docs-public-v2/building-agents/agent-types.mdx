@@ -76,7 +76,7 @@ Summarize the following {{document_type}} in {{language}}:
 Focus on: {{focus_areas}}
 ```
 
-Variables are replaced with input values at runtime.
+Variables are replaced with input values at runtime. All template variables must be provided with non-empty values — the API returns a `400 MISSING_INPUT_FIELDS` error listing any that are missing.
 
 ### Directory Structure
 

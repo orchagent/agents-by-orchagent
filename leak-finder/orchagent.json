@@ -1,7 +1,7 @@
 {
   "name": "leak-finder",
   "type": "code",
-  "description": "Scans repositories for exposed secrets and credentials. Detects 23+ secret types including AWS keys, Stripe tokens, GitHub PATs, private keys, and database URIs.",
+  "description": "Inspired by @burakeregar (https://x.com/burakeregar/status/2013615136502616225). Scans repositories for exposed secrets and credentials. Detects 23+ secret types including AWS keys, Stripe tokens, GitHub PATs, private keys, and database URIs.",
   "supported_providers": ["any"],
   "tags": ["security", "secrets", "scanning", "devops"],
   "entrypoint": "sandbox_main.py",

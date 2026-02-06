@@ -2,7 +2,7 @@
   "name": "security-review",
   "type": "code",
   "is_public": true,
-  "description": "Comprehensive security review combining secret scanning, dependency auditing, and code pattern analysis",
+  "description": "Inspired by @burakeregar (https://x.com/burakeregar/status/2014696329549648137). Comprehensive security review combining secret scanning, dependency auditing, and code pattern analysis.",
   "supported_providers": [
     "any"
   ],

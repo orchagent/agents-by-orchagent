@@ -104,17 +104,19 @@ The CLI auto-detects `SKILL.md` and publishes as a skill. See [Agent Types](/bui
 
 ### Step 1: Initialize Your Agent
 
-Create a new agent directory:
+Create a new agent project:
 
 ```bash
 # Create prompt-based agent
-orch init --type prompt
+orch init my-agent --type prompt
 
 # Create code-based agent
-orch init --type code
+orch init my-agent --type code
+
+cd my-agent
 ```
 
-This creates the basic directory structure and `orchagent.json`.
+This creates a `my-agent/` directory with the basic structure and `orchagent.json`.
 
 ### Step 2: Configure Your Manifest
 

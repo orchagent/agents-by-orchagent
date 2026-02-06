@@ -121,11 +121,14 @@ Want to DELEGATE to sub-agents?
 
 ## Calling with Files
 
-Many agents process files. Pass a file as the second argument:
+Many agents process files. Pass a file as an argument or use the `--file` flag:
 
 ```bash
-# Call with a PDF file
+# Code agents: pass file as argument (uploaded to sandbox)
 orchagent call acme/invoice-scanner invoice.pdf
+
+# Prompt agents: use --file (content is read and mapped to input schema)
+orchagent call acme/useeffect-checker --file src/App.tsx
 
 # Pipe file to stdin
 cat document.pdf | orchagent call acme/pdf-parser

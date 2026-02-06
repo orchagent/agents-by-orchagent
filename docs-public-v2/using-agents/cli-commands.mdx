@@ -127,8 +127,14 @@ orch run joe/summarizer --input '{"text":"..."}' --provider openai --model gpt-4
 Execute an agent on orchagent's cloud servers.
 
 ```bash
-# Basic call with file
+# Basic call with file (code agents: uploaded to sandbox)
 orch call acme/invoice-scanner invoice.pdf
+
+# Pass file to prompt agent (content mapped to input schema)
+orch call acme/useeffect-checker --file src/App.tsx
+
+# Specify which schema field to map file content to
+orch call acme/useeffect-checker --file src/App.tsx --file-field code
 
 # JSON payload
 orch call acme/text-extractor --data '{"text":"hello world"}'
@@ -166,12 +172,18 @@ orch call acme/summarizer --data '{"text":"..."}' --provider openai --model gpt-
 | Flag | Description |
 |------|-------------|
 | `--data <json>` | JSON payload (string or @file, @- for stdin) |
+| `--file <path>` | Pass file content to agent (repeatable for multiple files) |
+| `--file-field <name>` | Schema field to map file content to (auto-detected if omitted) |
 | `--provider <name>` | LLM provider (openai, anthropic, gemini) |
 | `--model <model>` | LLM model to use (overrides agent default) |
 | `--endpoint <name>` | Override agent endpoint |
 | `--output <file>` | Save response to file |
 | `--json` | Raw JSON output |
 | `--skills <refs>` | Add skills (comma-separated) |
+
+<Note>
+**File handling for prompt agents:** When you pass files to a prompt agent, the CLI reads the file content and maps it to the agent's input schema automatically. It infers the correct field name (e.g., `code`, `content`, `text`) from the schema. Use `--file-field` to override if needed.
+</Note>
 
 **What happens:**
 
@@ -405,12 +417,22 @@ orch search invoice --type agents
 # Filter to skills only
 orch search react --type skills
 
+# List your own agents (including private)
+orch search --mine
+
+# Search your agents by keyword
+orch search writer --mine
+
 # Limit results (default: 20)
 orch search invoice --limit 50
 
 # JSON output for scripting
 orch search invoice --json
 ```
+
+<Tip>
+Use `--mine` to see all your published agents, including private ones that don't appear in public search results.
+</Tip>
 
 ---
 
@@ -528,18 +550,23 @@ orch workspace leave
 
 ### init
 
-Initialize a new agent or skill directory.
+Initialize a new agent or skill project.
 
 ```bash
-# Initialize a prompt-based agent
+# Create a prompt-based agent in a new directory
+orch init my-agent --type prompt
+
+# Create a code-based agent in a new directory
+orch init my-agent --type code
+
+# Create a skill in a new directory
+orch init my-skill --type skill
+
+# Initialize in the current directory (no subdirectory created)
 orch init --type prompt
-
-# Initialize a code-based agent
-orch init --type code
-
-# Initialize a skill
-orch init --type skill
 ```
+
+When a name is provided, `init` creates a subdirectory with that name and writes all files there. Without a name, files are written to the current directory.
 
 ### publish
 
@@ -561,20 +588,20 @@ orch publish --skills yourorg/style@v1,yourorg/rules@v1
 
 ### delete
 
-Delete an agent or skill you own. By default, deletes the latest version only.
+Delete an agent or skill you own. By default, deletes the latest version only. Requires the full `org/agent` reference.
 
 ```bash
 # Delete latest version (prompts for confirmation)
-orch delete my-agent
+orch delete yourorg/my-agent
 
 # Delete a specific version
-orch delete my-agent --version v2
+orch delete yourorg/my-agent --version v2
 
 # Delete all versions at once
-orch delete my-agent --all
+orch delete yourorg/my-agent --all
 
 # Preview what would be deleted
-orch delete my-agent --dry-run
+orch delete yourorg/my-agent --dry-run
 ```
 
 Agents with 10+ stars or forks require you to type the agent name to confirm.
@@ -690,7 +717,8 @@ The CLI stores configuration at `~/.orchagent/config.json`:
       "api_url": "https://staging.api.orchagent.io"
     }
   },
-  "default_formats": ["claude-code", "cursor"]
+  "default_formats": ["claude-code", "cursor"],
+  "default_scope": "user"
 }
 ```
 
@@ -702,6 +730,7 @@ The CLI stores configuration at `~/.orchagent/config.json`:
 | `workspace` | Active workspace (set via `orch workspace use`) |
 | `profiles` | Named profiles with their own api_key and api_url |
 | `default_formats` | Default export formats for `orch install` |
+| `default_scope` | Default install scope: `"user"` or `"project"` |
 
 **Agent resolution:** When you run `orch call agent`, the CLI looks for the agent in this order:
 1. Explicit org if provided (`org/agent`)

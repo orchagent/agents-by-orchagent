@@ -61,7 +61,8 @@
                 "pages": [
                   "concepts/byok",
                   "concepts/local-vs-server",
-                  "concepts/rate-limits"
+                  "concepts/rate-limits",
+                  "concepts/monetization"
                 ]
               },
               {
@@ -93,6 +94,9 @@
     { "source": "/skills", "destination": "/building-agents/orchestration" },
     { "source": "/sdk", "destination": "/building-agents/sdk" },
     { "source": "/api", "destination": "/api-reference/overview" },
-    { "source": "/docs/:path*", "destination": "/:path*" }
+    { "source": "/docs/:path*", "destination": "/:path*" },
+    { "source": "/pricing", "destination": "/concepts/monetization" },
+    { "source": "/monetization", "destination": "/concepts/monetization" },
+    { "source": "/billing", "destination": "/concepts/monetization" }
   ]
 }

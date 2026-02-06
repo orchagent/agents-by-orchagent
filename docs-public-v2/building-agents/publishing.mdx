@@ -27,7 +27,7 @@ orch publish
 
 ## Visibility & Pricing
 
-orchagent supports both public and private agents/skills:
+orchagent supports both public and private agents/skills, with optional per-call pricing:
 
 | Visibility | Plan | Who Can Access | Marketplace |
 |------------|------|----------------|-------------|
@@ -47,6 +47,22 @@ orchagent supports both public and private agents/skills:
 <Note>
 Private agents require a Pro subscription. [Contact us](mailto:hello@orchagent.io) for pricing.
 </Note>
+
+### Paid Agents
+
+You can set a per-call price on any agent or skill. Callers pay from their prepaid credit balance.
+
+```bash
+# Publish with a price
+orch publish --public --price 0.50    # $0.50 per call
+
+# Set pricing on an already-published agent
+orch pricing my-agent 0.50
+```
+
+Paid agents are **server-only for non-owners** — other users must use `orch call` (not `orch run`). You can still download your own paid agents for testing.
+
+See [Monetization](/concepts/monetization) for full details on pricing, credits, and payouts.
 
 ## Publishing Skills
 
@@ -335,6 +351,7 @@ export ORCHAGENT_SERVICE_KEY="sk_agent_..."
 | `--entrypoint <file>` | Override entrypoint for code agents |
 | `--skills <list>` | Default skills (comma-separated, e.g., `org/skill@v1,org/other@v1`) |
 | `--skills-locked` | Lock default skills (callers cannot override via flags) |
+| `--price <amount>` | Set per-call price in USD (e.g., `0.50` for $0.50). Requires seller onboarding. |
 
 ## Troubleshooting
 
@@ -417,5 +434,8 @@ For CI/CD, use environment variables instead of config files:
   </Card>
   <Card title="CLI Reference" icon="terminal" href="/using-agents/cli-commands">
     All CLI commands
+  </Card>
+  <Card title="Monetization" icon="dollar-sign" href="/concepts/monetization">
+    Charge per call for your agents
   </Card>
 </CardGroup>

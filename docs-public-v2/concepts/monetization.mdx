@@ -1,0 +1,215 @@
+---
+title: "Monetization"
+description: "Charge per call for your agents and skills"
+---
+
+Authors can charge per call for their agents and skills. Buyers pay from a prepaid credit balance, sellers receive payouts via Stripe.
+
+## How It Works
+
+```
+Author sets price → Buyer calls agent → Credits deducted → Author earns revenue → Monthly payout
+```
+
+| Role | What You Do |
+|------|-------------|
+| **Buyer** | Add credits, call paid agents, credits deducted per call |
+| **Seller** | Set pricing, onboard with Stripe, receive monthly payouts |
+
+---
+
+## For Buyers
+
+### Adding Credits
+
+Purchase prepaid credits to call paid agents.
+
+```bash
+# Add $10 in credits (minimum $5)
+orch billing add 10
+
+# Check your balance
+orch billing balance
+
+# View transaction history
+orch billing history
+```
+
+You can also add credits from the dashboard at **Settings > Billing > Add Credits**.
+
+Credits are purchased via Stripe Checkout. They don't expire and are refundable on request.
+
+### Calling Paid Agents
+
+Paid agents work the same as free agents — just use `orch call`:
+
+```bash
+orch call acme/premium-agent --data '{"text": "..."}'
+```
+
+The call price is deducted from your credit balance automatically. If your balance is insufficient, you'll get a `402 Payment Required` error.
+
+<Note>
+Paid agents are **server-only**. You cannot download them with `orch run`. Use `orch call` or the HTTP API.
+</Note>
+
+### Checking Costs
+
+Agent pricing is shown in the marketplace and agent detail pages. You can also check via the public API endpoint:
+
+```http
+GET /public/agents/{org}/{agent}/{version}
+```
+
+---
+
+## For Sellers
+
+### Becoming a Seller
+
+Complete Stripe Connect onboarding to receive payouts.
+
+```bash
+# Start onboarding (opens Stripe)
+orch seller onboard
+
+# Check your status
+orch seller status
+
+# Open your Stripe Express Dashboard
+orch seller dashboard
+```
+
+Or visit **Settings > Billing > Become a Seller** in the dashboard.
+
+Stripe handles identity verification, bank account setup, and tax forms. Once verified, your status shows "Payouts Enabled".
+
+### Setting Prices
+
+Set a per-call price on any agent or skill you own.
+
+```bash
+# Set pricing on an existing agent
+orch pricing my-agent 0.50       # $0.50 per call
+
+# Publish a new agent with pricing
+orch publish --price 0.50
+
+# Remove pricing (make free again)
+orch pricing my-agent 0
+```
+
+**Rules:**
+- Minimum price: **$0.01** per call
+- Paid agents become **server-only** for other users (you can still download your own for testing)
+- Pricing is per call — no subscriptions or one-time purchases
+
+### Revenue Split
+
+| Seller Type | Platform Fee | Author Receives |
+|-------------|--------------|-----------------|
+| **Founder** | 7.5% | 92.5% |
+| **Standard** | 15% | 85% |
+| **Same-author calls** | 0% | N/A (no charge) |
+
+Your fee rate is set at onboarding and locked permanently. Founder rate is available to early adopters who join during the launch period.
+
+**Example:** A $1.00 call with the standard rate:
+```
+Caller pays:     $1.00
+Platform fee:    $0.15 (15%)
+Author receives: $0.85
+```
+
+When you call your own agents, no fees are charged.
+
+<Note>
+Per-transaction fees are rounded up to the nearest cent, so small transactions may show a slightly higher effective rate in the UI. Payouts are calculated using your actual base rate to correct for rounding.
+</Note>
+
+### Payouts
+
+Earnings are paid out monthly via Stripe:
+
+- **Schedule:** First Thursday of each month
+- **Minimum payout:** $50
+- **Method:** Direct to your bank account via Stripe Connect
+
+Below the minimum? Your balance carries over to the next month.
+
+```bash
+# View your earnings
+orch seller earnings
+
+# Open Stripe Dashboard for payout history and bank details
+orch seller dashboard
+```
+
+Stripe Express Dashboard handles payout history, bank account management, and tax forms — you don't need to manage any of that in orchagent.
+
+### Downstream Costs
+
+If your orchestrator agent calls other paid agents, **you absorb those costs**. The caller pays one price (yours), and downstream costs come out of your margin.
+
+```
+Caller pays your agent: $1.00
+  Your agent calls SubAgent A: $0.20  ← you pay this
+  Your agent calls SubAgent B: $0.10  ← you pay this
+Your net revenue: $1.00 - $0.15 (fee) - $0.30 (deps) = $0.55
+```
+
+Set `max_downstream_cents` in your manifest to cap downstream spending:
+
+```json
+{
+  "pricing": {
+    "price_per_call_cents": 100,
+    "max_downstream_cents": 50
+  }
+}
+```
+
+The platform validates at publish time that your price covers the worst-case downstream costs after fees. If downstream costs exceed the cap during execution, the call halts with `MAX_DOWNSTREAM_EXCEEDED`.
+
+---
+
+## Access Control
+
+| Pricing | `orch call` (server) | `orch run` (local) |
+|---------|---------------------|--------------------|
+| **Free** | Anyone | Anyone |
+| **Paid** | Anyone (charged per call) | Owner only |
+
+```bash
+# Non-owner trying to download a paid agent:
+$ orch run acme/paid-agent
+Error: This agent is paid ($0.50/call) and runs on server only.
+Use: orch call acme/paid-agent@latest --data '{...}'
+
+# Owner downloading their own paid agent:
+$ orch run acme/paid-agent
+✔ Downloaded acme/paid-agent@latest
+```
+
+---
+
+## CLI Commands Summary
+
+**Buyer:**
+
+| Command | Description |
+|---------|-------------|
+| `orch billing balance` | Check credit balance |
+| `orch billing add <amount>` | Add credits ($5 minimum) |
+| `orch billing history` | View transaction history |
+
+**Seller:**
+
+| Command | Description |
+|---------|-------------|
+| `orch seller onboard` | Start Stripe Connect onboarding |
+| `orch seller status` | Check payout status |
+| `orch seller dashboard` | Open Stripe Express Dashboard |
+| `orch seller earnings` | View revenue breakdown |
+| `orch pricing <agent> <price>` | Set per-call price |
+| `orch publish --price <price>` | Publish with pricing |

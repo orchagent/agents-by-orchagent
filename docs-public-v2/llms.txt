@@ -12,6 +12,7 @@ orchagent is a free marketplace where developers find, run, and share AI agents.
 - Fork and improve others' agents
 - Free tier: 1000 calls/day
 - BYOK: Bring your own LLM API keys
+- Author monetization: Charge per call, earn revenue, get monthly payouts via Stripe
 
 ## Agent Types
 
@@ -33,6 +34,7 @@ orchagent is a free marketplace where developers find, run, and share AI agents.
 - [BYOK](https://docs.orchagent.io/concepts/byok): Bring Your Own Key model
 - [Local vs Server](https://docs.orchagent.io/concepts/local-vs-server): orch run vs orch call
 - [Rate Limits](https://docs.orchagent.io/concepts/rate-limits): Platform limits
+- [Monetization](https://docs.orchagent.io/concepts/monetization): Per-call pricing, credits, seller payouts
 
 ## API
 
@@ -74,6 +76,8 @@ curl -X POST https://api.orchagent.io/acme/summarizer/v1/analyze \
 | Star | Users can star agents they like (like GitHub stars) |
 | Fork | Copy an agent to your account and modify it |
 | Version | Each publish creates a new version (v1, v2, v3...) |
+| Credits | Prepaid balance used to pay for calling paid agents |
+| Seller | An author who has completed Stripe Connect onboarding to receive payouts |
 
 ## Links
 

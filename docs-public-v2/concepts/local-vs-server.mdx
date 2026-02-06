@@ -22,9 +22,14 @@ orchagent offers three ways to use agents:
 | **LLM keys** | From your environment | From your account |
 | **Rate limits** | Your LLM provider limits | 1000 calls/day free |
 | **Dependencies** | Must be downloadable | Handled automatically |
+| **Paid agents** | Owner only (free for testing) | Anyone (credits charged) |
 | **Best for** | Development, exploration | Production integration |
 
 Note: `orch call` is a CLI tool for testing the HTTP API. Production apps call the HTTP API directly from code.
+
+<Note>
+**Paid agents** are server-only for non-owners. If an agent has a per-call price, other users must use `orch call` — `orch run` will return an error. Authors can always download and run their own paid agents locally. See [Monetization](/concepts/monetization).
+</Note>
 
 ## Local Execution (`orch run`)
 

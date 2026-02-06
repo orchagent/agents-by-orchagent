@@ -45,6 +45,9 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch test` | Run agent tests locally | Your machine |
 | `orch update` | Update installed agents | - |
 | `orch formats` | List available export formats | - |
+| `orch billing balance` | Check credit balance | - |
+| `orch seller onboard` | Start Stripe seller onboarding | - |
+| `orch pricing <agent> <price>` | Set per-call price | - |
 
 ### When to Use What
 
@@ -734,6 +737,95 @@ orch doctor --json
 - Connectivity (gateway reachable, latency)
 - Authentication (API key valid)
 - LLM Configuration (keys configured)
+
+---
+
+## Billing & Credits
+
+Manage your prepaid credit balance for calling paid agents.
+
+### billing balance
+
+Check your current credit balance.
+
+```bash
+orch billing balance
+```
+
+### billing add
+
+Add credits to your account via Stripe Checkout.
+
+```bash
+# Add $10 in credits (minimum $5)
+orch billing add 10
+```
+
+### billing history
+
+View your credit transaction history (top-ups, charges, refunds).
+
+```bash
+orch billing history
+```
+
+---
+
+## Selling & Pricing
+
+Monetize your agents by setting per-call prices. Requires Stripe Connect onboarding.
+
+### seller onboard
+
+Start Stripe Connect onboarding to receive payouts.
+
+```bash
+# Opens Stripe-hosted onboarding
+orch seller onboard
+
+# Optionally specify country
+orch seller onboard --country US
+```
+
+### seller status
+
+Check your seller verification and payout status.
+
+```bash
+orch seller status
+```
+
+### seller dashboard
+
+Open your Stripe Express Dashboard to manage bank accounts, view payout history, and handle tax forms.
+
+```bash
+orch seller dashboard
+```
+
+### seller earnings
+
+View your revenue breakdown.
+
+```bash
+orch seller earnings
+```
+
+### pricing
+
+Set or update the per-call price on an agent you own.
+
+```bash
+# Set price to $0.50 per call
+orch pricing my-agent 0.50
+
+# Remove pricing (make free)
+orch pricing my-agent 0
+```
+
+Minimum price: $0.01. Paid agents become server-only for non-owners.
+
+See [Monetization](/concepts/monetization) for full details on pricing, revenue splits, and payouts.
 
 ---
 

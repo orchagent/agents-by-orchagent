@@ -97,6 +97,7 @@ Accept: application/json
 | `DOCUMENT_TOO_LARGE` | 413 | No | File exceeds size limit |
 | `UNSUPPORTED_TYPE` | 415 | No | File type not supported |
 | `UNPROCESSABLE` | 422 | No | Valid format but cannot process content |
+| `INSUFFICIENT_CREDITS` | 402 | No | Not enough credits to call this paid agent |
 | `RATE_LIMITED` | 429 | Yes | Too many requests, retry after wait |
 | `TIMEOUT` | 504 | Yes | Request exceeded configured timeout |
 | `LLM_ERROR` | 502 | Yes | Upstream LLM provider error |
@@ -255,6 +256,23 @@ Response:
 | `POST /agents/{id}/fork` | Fork an agent |
 | `POST /agents/{id}/upload` | Upload code bundle (code agents only) |
 | `GET /agents/{id}/logs` | Get execution logs (owner only) |
+
+### Billing & Credits
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /billing/balance` | Get your prepaid credit balance |
+| `POST /billing/checkout` | Create Stripe Checkout session to add credits |
+| `GET /billing/transactions` | List credit transactions (top-ups, charges, refunds) |
+| `GET /billing/earnings` | Get seller earnings breakdown |
+
+### Sellers
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /sellers/onboard` | Start Stripe Connect onboarding |
+| `GET /sellers/status` | Get seller verification and payout status |
+| `POST /sellers/dashboard-link` | Get Stripe Express Dashboard login URL |
 
 ### Compute Usage
 

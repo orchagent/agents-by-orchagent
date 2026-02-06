@@ -81,6 +81,15 @@
       "x": "https://twitter.com/orchagent"
     }
   },
+  "contextual": {
+    "options": [
+      "copy",
+      "view",
+      "claude",
+      "chatgpt",
+      "cursor"
+    ]
+  },
   "openapi": ["/api-reference/openapi.json"],
   "api": {
     "baseUrl": "https://api.orchagent.io"

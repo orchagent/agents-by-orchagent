@@ -203,9 +203,10 @@ async def review(request: ReviewRequest) -> ReviewResponse:
             try:
                 with cloned_repo(request.repo_url) as repo_path:
                     logger.info(f"Running pattern scanners on {repo_path}")
-                    findings.frontend_security = scan_frontend_patterns(repo_path)
-                    findings.api_security = scan_api_patterns(repo_path)
-                    findings.logging = scan_logging_patterns(repo_path)
+                    exclude = request.exclude or None
+                    findings.frontend_security = scan_frontend_patterns(repo_path, exclude=exclude)
+                    findings.api_security = scan_api_patterns(repo_path, exclude=exclude)
+                    findings.logging = scan_logging_patterns(repo_path, exclude=exclude)
             except GitCommandError as e:
                 logger.error(f"Failed to clone repository for pattern scanning: {e}")
                 raise HTTPException(

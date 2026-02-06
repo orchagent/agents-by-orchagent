@@ -110,3 +110,30 @@ class TestPatterns:
     def test_pattern_count(self):
         """Test we have at least 15 patterns."""
         assert len(SECRET_PATTERNS) >= 15
+
+
+class TestGenericPatternsStillCatchRealSecrets:
+    """Regression tests ensuring generic patterns still catch real hardcoded secrets."""
+
+    def test_generic_secret_catches_hardcoded_password(self):
+        """Real hardcoded passwords should still match."""
+        pattern = SECRET_PATTERNS["generic_secret"]["regex"]
+        assert pattern.search("password = 'SuperS3cret!Value'")
+        assert pattern.search('password: "MyR3alP@ssword"')
+        assert pattern.search("secret = 'xK9mP2nQ5rT8wY1z'")
+
+    def test_generic_api_key_catches_hardcoded_key(self):
+        """Real hardcoded API keys should still match."""
+        pattern = SECRET_PATTERNS["generic_api_key"]["regex"]
+        assert pattern.search("api_key = 'abc123def456ghi789jkl'")
+        assert pattern.search('apikey: "sk_prod_real_secret_value_here"')
+
+    def test_generic_secret_matches_env_file_format(self):
+        """Secrets in .env-like format should still match."""
+        pattern = SECRET_PATTERNS["generic_secret"]["regex"]
+        assert pattern.search('PASSWORD="MyDatabaseP@ssw0rd"')
+
+    def test_generic_patterns_match_json_config(self):
+        """Secrets in JSON config should still match."""
+        pattern = SECRET_PATTERNS["generic_secret"]["regex"]
+        assert pattern.search('"password": "actual_secret_value1"')

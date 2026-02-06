@@ -1,18 +1,19 @@
 """Frontend security pattern scanner.
 
 Detects security anti-patterns in frontend code:
-- Supabase/Firebase client usage in components (direct DB access from browser)
+- Supabase client usage in components (direct DB access from browser)
+- Firebase Admin SDK imported in frontend code (exposes service account credentials)
 - Client-side premium/auth gating patterns
 - localStorage auth token patterns
 - Price/cost calculations in frontend components
 """
 
-import os
 import re
 from pathlib import Path
 from typing import NamedTuple
 
 from ..models import PatternFinding
+from .common import walk_repo
 
 
 class PatternMatch(NamedTuple):
@@ -27,7 +28,7 @@ class PatternMatch(NamedTuple):
 
 # Frontend security patterns to detect
 FRONTEND_PATTERNS: list[PatternMatch] = [
-    # Supabase/Firebase direct client usage in components
+    # Supabase direct client usage in components
     PatternMatch(
         name="supabase_client_in_component",
         severity="high",
@@ -42,18 +43,16 @@ FRONTEND_PATTERNS: list[PatternMatch] = [
             re.IGNORECASE,
         ),
     ),
+    # Firebase Admin SDK in frontend — exposes service account credentials
     PatternMatch(
-        name="firebase_client_in_component",
-        severity="high",
-        description="Direct Firebase client usage in frontend component",
-        recommendation="Move Firebase calls to server-side API routes or server actions",
+        name="firebase_admin_in_frontend",
+        severity="critical",
+        description="Firebase Admin SDK imported in frontend code — exposes service account credentials",
+        recommendation="Use Firebase Client SDK (firebase/...) in frontend; reserve firebase-admin for server-side only",
         regex=re.compile(
-            r'(?:from\s+[\'"]firebase[\'"/]|'
-            r'firebase\.firestore\(\)|'
-            r'firebase\.database\(\)|'
-            r'firebase\.auth\(\)|'
-            r'getFirestore\s*\(|'
-            r'getDatabase\s*\()',
+            r'(?:from\s+[\'"]firebase-admin[\'"/]|'
+            r'require\s*\(\s*[\'"]firebase-admin[\'"]|'
+            r'import\s+.*\s+from\s+[\'"]firebase-admin[\'"/])',
             re.IGNORECASE,
         ),
     ),
@@ -131,20 +130,6 @@ FRONTEND_PATTERNS: list[PatternMatch] = [
 
 # File extensions to scan for frontend patterns
 FRONTEND_EXTENSIONS = {".tsx", ".jsx", ".ts", ".js", ".vue", ".svelte"}
-
-# Directories to skip during scanning
-SKIP_DIRS = {
-    "node_modules",
-    ".git",
-    "dist",
-    "build",
-    ".next",
-    ".nuxt",
-    "coverage",
-    "vendor",
-    "__pycache__",
-    ".pytest_cache",
-}
 
 
 def _is_frontend_file(file_path: Path) -> bool:
@@ -230,29 +215,28 @@ def scan_file(file_path: Path, base_path: Path) -> list[PatternFinding]:
     return findings
 
 
-def scan_frontend_patterns(repo_path: str | Path) -> list[PatternFinding]:
+def scan_frontend_patterns(
+    repo_path: str | Path,
+    exclude: list[str] | None = None,
+) -> list[PatternFinding]:
     """
     Scan a repository for frontend security patterns.
 
     Args:
         repo_path: Path to the repository root
+        exclude: Additional directory names to skip
 
     Returns:
         List of PatternFinding objects for detected issues
     """
     repo_path = Path(repo_path)
-
-    if not repo_path.exists() or not repo_path.is_dir():
-        return []
+    extra_skip = set(exclude) if exclude else None
 
     findings = []
 
-    for root, dirs, files in os.walk(repo_path):
-        # Filter out directories to skip
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
-
-        for file_name in files:
-            file_path = Path(root) / file_name
+    for root_path, file_names in walk_repo(repo_path, extra_skip_dirs=extra_skip):
+        for file_name in file_names:
+            file_path = root_path / file_name
             file_findings = scan_file(file_path, repo_path)
             findings.extend(file_findings)
 

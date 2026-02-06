@@ -76,6 +76,12 @@ Examples:
         help="Comma-separated list of rotated key prefixes",
     )
     parser.add_argument(
+        "--exclude",
+        type=str,
+        default="",
+        help="Comma-separated list of directory names to skip during scanning",
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         dest="json_output",
@@ -96,8 +102,11 @@ Examples:
     # Parse rotated keys
     rotated_keys = [k.strip() for k in args.rotated.split(",") if k.strip()]
 
+    # Parse exclude dirs
+    extra_skip_dirs = {d.strip() for d in args.exclude.split(",") if d.strip()} or None
+
     # Scan current files
-    findings = scan_directory(scan_path)
+    findings = scan_directory(scan_path, extra_skip_dirs=extra_skip_dirs)
 
     # Apply rotated keys to current findings
     if rotated_keys:

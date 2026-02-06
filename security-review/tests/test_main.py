@@ -20,6 +20,7 @@ from security_review.models import (
 from security_review.scanners.frontend import scan_frontend_patterns, scan_file as scan_frontend_file
 from security_review.scanners.api import scan_api_patterns, scan_file as scan_api_file
 from security_review.scanners.logging import scan_logging_patterns
+from security_review.scanners.common import walk_repo, DEFAULT_SKIP_DIRS
 from security_review.recommendations import generate_recommendations
 
 
@@ -755,3 +756,197 @@ class TestSummaryCalculation:
         assert summary.high == 1
         assert summary.medium == 1
         assert summary.low == 1
+
+
+class TestFirebasePatterns:
+    """Test Firebase pattern detection — client SDK should NOT be flagged, admin SDK SHOULD."""
+
+    def test_does_not_flag_firebase_client_sdk(self, temp_dir):
+        """Firebase Client SDK imports should produce 0 findings."""
+        components_dir = temp_dir / "src" / "components"
+        components_dir.mkdir(parents=True)
+
+        test_file = components_dir / "Chat.tsx"
+        test_file.write_text("""
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { getAuth, signInWithPopup } from 'firebase/auth';
+import { getDatabase, ref, set } from 'firebase/database';
+
+export function Chat() {
+    const db = getFirestore();
+    const auth = getAuth();
+    return <div>Chat</div>;
+}
+""")
+
+        findings = scan_frontend_patterns(temp_dir)
+
+        firebase_findings = [f for f in findings if "firebase" in f.pattern.lower()]
+        assert len(firebase_findings) == 0, (
+            f"Firebase Client SDK should not be flagged, but got: "
+            f"{[(f.pattern, f.snippet) for f in firebase_findings]}"
+        )
+
+    def test_flags_firebase_admin_in_frontend(self, temp_dir):
+        """Firebase Admin SDK import in frontend should be flagged as critical."""
+        components_dir = temp_dir / "src" / "components"
+        components_dir.mkdir(parents=True)
+
+        test_file = components_dir / "Admin.tsx"
+        test_file.write_text("""
+import * as admin from 'firebase-admin';
+
+export function AdminPanel() {
+    const db = admin.firestore();
+    return <div>Admin</div>;
+}
+""")
+
+        findings = scan_frontend_patterns(temp_dir)
+
+        admin_findings = [f for f in findings if f.pattern == "firebase_admin_in_frontend"]
+        assert len(admin_findings) >= 1
+        assert admin_findings[0].severity == "critical"
+
+    def test_does_not_flag_firebase_admin_in_backend(self, temp_dir):
+        """Firebase Admin SDK in /api/ path should not be flagged (backend path exclusion)."""
+        api_dir = temp_dir / "src" / "api"
+        api_dir.mkdir(parents=True)
+
+        test_file = api_dir / "admin.ts"
+        test_file.write_text("""
+import * as admin from 'firebase-admin';
+
+export async function handler() {
+    const db = admin.firestore();
+    return db.collection('users').get();
+}
+""")
+
+        findings = scan_frontend_patterns(temp_dir)
+
+        # /api/ path should be excluded from frontend scanning
+        admin_findings = [f for f in findings if f.pattern == "firebase_admin_in_frontend"]
+        assert len(admin_findings) == 0
+
+
+class TestExcludePatterns:
+    """Test that user-provided exclude patterns skip directories."""
+
+    def test_exclude_patterns_skip_directories(self, temp_dir):
+        """User-provided exclude list should cause those directories to be skipped."""
+        # Create a dir that would normally be scanned
+        custom_dir = temp_dir / "generated-code" / "src" / "components"
+        custom_dir.mkdir(parents=True)
+
+        test_file = custom_dir / "Auth.tsx"
+        test_file.write_text("""
+import { createClient } from '@supabase/supabase-js';
+export function Auth() { return <div />; }
+""")
+
+        # Also create a normal dir
+        normal_dir = temp_dir / "src" / "components"
+        normal_dir.mkdir(parents=True)
+
+        normal_file = normal_dir / "Login.tsx"
+        normal_file.write_text("""
+import { createClient } from '@supabase/supabase-js';
+export function Login() { return <div />; }
+""")
+
+        # Scan with exclude
+        findings = scan_frontend_patterns(temp_dir, exclude=["generated-code"])
+
+        # Should find findings in normal dir but not in excluded dir
+        assert not any("generated-code" in f.file for f in findings)
+        assert any("Login.tsx" in f.file for f in findings)
+
+    def test_exclude_works_for_api_scanner(self, temp_dir):
+        """Exclude also works for API scanner."""
+        custom_dir = temp_dir / "my-vendor" / "api" / "routes"
+        custom_dir.mkdir(parents=True)
+
+        test_file = custom_dir / "users.py"
+        test_file.write_text("""
+from fastapi import APIRouter
+router = APIRouter()
+
+@router.get("/users")
+async def get_users():
+    return {"users": []}
+""")
+
+        findings = scan_api_patterns(temp_dir, exclude=["my-vendor"])
+        assert len(findings) == 0
+
+    def test_exclude_works_for_logging_scanner(self, temp_dir):
+        """Exclude also works for logging scanner."""
+        custom_dir = temp_dir / "third-party" / "src"
+        custom_dir.mkdir(parents=True)
+
+        test_file = custom_dir / "auth.js"
+        test_file.write_text("""
+function login(username, password) {
+    console.log('Logging in with password:', password);
+}
+""")
+
+        findings = scan_logging_patterns(temp_dir, exclude=["third-party"])
+        assert len(findings) == 0
+
+
+class TestCommonWalkRepo:
+    """Tests for the shared walk_repo helper."""
+
+    def test_walk_repo_skips_default_dirs(self, temp_dir):
+        """walk_repo should skip all DEFAULT_SKIP_DIRS."""
+        # Create a node_modules dir with a file
+        nm_dir = temp_dir / "node_modules" / "pkg"
+        nm_dir.mkdir(parents=True)
+        (nm_dir / "index.js").write_text("module.exports = {};")
+
+        # Create a normal dir with a file
+        src_dir = temp_dir / "src"
+        src_dir.mkdir()
+        (src_dir / "main.js").write_text("console.log('hi');")
+
+        all_files = []
+        for root_path, file_names in walk_repo(temp_dir):
+            for fn in file_names:
+                all_files.append(str(root_path / fn))
+
+        assert any("main.js" in f for f in all_files)
+        assert not any("node_modules" in f for f in all_files)
+
+    def test_walk_repo_with_extra_skip(self, temp_dir):
+        """walk_repo should skip extra dirs when provided."""
+        custom_dir = temp_dir / "custom-vendor"
+        custom_dir.mkdir()
+        (custom_dir / "lib.js").write_text("exports = {};")
+
+        src_dir = temp_dir / "src"
+        src_dir.mkdir()
+        (src_dir / "app.js").write_text("console.log('app');")
+
+        all_files = []
+        for root_path, file_names in walk_repo(temp_dir, extra_skip_dirs={"custom-vendor"}):
+            for fn in file_names:
+                all_files.append(str(root_path / fn))
+
+        assert any("app.js" in f for f in all_files)
+        assert not any("custom-vendor" in f for f in all_files)
+
+    def test_walk_repo_nonexistent_path(self):
+        """walk_repo should yield nothing for nonexistent path."""
+        results = list(walk_repo("/nonexistent/path"))
+        assert results == []
+
+    def test_default_skip_dirs_contains_expected(self):
+        """DEFAULT_SKIP_DIRS should contain all expected entries."""
+        expected = {
+            "node_modules", ".git", "dist", "build", ".next", ".nuxt",
+            "coverage", "vendor", "__pycache__", ".pytest_cache",
+            ".venv", "venv", "env",
+        }
+        assert expected.issubset(DEFAULT_SKIP_DIRS)

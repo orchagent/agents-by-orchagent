@@ -12,6 +12,10 @@ class ReviewRequest(BaseModel):
         default="full",
         description="What to scan: full, secrets-only, deps-only, or patterns-only",
     )
+    exclude: list[str] = Field(
+        default_factory=list,
+        description="List of directory names to skip during scanning",
+    )
 
 
 class SecretFinding(BaseModel):

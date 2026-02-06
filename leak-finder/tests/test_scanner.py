@@ -5,7 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from leak_finder.scanner import scan_file, scan_directory, redact_secret
+from leak_finder.scanner import (
+    scan_file,
+    scan_directory,
+    redact_secret,
+    is_code_declaration,
+    is_low_entropy_value,
+    SKIP_DIRS,
+)
 
 
 class TestRedactSecret:
@@ -147,3 +154,237 @@ class TestScanDirectory:
         """Test scanning a directory that doesn't exist."""
         findings = scan_directory("/nonexistent/directory")
         assert findings == []
+
+
+class TestSkipDirs:
+    """Test that all expected directories are in SKIP_DIRS."""
+
+    @pytest.mark.parametrize(
+        "dir_name",
+        [
+            "node_modules",
+            ".git",
+            "venv",
+            ".venv",
+            "Pods",
+            "bower_components",
+            ".gradle",
+            ".cargo",
+            "DerivedData",
+            ".bundle",
+            ".tox",
+            ".eggs",
+            "vendor",
+            "target",
+            "dist",
+            "build",
+        ],
+    )
+    def test_skip_dir_present(self, dir_name):
+        """Test that expected directory is in SKIP_DIRS."""
+        assert dir_name in SKIP_DIRS
+
+    @pytest.mark.parametrize(
+        "dir_name",
+        ["Pods", "bower_components", ".gradle", ".cargo", "DerivedData", ".bundle", ".tox", ".eggs"],
+    )
+    def test_vendor_dirs_skipped_during_scan(self, dir_name):
+        """Test that vendor directories are actually skipped during scanning."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            # Create vendor dir with a secret
+            vendor_dir = temp_path / dir_name / "some_package"
+            vendor_dir.mkdir(parents=True)
+            secret_file = vendor_dir / "config.py"
+            secret_file.write_text('secret = "sk_live_1234567890abcdefghijklmnop"\n')
+
+            findings = scan_directory(temp_path)
+
+            assert not any(dir_name in f.file for f in findings)
+
+
+class TestExtraSkipDirs:
+    """Test the extra_skip_dirs parameter."""
+
+    def test_extra_skip_dirs_excludes_directory(self):
+        """Test that extra_skip_dirs causes additional dirs to be skipped."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            # Create a custom dir with a secret
+            custom_dir = temp_path / "my-generated-code"
+            custom_dir.mkdir()
+            secret_file = custom_dir / "config.py"
+            secret_file.write_text('secret = "sk_live_1234567890abcdefghijklmnop"\n')
+
+            # Create a normal file with a secret (should still be found)
+            normal_file = temp_path / "app.py"
+            normal_file.write_text('key = "sk_live_1234567890abcdefghijklmnop"\n')
+
+            findings = scan_directory(temp_path, extra_skip_dirs={"my-generated-code"})
+
+            # Should find the secret in app.py but not in my-generated-code
+            assert any(f.file == "app.py" for f in findings)
+            assert not any("my-generated-code" in f.file for f in findings)
+
+    def test_no_extra_skip_dirs_includes_directory(self):
+        """Test that without extra_skip_dirs the directory IS scanned."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+
+            custom_dir = temp_path / "my-generated-code"
+            custom_dir.mkdir()
+            secret_file = custom_dir / "config.py"
+            secret_file.write_text('secret = "sk_live_1234567890abcdefghijklmnop"\n')
+
+            findings = scan_directory(temp_path)
+
+            assert any("my-generated-code" in f.file for f in findings)
+
+
+class TestCodeDeclarationDetection:
+    """Test is_code_declaration() for generic pattern FP reduction."""
+
+    @pytest.mark.parametrize(
+        "line,expected",
+        [
+            # Type annotations — should be detected
+            ("    password: str", True),
+            ("    secret: String", True),
+            ("    api_key?: string", True),
+            ("    password: Optional[str]", True),
+            # Property declarations
+            ("NSString *password;", True),
+            ("var password String", True),
+            # Self-assignment
+            ("self.password = password", True),
+            # Env var references
+            ('password = os.environ["PASSWORD"]', True),
+            ('secret = os.getenv("SECRET")', True),
+            ("api_key = process.env.API_KEY", True),
+            # Function signatures
+            ("def set_password(self, password):", True),
+            # SQL DDL
+            ("password VARCHAR(255)", True),
+            # Real secrets — should NOT be detected
+            ('password = "SuperS3cret!Value"', False),
+        ],
+    )
+    def test_code_declaration(self, line, expected):
+        """Test that code declarations are correctly identified."""
+        is_decl, reason = is_code_declaration(line)
+        assert is_decl == expected, f"Expected {expected} for: {line!r}, got {is_decl} (reason: {reason})"
+
+
+class TestLowEntropyValue:
+    """Test is_low_entropy_value() for generic pattern FP reduction."""
+
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            # Known keywords — should be detected
+            ("password", True),
+            ("secret", True),
+            ("string", True),
+            ("none", True),
+            ("required", True),
+            # Repeating characters
+            ("xxxxxxxx", True),
+            ("********", True),
+            # Single plain words
+            ("mypassword", True),
+            # Real secrets — should NOT be detected
+            ("S3cretV@lue!123", False),
+            ("abc123def456ghi", False),
+            ("xK9mP2nQ5rT8wY1", False),
+        ],
+    )
+    def test_low_entropy_value(self, value, expected):
+        """Test that low-entropy values are correctly identified."""
+        is_low, reason = is_low_entropy_value(value)
+        assert is_low == expected, f"Expected {expected} for: {value!r}, got {is_low} (reason: {reason})"
+
+
+class TestFalsePositiveReduction:
+    """Integration tests verifying FP detection in scan_file."""
+
+    def test_type_annotation_flagged_as_fp(self):
+        """Test that type annotations are flagged as false positives."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+            f.write("class User:\n")
+            f.write("    password: str\n")
+            f.write("    secret: str\n")
+            f.flush()
+
+            findings = scan_file(f.name)
+
+            # Any generic findings should be marked as FP
+            generic_findings = [
+                finding for finding in findings
+                if finding.type in ("generic_secret", "generic_api_key")
+            ]
+            for finding in generic_findings:
+                assert finding.likely_false_positive, (
+                    f"Expected FP for {finding.type} at line {finding.line}"
+                )
+                assert finding.fp_reason is not None
+
+        Path(f.name).unlink()
+
+    def test_real_secret_not_flagged_as_fp(self):
+        """Test that real hardcoded secrets are NOT flagged as false positive."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+            f.write('password = "S3cretV@lue!123"\n')
+            f.flush()
+
+            findings = scan_file(f.name)
+
+            generic_findings = [
+                finding for finding in findings
+                if finding.type in ("generic_secret", "generic_api_key")
+            ]
+            assert len(generic_findings) >= 1
+            # Real secrets should NOT be flagged as false positive
+            for finding in generic_findings:
+                assert not finding.likely_false_positive, (
+                    f"Real secret should not be FP: {finding.fp_reason}"
+                )
+
+        Path(f.name).unlink()
+
+    def test_env_var_reference_flagged_as_fp(self):
+        """Test that env var references are flagged as false positives."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+            f.write('password = os.environ["DATABASE_PASSWORD"]\n')
+            f.flush()
+
+            findings = scan_file(f.name)
+
+            generic_findings = [
+                finding for finding in findings
+                if finding.type in ("generic_secret", "generic_api_key")
+            ]
+            for finding in generic_findings:
+                assert finding.likely_false_positive
+
+        Path(f.name).unlink()
+
+    def test_structured_patterns_not_affected(self):
+        """Test that structured patterns (AWS, Stripe) are NOT affected by FP detection."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as f:
+            f.write('AWS_KEY = "AKIAIOSFODNN7EXAMPLE"\n')
+            f.flush()
+
+            findings = scan_file(f.name)
+
+            aws_findings = [f for f in findings if f.type == "aws_access_key_id"]
+            assert len(aws_findings) >= 1
+            # AWS key pattern should NOT have code declaration FP logic applied
+            # (it's already flagged as test data due to EXAMPLE in value)
+            for finding in aws_findings:
+                if finding.likely_false_positive and finding.fp_reason:
+                    # Should only be test data, not code declaration
+                    assert "Code declaration" not in finding.fp_reason
+
+        Path(f.name).unlink()

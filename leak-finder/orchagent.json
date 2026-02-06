@@ -29,6 +29,11 @@
         "type": "array",
         "items": {"type": "string"},
         "description": "List of key prefixes that have been rotated (will be marked as info severity)"
+      },
+      "exclude": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of directory names to skip during scanning (in addition to built-in exclusions)"
       }
     }
   }

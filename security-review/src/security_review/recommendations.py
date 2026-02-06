@@ -38,7 +38,7 @@ def _get_priority_score(finding_type: str, count: int) -> int:
 
     Higher scores = higher priority for recommendations.
     """
-    # Base priority by category and severity
+    # Base priority by category and severity — uses pattern machine names
     priority_map = {
         # Secrets are always highest priority - no count multiplier
         "secret:": 10000,
@@ -48,19 +48,31 @@ def _get_priority_score(finding_type: str, count: int) -> int:
         "dependency:medium": 400,
         "dependency:low": 100,
         # Frontend security (auth/payment bypasses are critical)
-        "frontend:localStorage auth token": 850,
-        "frontend:Client-side premium check": 850,
-        "frontend:Client-side admin check": 850,
-        "frontend:Direct Supabase client in frontend": 700,
-        "frontend:Direct Firebase client in frontend": 700,
-        "frontend:Client-side price calculation": 500,
+        "frontend:localstorage_auth_token": 850,
+        "frontend:localstorage_premium_flag": 850,
+        "frontend:client_side_premium_check": 850,
+        "frontend:client_side_admin_check": 850,
+        "frontend:supabase_client_in_component": 700,
+        "frontend:firebase_admin_in_frontend": 900,
+        "frontend:client_side_price_calculation": 500,
+        "frontend:stripe_amount_in_frontend": 700,
         # API security
-        "api:Missing auth middleware": 750,
-        "api:Missing rate limiter": 600,
+        "api:fastapi_missing_auth": 750,
+        "api:express_missing_auth": 750,
+        "api:missing_rate_limiter": 600,
         # Logging issues
-        "logging:Sensitive data in console.log": 650,
-        "logging:Error stack in response": 650,
-        "logging:Raw error in response": 550,
+        "logging:console_log_password": 650,
+        "logging:console_log_secret": 650,
+        "logging:console_log_private_key": 700,
+        "logging:python_log_password": 650,
+        "logging:python_log_secret": 650,
+        "logging:stack_trace_in_response": 650,
+        "logging:stack_trace_property_access": 650,
+        "logging:raw_error_in_response": 550,
+        "logging:error_spread_in_response": 550,
+        "logging:fastapi_exception_detail": 550,
+        "logging:traceback_in_response": 650,
+        "logging:print_sensitive_data": 600,
     }
 
     base_score = 0
@@ -111,17 +123,32 @@ def _generate_dependency_recommendation(severity: str, count: int) -> str:
 def _generate_pattern_recommendation(pattern: str, count: int) -> str:
     """Generate recommendation for pattern findings."""
     recommendations = {
-        "localStorage auth token": "Move auth tokens from localStorage to httpOnly cookies",
-        "Client-side premium check": "Move premium/subscription checks to server-side middleware",
-        "Client-side admin check": "Move admin/role checks to server-side middleware",
-        "Direct Supabase client in frontend": "Move Supabase queries to server-side API routes",
-        "Direct Firebase client in frontend": "Move Firebase queries to server-side Cloud Functions",
-        "Client-side price calculation": "Move price calculations to server-side to prevent tampering",
-        "Missing auth middleware": f"Add authentication middleware to {count} unprotected API route(s)",
-        "Missing rate limiter": "Add rate limiting to your API endpoints (e.g., slowapi for FastAPI)",
-        "Sensitive data in console.log": f"Remove sensitive data from {count} console.log statement(s)",
-        "Error stack in response": "Remove stack traces from API responses in production",
-        "Raw error in response": "Sanitize error messages before sending to clients",
+        # Frontend patterns
+        "localstorage_auth_token": "Move auth tokens from localStorage to httpOnly cookies",
+        "localstorage_premium_flag": "Move premium flags from localStorage to server-side validation",
+        "client_side_premium_check": "Move premium/subscription checks to server-side middleware",
+        "client_side_admin_check": "Move admin/role checks to server-side middleware",
+        "supabase_client_in_component": "Move Supabase queries to server-side API routes",
+        "firebase_admin_in_frontend": "Move Firebase Admin SDK to server-side; use Client SDK in frontend",
+        "client_side_price_calculation": "Move price calculations to server-side to prevent tampering",
+        "stripe_amount_in_frontend": "Set Stripe payment amounts server-side only",
+        # API patterns
+        "fastapi_missing_auth": f"Add authentication middleware to {count} unprotected FastAPI route(s)",
+        "express_missing_auth": f"Add authentication middleware to {count} unprotected Express route(s)",
+        "missing_rate_limiter": "Add rate limiting to your API endpoints (e.g., slowapi for FastAPI)",
+        # Logging patterns
+        "console_log_password": f"Remove sensitive data from {count} console.log statement(s)",
+        "console_log_secret": f"Remove sensitive data from {count} console.log statement(s)",
+        "console_log_private_key": f"Remove private key logging from {count} statement(s)",
+        "python_log_password": f"Remove sensitive data from {count} Python logging statement(s)",
+        "python_log_secret": f"Remove sensitive data from {count} Python logging statement(s)",
+        "stack_trace_in_response": "Remove stack traces from API responses in production",
+        "stack_trace_property_access": "Remove stack traces from API responses in production",
+        "raw_error_in_response": "Sanitize error messages before sending to clients",
+        "error_spread_in_response": "Explicitly select safe error fields instead of spreading",
+        "fastapi_exception_detail": "Use generic error messages in HTTPException; log details server-side",
+        "traceback_in_response": "Never send Python tracebacks to clients",
+        "print_sensitive_data": f"Remove sensitive data from {count} print statement(s)",
     }
 
     return recommendations.get(pattern, f"Address {count} {pattern} issue(s)")
@@ -165,20 +192,21 @@ def generate_recommendations(findings: FindingsCollection, max_recommendations: 
         rec = _generate_dependency_recommendation(severity, count)
         scored_recommendations.append((score, rec))
 
-    # Process patterns
-    pattern_counts: dict[str, int] = {}
-    for pattern_list in [findings.frontend_security, findings.api_security, findings.logging]:
+    # Process patterns — determine category from the finding list they came from
+    pattern_counts: dict[str, tuple[str, int]] = {}  # pattern -> (category, count)
+    for category, pattern_list in [
+        ("frontend", findings.frontend_security),
+        ("api", findings.api_security),
+        ("logging", findings.logging),
+    ]:
         for p in pattern_list:
-            pattern_counts[p.pattern] = pattern_counts.get(p.pattern, 0) + 1
+            if p.pattern in pattern_counts:
+                cat, cnt = pattern_counts[p.pattern]
+                pattern_counts[p.pattern] = (cat, cnt + 1)
+            else:
+                pattern_counts[p.pattern] = (category, 1)
 
-    for pattern, count in pattern_counts.items():
-        # Determine category for scoring
-        category = "frontend"
-        if pattern in ["Missing auth middleware", "Missing rate limiter"]:
-            category = "api"
-        elif pattern in ["Sensitive data in console.log", "Error stack in response", "Raw error in response"]:
-            category = "logging"
-
+    for pattern, (category, count) in pattern_counts.items():
         score = _get_priority_score(f"{category}:{pattern}", count)
         rec = _generate_pattern_recommendation(pattern, count)
         scored_recommendations.append((score, rec))

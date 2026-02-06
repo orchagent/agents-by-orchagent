@@ -26,6 +26,21 @@ SKIP_DIRS = {
     ".coverage",
     "vendor",
     "target",
+    # iOS / CocoaPods
+    "Pods",
+    # Legacy JS
+    "bower_components",
+    # Java / Kotlin
+    ".gradle",
+    # Rust
+    ".cargo",
+    # Xcode
+    "DerivedData",
+    # Ruby Bundler
+    ".bundle",
+    # Python tooling
+    ".tox",
+    ".eggs",
 }
 
 # Binary file extensions to skip
@@ -73,6 +88,108 @@ def is_fake_value(value: str) -> tuple[bool, str | None]:
     for pattern in FAKE_CREDENTIAL_PATTERNS:
         if re.search(pattern, value_lower):
             return True, pattern
+    return False, None
+
+
+# Patterns for generic pattern false-positive detection
+GENERIC_PATTERN_NAMES = {"generic_secret", "generic_api_key"}
+
+# Type annotation patterns: `password: str`, `secret: String`, `api_key?: string`
+_TYPE_ANNOTATION_RE = re.compile(
+    r"(?:password|passwd|pwd|secret|api_key|apikey)\??\s*:\s*"
+    r"(?:str|string|String|int|bool|bytes|Optional|None|Any)\b",
+    re.IGNORECASE,
+)
+
+# Property declarations: `NSString *password;`, `Password string `json:"password"``
+_PROPERTY_DECL_RE = re.compile(
+    r"(?:NSString|NSData|char|String|var|let|const|val)\s+\*?\s*"
+    r"(?:password|passwd|pwd|secret|api_key|apikey)\b",
+    re.IGNORECASE,
+)
+
+# Self-assignment / parameter forwarding: `self.password = password`
+_SELF_ASSIGN_RE = re.compile(
+    r"self\.\w+\s*=\s*(?:password|passwd|pwd|secret|api_key|apikey)\s*$",
+    re.IGNORECASE,
+)
+
+# Env var references: `password = os.environ[...]`, `secret = process.env.SECRET`
+_ENV_VAR_RE = re.compile(
+    r"(?:os\.environ|os\.getenv|process\.env\b|ENV\[|getenv)\s*[\[\(.]",
+    re.IGNORECASE,
+)
+
+# Function signatures: `def set_password(self, password):`
+_FUNC_SIG_RE = re.compile(
+    r"(?:def|func|function|fn)\s+\w*(?:password|passwd|pwd|secret|api_key|apikey)\w*\s*\(",
+    re.IGNORECASE,
+)
+
+# SQL DDL: `password VARCHAR(255)`
+_SQL_DDL_RE = re.compile(
+    r"(?:password|passwd|pwd|secret|api_key)\s+"
+    r"(?:VARCHAR|TEXT|CHAR|BLOB|INTEGER|INT|BYTEA|NVARCHAR)\s*\(",
+    re.IGNORECASE,
+)
+
+
+def is_code_declaration(line: str) -> tuple[bool, str | None]:
+    """Check if a line is a code declaration rather than a secret assignment.
+
+    Returns (is_declaration, reason) for generic pattern matches only.
+    """
+    stripped = line.strip()
+
+    if _TYPE_ANNOTATION_RE.search(stripped):
+        return True, "Type annotation (e.g. password: str)"
+
+    if _PROPERTY_DECL_RE.search(stripped):
+        return True, "Property declaration (e.g. NSString *password)"
+
+    if _SELF_ASSIGN_RE.search(stripped):
+        return True, "Self-assignment / parameter forwarding"
+
+    if _ENV_VAR_RE.search(stripped):
+        return True, "Environment variable reference"
+
+    if _FUNC_SIG_RE.search(stripped):
+        return True, "Function signature"
+
+    if _SQL_DDL_RE.search(stripped):
+        return True, "SQL DDL column definition"
+
+    return False, None
+
+
+# Known non-secret keywords that appear as captured values
+_LOW_ENTROPY_KEYWORDS = {
+    "password", "passwd", "pwd", "secret", "string", "str",
+    "none", "null", "undefined", "required", "optional",
+    "true", "false", "changeme", "redacted", "encrypted",
+}
+
+# Repeating character pattern: xxxxxxxx, ********
+_REPEATING_CHAR_RE = re.compile(r"^(.)\1{7,}$")
+
+# Single plain English word: no digits/special chars, under 20 chars
+_PLAIN_WORD_RE = re.compile(r"^[a-zA-Z]{1,19}$")
+
+
+def is_low_entropy_value(value: str) -> tuple[bool, str | None]:
+    """Check if a captured value is clearly not a secret.
+
+    Returns (is_low_entropy, reason).
+    """
+    if value.lower() in _LOW_ENTROPY_KEYWORDS:
+        return True, f"Known keyword: {value.lower()}"
+
+    if _REPEATING_CHAR_RE.match(value):
+        return True, "Repeating characters"
+
+    if _PLAIN_WORD_RE.match(value):
+        return True, f"Single plain word: {value}"
+
     return False, None
 
 
@@ -168,6 +285,15 @@ def scan_file(file_path: str | Path, base_path: str | Path | None = None) -> lis
                         if is_fake:
                             reasons.append(f"Value looks like test data (contains '{fake_indicator}')")
 
+                        # Additional FP checks for generic patterns only
+                        if pattern_name in GENERIC_PATTERN_NAMES:
+                            is_decl, decl_reason = is_code_declaration(line)
+                            if is_decl:
+                                reasons.append(f"Code declaration: {decl_reason}")
+                            is_low, low_reason = is_low_entropy_value(secret_value)
+                            if is_low:
+                                reasons.append(f"Low-entropy value: {low_reason}")
+
                         fp_reason = "; ".join(reasons) if reasons else None
 
                         finding = Finding(
@@ -189,13 +315,18 @@ def scan_file(file_path: str | Path, base_path: str | Path | None = None) -> lis
     return findings
 
 
-def scan_directory(dir_path: str | Path, base_path: str | Path | None = None) -> list[Finding]:
+def scan_directory(
+    dir_path: str | Path,
+    base_path: str | Path | None = None,
+    extra_skip_dirs: set[str] | None = None,
+) -> list[Finding]:
     """
     Recursively scan a directory for secrets.
 
     Args:
         dir_path: Path to the directory to scan
         base_path: Base path for relative file paths in findings
+        extra_skip_dirs: Additional directory names to skip (merged with SKIP_DIRS)
 
     Returns:
         List of Finding objects
@@ -208,11 +339,13 @@ def scan_directory(dir_path: str | Path, base_path: str | Path | None = None) ->
     if base_path is None:
         base_path = dir_path
 
+    skip = SKIP_DIRS | extra_skip_dirs if extra_skip_dirs else SKIP_DIRS
+
     findings = []
 
     for root, dirs, files in os.walk(dir_path):
         # Filter out directories to skip
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
+        dirs[:] = [d for d in dirs if d not in skip]
 
         for file_name in files:
             file_path = Path(root) / file_name

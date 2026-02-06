@@ -6,12 +6,12 @@ Detects security anti-patterns in API code:
 - Missing rate limiter patterns
 """
 
-import os
 import re
 from pathlib import Path
 from typing import NamedTuple
 
 from ..models import PatternFinding
+from .common import walk_repo
 
 
 class PatternMatch(NamedTuple):
@@ -75,23 +75,6 @@ RATE_LIMITER_PATTERNS = [
 
 # File extensions for API files
 API_EXTENSIONS = {".py", ".ts", ".js", ".mjs", ".cjs"}
-
-# Directories to skip during scanning
-SKIP_DIRS = {
-    "node_modules",
-    ".git",
-    "dist",
-    "build",
-    ".next",
-    ".nuxt",
-    "coverage",
-    "vendor",
-    "__pycache__",
-    ".pytest_cache",
-    ".venv",
-    "venv",
-    "env",
-}
 
 # Paths that indicate API code
 API_PATH_INDICATORS = [
@@ -316,29 +299,28 @@ def scan_file(file_path: Path, base_path: Path) -> list[PatternFinding]:
     return findings
 
 
-def scan_api_patterns(repo_path: str | Path) -> list[PatternFinding]:
+def scan_api_patterns(
+    repo_path: str | Path,
+    exclude: list[str] | None = None,
+) -> list[PatternFinding]:
     """
     Scan a repository for API security patterns.
 
     Args:
         repo_path: Path to the repository root
+        exclude: Additional directory names to skip
 
     Returns:
         List of PatternFinding objects for detected issues
     """
     repo_path = Path(repo_path)
-
-    if not repo_path.exists() or not repo_path.is_dir():
-        return []
+    extra_skip = set(exclude) if exclude else None
 
     findings = []
 
-    for root, dirs, files in os.walk(repo_path):
-        # Filter out directories to skip
-        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
-
-        for file_name in files:
-            file_path = Path(root) / file_name
+    for root_path, file_names in walk_repo(repo_path, extra_skip_dirs=extra_skip):
+        for file_name in file_names:
+            file_path = root_path / file_name
             file_findings = scan_file(file_path, repo_path)
             findings.extend(file_findings)
 

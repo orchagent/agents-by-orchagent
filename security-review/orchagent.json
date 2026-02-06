@@ -50,6 +50,11 @@
         "enum": ["full", "secrets-only", "deps-only", "patterns-only"],
         "default": "full",
         "description": "What to scan: full (everything), secrets-only, deps-only, or patterns-only"
+      },
+      "exclude": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "List of directory names to skip during scanning (in addition to built-in exclusions)"
       }
     }
   }

@@ -197,6 +197,7 @@ async def _run_review(
     repo_url: str | None = None,
     local_path: str | None = None,
     scan_mode: str = "full",
+    exclude: list[str] | None = None,
 ) -> ReviewResponse:
     findings = FindingsCollection()
 
@@ -234,16 +235,16 @@ async def _run_review(
                 raise ValueError(f"Path does not exist: {local_path}")
             if not scan_path.is_dir():
                 raise ValueError(f"Path is not a directory: {local_path}")
-            findings.frontend_security = scan_frontend_patterns(scan_path)
-            findings.api_security = scan_api_patterns(scan_path)
-            findings.logging = scan_logging_patterns(scan_path)
+            findings.frontend_security = scan_frontend_patterns(scan_path, exclude=exclude or None)
+            findings.api_security = scan_api_patterns(scan_path, exclude=exclude or None)
+            findings.logging = scan_logging_patterns(scan_path, exclude=exclude or None)
         else:
             # Clone repo for pattern scanning
             try:
                 with cloned_repo(repo_url) as repo_path:
-                    findings.frontend_security = scan_frontend_patterns(repo_path)
-                    findings.api_security = scan_api_patterns(repo_path)
-                    findings.logging = scan_logging_patterns(repo_path)
+                    findings.frontend_security = scan_frontend_patterns(repo_path, exclude=exclude or None)
+                    findings.api_security = scan_api_patterns(repo_path, exclude=exclude or None)
+                    findings.logging = scan_logging_patterns(repo_path, exclude=exclude or None)
             except GitCommandError as e:
                 raise RuntimeError(f"Failed to clone repository: {e}") from e
 
@@ -291,6 +292,7 @@ def main() -> None:
         sys.exit(1)
 
     scan_mode = input_data.get("scan_mode", "full")
+    exclude = input_data.get("exclude", [])
     if scan_mode not in VALID_SCAN_MODES:
         print(
             json.dumps(
@@ -307,6 +309,7 @@ def main() -> None:
             repo_url=repo_url,
             local_path=local_path,
             scan_mode=scan_mode,
+            exclude=exclude,
         ))
         print(json.dumps(response.model_dump()))
     except Exception as e:

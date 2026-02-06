@@ -42,6 +42,7 @@ def main():
     branch = input_data.get("branch")
     deep_scan = input_data.get("deep_scan", False)
     rotated_keys = input_data.get("rotated_keys", [])
+    exclude = set(input_data.get("exclude", []))
 
     repo_path = None
     is_local = False
@@ -65,7 +66,7 @@ def main():
                 repo_path = clone_repo(repo_url, branch)
 
         # Scan current files
-        findings = scan_directory(repo_path)
+        findings = scan_directory(repo_path, extra_skip_dirs=exclude or None)
 
         # Mark rotated keys
         for finding in findings:

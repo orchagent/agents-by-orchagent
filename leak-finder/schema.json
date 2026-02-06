@@ -22,6 +22,11 @@
         "type": "array",
         "items": { "type": "string" },
         "description": "List of rotated keys to mark as safe"
+      },
+      "exclude": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "List of directory names to skip during scanning"
       }
     }
   },

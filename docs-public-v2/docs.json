@@ -103,6 +103,7 @@
     { "source": "/skills", "destination": "/building-agents/orchestration" },
     { "source": "/sdk", "destination": "/building-agents/sdk" },
     { "source": "/api", "destination": "/api-reference/overview" },
+    { "source": "/building-agents/skills-format", "destination": "/building-agents/orchestration" },
     { "source": "/docs/:path*", "destination": "/:path*" },
     { "source": "/pricing", "destination": "/concepts/monetization" },
     { "source": "/monetization", "destination": "/concepts/monetization" },

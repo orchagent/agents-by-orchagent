@@ -561,18 +561,25 @@ orch publish --skills yourorg/style@v1,yourorg/rules@v1
 
 ### delete
 
-Delete an agent or skill you own.
+Delete an agent or skill you own. By default, deletes the latest version only.
 
 ```bash
-# Preview what would be deleted
-orch delete my-agent --dry-run
-
-# Delete (prompts for confirmation)
+# Delete latest version (prompts for confirmation)
 orch delete my-agent
 
-# Delete specific version
+# Delete a specific version
 orch delete my-agent --version v2
+
+# Delete all versions at once
+orch delete my-agent --all
+
+# Preview what would be deleted
+orch delete my-agent --dry-run
 ```
+
+Agents with 10+ stars or forks require you to type the agent name to confirm.
+
+Deleted data is retained for 30 days before permanent removal.
 
 ### test
 

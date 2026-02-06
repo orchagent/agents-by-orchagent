@@ -74,9 +74,13 @@ You can import this into tools like Postman, Insomnia, or use it to generate cli
 | `POST /agents` | Register new agent |
 | `GET /agents/{id}` | Get agent details |
 | `PATCH /agents/{id}` | Update agent |
+| `GET /agents/{id}/delete-check` | Check what confirmation is needed before deletion |
+| `DELETE /agents/{id}` | Delete an agent (soft delete, 30-day retention) |
 | `POST /agents/{id}/star` | Star an agent |
 | `DELETE /agents/{id}/star` | Unstar an agent |
 | `POST /agents/{id}/fork` | Fork an agent |
+
+The delete endpoint accepts an optional `mode=all_versions` query parameter to soft-delete every version of an agent at once. Without it, only the specified version is deleted.
 
 ### API Keys (Auth Required)
 

@@ -366,6 +366,92 @@
         }
       }
     },
+    "/agents/{id}/delete-check": {
+      "get": {
+        "summary": "Check delete confirmation requirements",
+        "description": "Check whether an agent requires name confirmation before deletion. Returns star/fork counts and whether confirmation is needed. Use mode=all_versions to aggregate across all versions.",
+        "operationId": "checkAgentDelete",
+        "tags": ["Agent Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Agent ID"
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["all_versions"] },
+            "description": "Set to all_versions to aggregate stars/forks across all versions"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deletability check result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteCheckResponse"
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Agent not found" }
+        }
+      }
+    },
+    "/agents/{id}": {
+      "delete": {
+        "summary": "Delete an agent",
+        "description": "Soft-delete an agent. Data is retained for 30 days. Agents with 10+ stars or forks require confirmation_name matching the agent name. Use mode=all_versions to delete every version at once.",
+        "operationId": "deleteAgent",
+        "tags": ["Agent Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Agent ID"
+          },
+          {
+            "name": "confirmation_name",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Agent name for confirmation (required when agent has 10+ stars or forks)"
+          },
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["all_versions"] },
+            "description": "Set to all_versions to delete every version of this agent"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAgentResponse"
+                }
+              }
+            }
+          },
+          "400": { "description": "Confirmation required or name mismatch" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Agent not found" }
+        }
+      }
+    },
     "/usage/compute": {
       "get": {
         "summary": "Get compute usage",
@@ -600,6 +686,26 @@
           "exit_code": { "type": "integer" },
           "stdout": { "type": "string", "description": "Standard output (truncated to 10KB)" },
           "stderr": { "type": "string", "description": "Standard error (truncated to 10KB)" }
+        }
+      },
+      "DeleteCheckResponse": {
+        "type": "object",
+        "properties": {
+          "agent_id": { "type": "string" },
+          "agent_name": { "type": "string" },
+          "stars_count": { "type": "integer", "description": "Stars on this version (or total when mode=all_versions)" },
+          "fork_count": { "type": "integer", "description": "Forks from this version (or total when mode=all_versions)" },
+          "requires_confirmation": { "type": "boolean", "description": "True if agent has 10+ stars or 1+ forks" },
+          "version_count": { "type": "integer", "description": "Number of versions (only present when mode=all_versions)" }
+        }
+      },
+      "DeleteAgentResponse": {
+        "type": "object",
+        "properties": {
+          "deleted": { "type": "boolean" },
+          "agent_id": { "type": "string" },
+          "agent_name": { "type": "string" },
+          "version_count": { "type": "integer", "description": "Number of versions deleted (only present when mode=all_versions)" }
         }
       },
       "ComputeUsageStats": {

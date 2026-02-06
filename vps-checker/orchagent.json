@@ -2,7 +2,7 @@
   "name": "vps-checker",
   "type": "code",
   "is_public": true,
-  "description": "Audits Linux VPS servers for security vulnerabilities, misconfigurations, and active attacks. Read-only scan that checks SSH hardening, firewall, fail2ban, kernel security, file permissions, and compromise indicators.",
+  "description": "Inspired by @brankopetric00 (https://x.com/brankopetric00/status/2017283246254436501). Audits Linux VPS servers for security vulnerabilities, misconfigurations, and active attacks. Read-only scan that checks SSH hardening, firewall, Tailscale SSH restriction, Cloudflare IP whitelisting, fail2ban, kernel security, file permissions, and compromise indicators.",
   "supported_providers": ["any"],
   "tags": ["security", "vps", "linux", "audit", "hardening", "devops"],
   "default_endpoint": "scan",

@@ -2,7 +2,7 @@
   "name": "vps-fixer",
   "type": "code",
   "is_public": true,
-  "description": "Applies security hardening fixes to Linux VPS servers. Installs and configures fail2ban, UFW firewall, SSH hardening, and automatic security updates. Requires explicit user confirmation before applying changes.",
+  "description": "Inspired by @brankopetric00 (https://x.com/brankopetric00/status/2017283246254436501). Applies security hardening fixes to Linux VPS servers. Installs and configures fail2ban, UFW firewall, SSH hardening, Tailscale SSH restriction, auto-reboot, and automatic security updates. Requires explicit user confirmation before applying changes.",
   "supported_providers": ["any"],
   "tags": ["security", "vps", "linux", "hardening", "remediation", "devops"],
   "default_endpoint": "fix",

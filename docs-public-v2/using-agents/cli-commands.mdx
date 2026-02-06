@@ -689,8 +689,14 @@ orch config set default-format claude-code,cursor
 # Set default scope
 orch config set default-scope user
 
+# Set default LLM provider (used when --provider flag is omitted)
+orch config set default-provider gemini
+
 # Get current value
 orch config get default-format
+
+# List all config values
+orch config list
 ```
 
 ### llm-config

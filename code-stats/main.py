@@ -37,11 +37,12 @@ Output (stdout JSON):
     "classes": 2
   },
   "functions": [
-    {"name": "process_data", "lines": 45, "start_line": 10},
-    {"name": "validate", "lines": 12, "start_line": 60}
+    {"name": "process_data", "lines": 45, "start_line": 10, "complexity": 8},
+    {"name": "validate", "lines": 12, "start_line": 60, "complexity": 3}
   ],
   "warnings": [
     "Function 'handle_request' is 65 lines (exceeds 50 line limit)",
+    "Function 'handle_request' has complexity 15 (exceeds 10)",
     "File has 450 total lines (exceeds 300 line limit)"
   ],
   "summary": "5 functions, 2 classes, 150 lines. 2 warnings."
@@ -72,6 +73,7 @@ class FunctionInfo:
     name: str
     lines: int
     start_line: int
+    complexity: int = 1  # cyclomatic complexity (minimum 1 for the function itself)
 
 
 @dataclass
@@ -82,6 +84,67 @@ class Metrics:
     comment_lines: int
     functions: int
     classes: int
+
+
+# -- Cyclomatic complexity helpers ------------------------------------------
+# Each branch keyword / operator adds 1 to the base complexity of 1.
+
+_PYTHON_BRANCH_RE = re.compile(
+    r'\b(?:if|elif|for|while|except|with|and|or)\b'
+    r'|(?<!\w)\bas\b'   # `except X as e` — the `as` is not a branch
+    r'',
+)
+# Simpler: just count keywords that represent a new branch path.
+_PYTHON_BRANCH_KEYWORDS = re.compile(
+    r'\b(if|elif|for|while|except|and|or)\b'
+)
+
+_JS_BRANCH_RE = re.compile(
+    r'\b(if|else\s+if|for|while|case|catch)\b'
+    r'|(\?\s*)'          # ternary ?
+    r'|(&&|\|\||\?\?)'   # logical operators
+)
+
+_GO_BRANCH_RE = re.compile(
+    r'\b(if|for|case|select)\b'
+    r'|(&&|\|\|)'
+)
+
+_RUST_BRANCH_RE = re.compile(
+    r'\b(if|else\s+if|for|while|loop|match|=>)\b'
+    r'|(&&|\|\|)'
+)
+
+
+def _count_complexity(code_lines: list[str], language: str) -> int:
+    """Count cyclomatic complexity of a block of code.
+
+    Returns the number of branch points (caller should add the base 1).
+    """
+    pattern = {
+        'python': _PYTHON_BRANCH_KEYWORDS,
+        'javascript': _JS_BRANCH_RE,
+        'typescript': _JS_BRANCH_RE,
+        'js': _JS_BRANCH_RE,
+        'ts': _JS_BRANCH_RE,
+        'go': _GO_BRANCH_RE,
+        'rust': _RUST_BRANCH_RE,
+    }.get(language)
+
+    if not pattern:
+        return 0
+
+    branches = 0
+    for line in code_lines:
+        stripped = line.strip()
+        # Skip pure comment lines
+        if language == 'python' and stripped.startswith('#'):
+            continue
+        if language in ('javascript', 'typescript', 'js', 'ts', 'go', 'rust'):
+            if stripped.startswith('//') or stripped.startswith('/*') or stripped.startswith('*'):
+                continue
+        branches += len(pattern.findall(stripped))
+    return branches
 
 
 def detect_language(code: str) -> str:
@@ -178,10 +241,13 @@ def analyze_python(code: str) -> tuple[Metrics, list[FunctionInfo]]:
             func_name = func_match.group(2)
             end_idx = _find_python_function_end(lines, i, indent_level)
             line_count = end_idx - i + 1
+            body = lines[i:end_idx + 1]
+            complexity = 1 + _count_complexity(body, 'python')
             functions.append(FunctionInfo(
                 name=func_name,
                 lines=line_count,
                 start_line=i + 1,  # 1-based
+                complexity=complexity,
             ))
 
     metrics = Metrics(
@@ -274,10 +340,13 @@ def analyze_javascript(code: str) -> tuple[Metrics, list[FunctionInfo]]:
                 if name in _JS_NOT_METHODS:
                     continue
                 line_count = _count_brace_body(lines, i)
+                body = lines[i:i + line_count]
+                complexity = 1 + _count_complexity(body, 'javascript')
                 functions.append(FunctionInfo(
                     name=name,
                     lines=line_count,
                     start_line=i + 1,  # 1-based
+                    complexity=complexity,
                 ))
                 break
 
@@ -315,10 +384,13 @@ def analyze_go(code: str) -> tuple[Metrics, list[FunctionInfo]]:
         match = func_pattern.match(line)
         if match:
             line_count = _count_brace_body(lines, i)
+            body = lines[i:i + line_count]
+            complexity = 1 + _count_complexity(body, 'go')
             functions.append(FunctionInfo(
                 name=match.group(1),
                 lines=line_count,
                 start_line=i + 1,
+                complexity=complexity,
             ))
 
     metrics = Metrics(
@@ -356,10 +428,13 @@ def analyze_rust(code: str) -> tuple[Metrics, list[FunctionInfo]]:
         match = func_pattern.match(line)
         if match:
             line_count = _count_brace_body(lines, i)
+            body = lines[i:i + line_count]
+            complexity = 1 + _count_complexity(body, 'rust')
             functions.append(FunctionInfo(
                 name=match.group(1),
                 lines=line_count,
                 start_line=i + 1,
+                complexity=complexity,
             ))
 
     metrics = Metrics(
@@ -413,7 +488,8 @@ def analyze_code(code: str, language: Optional[str] = None) -> tuple[Metrics, li
 def analyze_single_file(
     file_info: dict,
     max_file_lines: int,
-    max_function_lines: int
+    max_function_lines: int,
+    max_complexity: int = 10,
 ) -> dict:
     """Analyze a single file based on manifest data."""
     file_path = file_info.get("path")
@@ -431,7 +507,9 @@ def analyze_single_file(
 
     language_hint = detect_language_from_extension(filename or file_path)
     metrics, functions, detected_language = analyze_code(content, language_hint)
-    warnings = generate_warnings(metrics, functions, max_file_lines, max_function_lines)
+    warnings = generate_warnings(
+        metrics, functions, max_file_lines, max_function_lines, max_complexity,
+    )
 
     return {
         "filename": filename or file_path,
@@ -446,7 +524,8 @@ def analyze_multiple_files(
     files: list,
     max_file_lines: int,
     max_function_lines: int,
-    summary_only: bool = False
+    summary_only: bool = False,
+    max_complexity: int = 10,
 ) -> dict:
     """Analyze multiple files and return aggregated results."""
     results = []
@@ -459,7 +538,9 @@ def analyze_multiple_files(
     }
 
     for file_info in files:
-        result = analyze_single_file(file_info, max_file_lines, max_function_lines)
+        result = analyze_single_file(
+            file_info, max_file_lines, max_function_lines, max_complexity,
+        )
         results.append(result)
         if "error" in result:
             aggregate["errors"] += 1
@@ -497,7 +578,8 @@ def generate_warnings(
     metrics: Metrics,
     functions: list[FunctionInfo],
     max_file_lines: int,
-    max_function_lines: int
+    max_function_lines: int,
+    max_complexity: int = 10,
 ) -> list[str]:
     """Generate warnings for code quality issues."""
     warnings = []
@@ -512,6 +594,10 @@ def generate_warnings(
             warnings.append(
                 f"Function '{func.name}' is {func.lines} lines (exceeds {max_function_lines} line limit)"
             )
+        if func.complexity > max_complexity:
+            warnings.append(
+                f"Function '{func.name}' has complexity {func.complexity} (exceeds {max_complexity})"
+            )
 
     return warnings
 
@@ -519,25 +605,91 @@ def generate_warnings(
 # Supported file extensions for directory scanning
 SUPPORTED_EXTENSIONS = {".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs"}
 
-# Directories to skip when scanning
+# Directories to always skip (build artifacts, deps, caches)
 SKIP_DIRS = {
-    "node_modules", ".git", "__pycache__", ".venv", "venv", "env",
-    ".env", "dist", "build", ".next", ".nuxt", "target", ".pytest_cache",
-    ".mypy_cache", ".ruff_cache", "coverage", ".coverage"
+    # Dependencies
+    "node_modules", "bower_components", "vendor",
+    # Python envs & caches
+    ".venv", "venv", "env", "__pycache__", ".pytest_cache",
+    ".mypy_cache", ".ruff_cache", "site-packages",
+    # Build output
+    "dist", "build", "out", "_next", ".next", ".nuxt",
+    "target", ".output", ".vercel", ".turbo",
+    # Bundler output (e.g. Next.js static chunks)
+    "static/chunks", "static/css", "static/media",
+    # Version control & IDE
+    ".git", ".svn", ".hg", ".idea", ".vscode",
+    # Coverage & misc
+    "coverage", ".coverage", ".env",
 }
+
+# File-name patterns that indicate generated / minified / non-source files
+_SKIP_SUFFIXES = (".min.js", ".min.css", ".bundle.js", ".chunk.js", ".map")
+
+
+def _parse_gitignore(directory: str) -> list[str]:
+    """Read .gitignore patterns from a directory (non-recursive, top-level only)."""
+    from pathlib import Path
+
+    gitignore = Path(directory) / ".gitignore"
+    if not gitignore.is_file():
+        return []
+    patterns = []
+    try:
+        for line in gitignore.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            # Normalise: strip trailing slashes (pathlib matching doesn't use them)
+            patterns.append(line.rstrip("/"))
+    except OSError:
+        pass
+    return patterns
+
+
+def _matches_gitignore(rel_path: str, patterns: list[str]) -> bool:
+    """Check whether *rel_path* matches any .gitignore pattern.
+
+    Supports simple gitignore patterns:
+      - directory names  (e.g. ``out``, ``coverage``)
+      - wildcards        (e.g. ``*.log``, ``build-*``)
+      - path prefixes    (e.g. ``src/generated``)
+    """
+    from fnmatch import fnmatch
+
+    parts = rel_path.replace("\\", "/").split("/")
+    for pat in patterns:
+        # Pattern with slash → match against full relative path
+        if "/" in pat:
+            if fnmatch(rel_path, pat) or fnmatch(rel_path, pat + "/*"):
+                return True
+            continue
+        # Plain name → match any path component (directory or filename)
+        for part in parts:
+            if fnmatch(part, pat):
+                return True
+    return False
+
+
+def _is_minified(file_path: str) -> bool:
+    """Heuristic: file is likely minified if avg line length > 500 chars."""
+    try:
+        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            # Read first 8 KB — enough to judge
+            sample = f.read(8192)
+        if not sample:
+            return False
+        lines = sample.split("\n")
+        if len(lines) < 2:
+            return len(sample) > 500
+        avg = len(sample) / len(lines)
+        return avg > 500
+    except OSError:
+        return False
 
 
 def collect_files_from_directory(directory: str, max_files: int = 100) -> list[dict]:
-    """
-    Collect all supported code files from a directory.
-
-    Args:
-        directory: Path to the directory to scan
-        max_files: Maximum number of files to collect
-
-    Returns:
-        List of file info dicts compatible with analyze_multiple_files
-    """
+    """Collect supported code files, respecting .gitignore and skipping artifacts."""
     from pathlib import Path
 
     dir_path = Path(directory).resolve()
@@ -546,8 +698,13 @@ def collect_files_from_directory(directory: str, max_files: int = 100) -> list[d
     if not dir_path.is_dir():
         raise ValueError(f"Path is not a directory: {directory}")
 
+    gitignore_patterns = _parse_gitignore(str(dir_path))
+
     files = []
     for file_path in dir_path.rglob("*"):
+        if not file_path.is_file():
+            continue
+
         # Skip directories in SKIP_DIRS
         if any(skip_dir in file_path.parts for skip_dir in SKIP_DIRS):
             continue
@@ -556,13 +713,24 @@ def collect_files_from_directory(directory: str, max_files: int = 100) -> list[d
         if file_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
             continue
 
-        if not file_path.is_file():
+        rel = str(file_path.relative_to(dir_path))
+
+        # Skip files matching .gitignore
+        if gitignore_patterns and _matches_gitignore(rel, gitignore_patterns):
             continue
 
-        # Create file info dict
+        # Skip minified / bundled files by name
+        fname_lower = file_path.name.lower()
+        if any(fname_lower.endswith(s) for s in _SKIP_SUFFIXES):
+            continue
+
+        # Skip minified files by content heuristic
+        if _is_minified(str(file_path)):
+            continue
+
         files.append({
             "path": str(file_path),
-            "original_name": str(file_path.relative_to(dir_path)),
+            "original_name": rel,
         })
 
         if len(files) >= max_files:
@@ -585,9 +753,13 @@ def main():
             max_function_lines = metadata.get(
                 "max_function_lines", input_data.get("max_function_lines", 50)
             )
+            max_complexity = metadata.get(
+                "max_complexity", input_data.get("max_complexity", 10)
+            )
         else:
             max_file_lines = input_data.get("max_file_lines", 300)
             max_function_lines = input_data.get("max_function_lines", 50)
+            max_complexity = input_data.get("max_complexity", 10)
 
         summary_only = input_data.get("summary", False)
 
@@ -608,7 +780,10 @@ def main():
                     }
                     print(json.dumps(result))
                     return
-                result = analyze_multiple_files(files, max_file_lines, max_function_lines, summary_only)
+                result = analyze_multiple_files(
+                    files, max_file_lines, max_function_lines, summary_only,
+                    max_complexity,
+                )
                 print(json.dumps(result, indent=2))
             except ValueError as e:
                 print(json.dumps({'error': str(e)}))
@@ -616,7 +791,10 @@ def main():
 
         files = input_data.get("files", [])
         if isinstance(files, list) and files:
-            result = analyze_multiple_files(files, max_file_lines, max_function_lines, summary_only)
+            result = analyze_multiple_files(
+                files, max_file_lines, max_function_lines, summary_only,
+                max_complexity,
+            )
             print(json.dumps(result, indent=2))
             return
 
@@ -637,7 +815,9 @@ def main():
 
         # Analyze
         metrics, functions, detected_language = analyze_code(code, language)
-        warnings = generate_warnings(metrics, functions, max_file_lines, max_function_lines)
+        warnings = generate_warnings(
+            metrics, functions, max_file_lines, max_function_lines, max_complexity,
+        )
 
         # Build summary
         parts = []

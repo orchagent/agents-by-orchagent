@@ -1,7 +1,7 @@
 {
   "name": "code-stats",
   "type": "code",
-  "description": "Analyzes code for quality metrics. Returns line counts, function counts, and warnings for files/functions that are too long.",
+  "description": "Analyzes code quality: line counts, function detection, cyclomatic complexity scoring, and warnings. Respects .gitignore and skips build artifacts. Supports Python, JavaScript/TypeScript, Go, and Rust.",
   "supported_providers": ["any"],
   "tags": ["code-quality", "metrics", "analysis"],
   "entrypoint": "main.py",
@@ -27,7 +27,8 @@
         "type": "object",
         "properties": {
           "max_file_lines": {"type": "integer", "default": 300},
-          "max_function_lines": {"type": "integer", "default": 50}
+          "max_function_lines": {"type": "integer", "default": 50},
+          "max_complexity": {"type": "integer", "default": 10}
         }
       },
       "summary": {

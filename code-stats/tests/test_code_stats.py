@@ -685,3 +685,251 @@ class TestMainEntryPoint:
         })
         assert "results" not in result  # summary_only omits per-file results
         assert "aggregate" in result
+
+    def test_complexity_in_output(self, monkeypatch, capsys):
+        code = "\n".join([
+            "def decide(x):",
+            "    if x > 0:",
+            "        if x > 10:",
+            "            return 'big'",
+            "        return 'small'",
+            "    return 'negative'",
+        ])
+        result = self._run_main(monkeypatch, capsys, {"code": code})
+        funcs = result["functions"]
+        assert len(funcs) == 1
+        assert funcs[0]["complexity"] >= 3  # base 1 + 2 ifs
+
+    def test_complexity_warning(self, monkeypatch, capsys):
+        # Build a function with many branches
+        lines = ["def branchy(x):"]
+        for i in range(12):
+            lines.append(f"    if x == {i}:")
+            lines.append(f"        return {i}")
+        lines.append("    return -1")
+        code = "\n".join(lines)
+        result = self._run_main(monkeypatch, capsys, {
+            "code": code,
+            "metadata": {"max_complexity": 5},
+        })
+        assert any("complexity" in w for w in result["warnings"])
+
+    def test_max_complexity_metadata(self, monkeypatch, capsys):
+        code = "\n".join([
+            "def simple():",
+            "    if True:",
+            "        pass",
+        ])
+        # With high threshold → no warning
+        result = self._run_main(monkeypatch, capsys, {
+            "code": code,
+            "metadata": {"max_complexity": 100},
+        })
+        assert not any("complexity" in w for w in result["warnings"])
+
+
+class TestComplexity:
+    """Test cyclomatic complexity counting for each language."""
+
+    def test_python_simple(self):
+        code = "\n".join([
+            "def foo():",
+            "    return 1",
+        ])
+        _, functions = main.analyze_python(code)
+        assert functions[0].complexity == 1  # no branches
+
+    def test_python_branchy(self):
+        code = "\n".join([
+            "def process(x):",
+            "    if x > 0:",
+            "        for i in range(x):",
+            "            if i % 2 == 0:",
+            "                print(i)",
+            "    elif x < 0:",
+            "        while x < 0:",
+            "            x += 1",
+        ])
+        _, functions = main.analyze_python(code)
+        # 1 base + if + for + if + elif + while = 6
+        assert functions[0].complexity == 6
+
+    def test_python_logical_operators(self):
+        code = "\n".join([
+            "def check(a, b, c):",
+            "    if a and b or c:",
+            "        return True",
+        ])
+        _, functions = main.analyze_python(code)
+        # 1 base + if + and + or = 4
+        assert functions[0].complexity == 4
+
+    def test_js_branches(self):
+        code = "\n".join([
+            "function handle(req) {",
+            "  if (req.method === 'GET') {",
+            "    return getHandler(req);",
+            "  } else if (req.method === 'POST') {",
+            "    return postHandler(req);",
+            "  }",
+            "  const val = req.ok ? 'yes' : 'no';",
+            "  return val || 'default';",
+            "}",
+        ])
+        _, functions = main.analyze_javascript(code)
+        # 1 base + if + else if + ternary(?) + || = 5
+        assert functions[0].complexity == 5
+
+    def test_js_switch_cases(self):
+        code = "\n".join([
+            "function route(action) {",
+            "  switch (action) {",
+            "    case 'a': return 1;",
+            "    case 'b': return 2;",
+            "    case 'c': return 3;",
+            "  }",
+            "}",
+        ])
+        _, functions = main.analyze_javascript(code)
+        # 1 base + 3 case = 4
+        assert functions[0].complexity == 4
+
+    def test_go_branches(self):
+        code = "\n".join([
+            "func process(x int) int {",
+            "    if x > 0 {",
+            "        return x",
+            "    }",
+            "    for i := 0; i < 10; i++ {",
+            "        if x == i || x == -i {",
+            "            return i",
+            "        }",
+            "    }",
+            "    return 0",
+            "}",
+        ])
+        _, functions = main.analyze_go(code)
+        # 1 base + if + for + if + || = 5
+        assert functions[0].complexity == 5
+
+    def test_rust_branches(self):
+        code = "\n".join([
+            "fn decide(x: i32) -> &str {",
+            '    if x > 0 {',
+            '        "positive"',
+            '    } else if x < 0 {',
+            '        "negative"',
+            "    } else {",
+            '        "zero"',
+            "    }",
+            "}",
+        ])
+        _, functions = main.analyze_rust(code)
+        # 1 base + if + else if = 3
+        assert functions[0].complexity == 3
+
+    def test_generic_no_complexity(self):
+        """Unknown languages should report complexity=1 (default)."""
+        code = "some unknown code\nwith branches if you squint"
+        metrics, functions, lang = main.analyze_code(code)
+        assert lang == "unknown"
+        # No functions detected → no complexity to check
+        assert functions == []
+
+
+class TestFileFiltering:
+    """Test .gitignore, minified file, and build artifact filtering."""
+
+    def test_gitignore_respected(self, tmp_path):
+        # Create .gitignore
+        (tmp_path / ".gitignore").write_text("ignored_dir\n*.generated.py\n", encoding="utf-8")
+        # Create files
+        (tmp_path / "good.py").write_text("x = 1", encoding="utf-8")
+        ignored_dir = tmp_path / "ignored_dir"
+        ignored_dir.mkdir()
+        (ignored_dir / "bad.py").write_text("x = 2", encoding="utf-8")
+        (tmp_path / "auto.generated.py").write_text("x = 3", encoding="utf-8")
+
+        files = main.collect_files_from_directory(str(tmp_path))
+        names = [f["original_name"] for f in files]
+
+        assert "good.py" in names
+        assert "ignored_dir/bad.py" not in names
+        assert "auto.generated.py" not in names
+
+    def test_skip_next_static_chunks(self, tmp_path):
+        """_next/static/chunks should be skipped (build artifacts)."""
+        chunks_dir = tmp_path / "_next" / "static" / "chunks"
+        chunks_dir.mkdir(parents=True)
+        (chunks_dir / "app.js").write_text("var x=1;", encoding="utf-8")
+
+        src_dir = tmp_path / "src"
+        src_dir.mkdir(parents=True)
+        (src_dir / "app.js").write_text("function main() {}", encoding="utf-8")
+
+        files = main.collect_files_from_directory(str(tmp_path))
+        names = [f["original_name"] for f in files]
+
+        assert "src/app.js" in names
+        # _next is in SKIP_DIRS, so chunks should be excluded
+        assert not any("_next" in n for n in names)
+
+    def test_skip_minified_by_name(self, tmp_path):
+        """Files like *.min.js should be skipped."""
+        (tmp_path / "app.min.js").write_text("var x=1;", encoding="utf-8")
+        (tmp_path / "app.js").write_text("var x = 1;", encoding="utf-8")
+
+        files = main.collect_files_from_directory(str(tmp_path))
+        names = [f["original_name"] for f in files]
+
+        assert "app.js" in names
+        assert "app.min.js" not in names
+
+    def test_skip_minified_by_content(self, tmp_path):
+        """Files with avg line length > 500 should be skipped."""
+        minified = "var a=1;" * 200  # ~1600 chars on one line
+        (tmp_path / "bundle.js").write_text(minified, encoding="utf-8")
+        (tmp_path / "normal.js").write_text("function foo() {\n  return 1;\n}", encoding="utf-8")
+
+        files = main.collect_files_from_directory(str(tmp_path))
+        names = [f["original_name"] for f in files]
+
+        assert "normal.js" in names
+        assert "bundle.js" not in names
+
+    def test_skip_dist_out_build(self, tmp_path):
+        for dirname in ("dist", "out", "build"):
+            d = tmp_path / dirname
+            d.mkdir()
+            (d / "compiled.js").write_text("x=1", encoding="utf-8")
+
+        (tmp_path / "src.js").write_text("function f() {}", encoding="utf-8")
+
+        files = main.collect_files_from_directory(str(tmp_path))
+        names = [f["original_name"] for f in files]
+
+        assert "src.js" in names
+        assert not any("dist" in n or "out" in n or "build" in n for n in names)
+
+    def test_gitignore_with_path_pattern(self, tmp_path):
+        """Gitignore patterns with slashes match against full relative path."""
+        (tmp_path / ".gitignore").write_text("src/generated\n", encoding="utf-8")
+        gen_dir = tmp_path / "src" / "generated"
+        gen_dir.mkdir(parents=True)
+        (gen_dir / "auto.py").write_text("x = 1", encoding="utf-8")
+        src_dir = tmp_path / "src"
+        (src_dir / "real.py").write_text("x = 2", encoding="utf-8")
+
+        files = main.collect_files_from_directory(str(tmp_path))
+        names = [f["original_name"] for f in files]
+
+        assert "src/real.py" in names
+        assert "src/generated/auto.py" not in names
+
+    def test_no_gitignore_still_works(self, tmp_path):
+        """If no .gitignore exists, should still work fine."""
+        (tmp_path / "app.py").write_text("x = 1", encoding="utf-8")
+
+        files = main.collect_files_from_directory(str(tmp_path))
+        assert len(files) == 1
+        assert files[0]["original_name"] == "app.py"

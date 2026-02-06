@@ -14,6 +14,31 @@ DANGEROUS_PORTS = {
     27017: "MongoDB",
 }
 
+# Cloudflare IPv4 ranges - used to check if web ports are properly restricted
+CLOUDFLARE_IPV4_PREFIXES = [
+    "173.245.48.0/20",
+    "103.21.244.0/22",
+    "103.22.200.0/22",
+    "103.31.4.0/22",
+    "141.101.64.0/18",
+    "108.162.192.0/18",
+    "190.93.240.0/20",
+    "188.114.96.0/20",
+    "197.234.240.0/22",
+    "198.41.128.0/17",
+    "162.158.0.0/15",
+    "104.16.0.0/13",
+    "104.24.0.0/14",
+    "172.64.0.0/13",
+    "131.0.72.0/22",
+]
+
+# Tailscale CGNAT subnet
+TAILSCALE_SUBNET = "100.64.0.0/10"
+
+# Common web ports that should be behind Cloudflare
+WEB_PORTS = {"80", "443", "3000", "8080", "8443"}
+
 
 def _run_command(cmd: list[str]) -> tuple[Optional[str], Optional[str]]:
     """Run a shell command and return stdout and error.
@@ -273,6 +298,121 @@ def _check_dangerous_ports() -> CheckResult:
         )
 
 
+def _check_ssh_internet_exposed(ufw_output: str) -> CheckResult:
+    """Check if SSH port 22 is open to the entire internet (Anywhere) instead of restricted IPs.
+
+    SSH should be restricted to a VPN subnet (e.g. Tailscale 100.64.0.0/10) or specific
+    trusted IPs, not open to the entire world.
+    """
+    lines = ufw_output.strip().splitlines()
+    ssh_open_to_anywhere = False
+    ssh_restricted = False
+
+    for line in lines:
+        line_lower = line.lower()
+        # Look for SSH/port 22 rules
+        if "22" not in line_lower:
+            continue
+        if "allow" not in line_lower:
+            continue
+
+        # Check if the source is "Anywhere" (wide open) vs a specific subnet
+        if "anywhere" in line_lower:
+            ssh_open_to_anywhere = True
+        elif "100.64.0.0/10" in line or "100." in line or "tailscale" in line_lower:
+            ssh_restricted = True
+
+    if ssh_restricted and not ssh_open_to_anywhere:
+        return CheckResult(
+            check="firewall_ssh_internet_exposed",
+            status=CheckStatus.PASS,
+            severity="high",
+            message="SSH is restricted to Tailscale/specific IPs only (not open to the internet)",
+            fix_available=False,
+            fix_agent=None,
+        )
+    elif ssh_open_to_anywhere:
+        return CheckResult(
+            check="firewall_ssh_internet_exposed",
+            status=CheckStatus.FAIL,
+            severity="high",
+            message="SSH (port 22) is open to the ENTIRE INTERNET. Restrict to Tailscale subnet "
+                    "(100.64.0.0/10) or specific trusted IPs. Install Tailscale and use: "
+                    "ufw allow in on tailscale0 to any port 22, then delete the open SSH rules.",
+            fix_available=True,
+            fix_agent="orchagent/vps-fixer",
+        )
+    else:
+        return CheckResult(
+            check="firewall_ssh_internet_exposed",
+            status=CheckStatus.PASS,
+            severity="high",
+            message="SSH does not appear to be open to Anywhere",
+            fix_available=False,
+            fix_agent=None,
+        )
+
+
+def _check_web_port_cloudflare_restricted(ufw_output: str) -> list[CheckResult]:
+    """Check if web-facing ports (80, 443, 3000, etc.) are restricted to Cloudflare IP ranges.
+
+    If a web port is open to Anywhere instead of Cloudflare IPs only, attackers can bypass
+    Cloudflare's WAF/DDoS protection by hitting the origin IP directly.
+    """
+    results = []
+    lines = ufw_output.strip().splitlines()
+
+    # Find web ports that are open to Anywhere
+    ports_open_to_anywhere = set()
+    ports_restricted = set()
+
+    for line in lines:
+        line_lower = line.lower()
+        if "allow" not in line_lower:
+            continue
+
+        for port in WEB_PORTS:
+            if port not in line:
+                continue
+            # Check if the source is Anywhere vs a specific subnet
+            if "anywhere" in line_lower:
+                ports_open_to_anywhere.add(port)
+            else:
+                # Check if restricted to Cloudflare-like ranges
+                for cf_prefix in CLOUDFLARE_IPV4_PREFIXES:
+                    prefix_start = cf_prefix.split(".")[0]
+                    if prefix_start in line:
+                        ports_restricted.add(port)
+                        break
+
+    # Only flag ports that are open to Anywhere and NOT also restricted
+    exposed_ports = ports_open_to_anywhere - ports_restricted
+
+    if exposed_ports:
+        port_list = ", ".join(sorted(exposed_ports))
+        results.append(CheckResult(
+            check="firewall_web_port_cloudflare",
+            status=CheckStatus.WARN,
+            severity="high",
+            message=f"Web port(s) {port_list} open to the entire internet. If using Cloudflare, "
+                    f"restrict to Cloudflare IP ranges only to prevent origin IP bypass. "
+                    f"See: https://www.cloudflare.com/ips/",
+            fix_available=False,
+            fix_agent=None,
+        ))
+    elif ports_restricted:
+        results.append(CheckResult(
+            check="firewall_web_port_cloudflare",
+            status=CheckStatus.PASS,
+            severity="high",
+            message="Web ports are restricted to specific IP ranges (not open to Anywhere)",
+            fix_available=False,
+            fix_agent=None,
+        ))
+
+    return results
+
+
 def run_firewall_checks() -> list[CheckResult]:
     """Run all firewall security checks.
 
@@ -294,5 +434,7 @@ def run_firewall_checks() -> list[CheckResult]:
     results.append(_check_ssh_allowed(ufw_output))
     results.append(_check_ssh_rate_limiting())
     results.append(_check_dangerous_ports())
+    results.append(_check_ssh_internet_exposed(ufw_output))
+    results.extend(_check_web_port_cloudflare_restricted(ufw_output))
 
     return results

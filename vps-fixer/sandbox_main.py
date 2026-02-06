@@ -28,7 +28,13 @@ from vps_fixer.fixes.ssh import (
     get_ssh_root_login_fix_actions,
     apply_ssh_root_login_fix,
 )
-from vps_fixer.fixes.updates import get_auto_updates_fix_actions, apply_auto_updates_fix
+from vps_fixer.fixes.updates import (
+    get_auto_updates_fix_actions,
+    apply_auto_updates_fix,
+    get_auto_reboot_fix_actions,
+    apply_auto_reboot_fix,
+)
+from vps_fixer.fixes.tailscale import get_ssh_tailscale_fix_actions, apply_ssh_tailscale_fix
 
 
 # Map FixType enum to action and apply functions
@@ -38,6 +44,8 @@ FIX_TYPE_TO_ACTIONS = {
     FixType.SSH_PASSWORD_AUTH: get_ssh_password_auth_fix_actions,
     FixType.SSH_ROOT_LOGIN: get_ssh_root_login_fix_actions,
     FixType.AUTO_UPDATES: get_auto_updates_fix_actions,
+    FixType.AUTO_REBOOT: get_auto_reboot_fix_actions,
+    FixType.SSH_TAILSCALE: get_ssh_tailscale_fix_actions,
 }
 
 FIX_TYPE_TO_APPLY = {
@@ -46,6 +54,8 @@ FIX_TYPE_TO_APPLY = {
     FixType.SSH_PASSWORD_AUTH: apply_ssh_password_auth_fix,
     FixType.SSH_ROOT_LOGIN: apply_ssh_root_login_fix,
     FixType.AUTO_UPDATES: apply_auto_updates_fix,
+    FixType.AUTO_REBOOT: apply_auto_reboot_fix,
+    FixType.SSH_TAILSCALE: apply_ssh_tailscale_fix,
 }
 
 
@@ -61,6 +71,8 @@ def get_available_fixes_message() -> str:
         FixType.SSH_PASSWORD_AUTH: "Disable SSH password authentication",
         FixType.SSH_ROOT_LOGIN: "Restrict SSH root login",
         FixType.AUTO_UPDATES: "Enable automatic security updates",
+        FixType.AUTO_REBOOT: "Enable automatic reboot for kernel security updates",
+        FixType.SSH_TAILSCALE: "Restrict SSH to Tailscale VPN interface only",
     }
     lines = ["Available fixes:"]
     for fix_type in FixType:
@@ -87,7 +99,7 @@ def main() -> int:
                 "error": "No input provided",
                 "message": get_available_fixes_message(),
                 "expected_format": {
-                    "fixes": ["fail2ban", "firewall", "ssh_password_auth", "ssh_root_login", "auto_updates"],
+                    "fixes": ["fail2ban", "firewall", "ssh_password_auth", "ssh_root_login", "auto_updates", "auto_reboot", "ssh_tailscale"],
                     "dry_run": True,
                     "confirm": False,
                 },
@@ -112,7 +124,7 @@ def main() -> int:
             "error": "No fixes specified",
             "message": get_available_fixes_message(),
             "expected_format": {
-                "fixes": ["fail2ban", "firewall", "ssh_password_auth", "ssh_root_login", "auto_updates"],
+                "fixes": ["fail2ban", "firewall", "ssh_password_auth", "ssh_root_login", "auto_updates", "auto_reboot", "ssh_tailscale"],
                 "dry_run": True,
                 "confirm": False,
             },

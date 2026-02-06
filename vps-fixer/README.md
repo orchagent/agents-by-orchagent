@@ -1,5 +1,7 @@
 # VPS Fixer
 
+Inspired by [@brankopetric00](https://x.com/brankopetric00/status/2017283246254436501) on VPS security hardening best practices.
+
 AI-powered agent that applies security hardening fixes to Linux VPS servers.
 
 ## Features

@@ -23,9 +23,9 @@
         "type": "array",
         "items": {
           "type": "string",
-          "enum": ["fail2ban", "firewall", "ssh_password_auth", "ssh_root_login", "auto_updates"]
+          "enum": ["fail2ban", "firewall", "ssh_password_auth", "ssh_root_login", "auto_updates", "auto_reboot", "ssh_tailscale"]
         },
-        "description": "List of fixes to apply: fail2ban, firewall, ssh_password_auth, ssh_root_login, auto_updates"
+        "description": "List of fixes to apply: fail2ban, firewall, ssh_password_auth, ssh_root_login, auto_updates, auto_reboot, ssh_tailscale"
       },
       "dry_run": {
         "type": "boolean",

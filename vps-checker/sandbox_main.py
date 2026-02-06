@@ -193,6 +193,13 @@ def generate_recommendations(
             "CRITICAL: Investigate non-root accounts with UID 0. This may indicate system compromise."
         )
 
+    if "firewall_ssh_internet_exposed" in check_names:
+        recommendations.append(
+            "CRITICAL: SSH is open to the entire internet. Install Tailscale and restrict SSH to "
+            "Tailscale interface only: ufw allow in on tailscale0 to any port 22, then delete "
+            "the 'ufw allow 22' rules that are open to Anywhere."
+        )
+
     # Warning-level recommendations
     warning_check_names = {issue.check for issue in warnings}
 
@@ -204,6 +211,24 @@ def generate_recommendations(
     if "firewall_ssh_rate_limit" in warning_check_names:
         recommendations.append(
             "Consider enabling SSH rate limiting with UFW: ufw limit ssh"
+        )
+
+    if "tailscale_installed" in warning_check_names:
+        recommendations.append(
+            "Install Tailscale VPN to enable secure SSH access without exposing port 22 to the "
+            "internet. See: https://tailscale.com/download/linux"
+        )
+
+    if "auto_reboot" in warning_check_names:
+        recommendations.append(
+            "Enable automatic reboot for unattended-upgrades so kernel security patches take "
+            "effect without manual intervention."
+        )
+
+    if "firewall_web_port_cloudflare" in warning_check_names:
+        recommendations.append(
+            "Restrict web ports (80/443) to Cloudflare IP ranges only to prevent origin IP "
+            "bypass attacks. See: https://www.cloudflare.com/ips/"
         )
 
     # Deduplicate while preserving order

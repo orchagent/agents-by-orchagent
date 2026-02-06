@@ -14,6 +14,8 @@ class FixType(str, Enum):
     SSH_PASSWORD_AUTH = "ssh_password_auth"
     SSH_ROOT_LOGIN = "ssh_root_login"
     AUTO_UPDATES = "auto_updates"
+    AUTO_REBOOT = "auto_reboot"
+    SSH_TAILSCALE = "ssh_tailscale"
 
 
 class FixInput(BaseModel):

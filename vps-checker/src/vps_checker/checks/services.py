@@ -288,6 +288,107 @@ def _check_auto_updates() -> CheckResult:
     )
 
 
+def _check_tailscale_installed() -> CheckResult:
+    """Check if Tailscale VPN is installed for secure SSH access.
+
+    Tailscale provides a WireGuard-based mesh VPN that allows restricting SSH
+    access to the Tailscale network only, removing SSH from the public internet.
+    """
+    output, error = _run_command(["which", "tailscale"])
+
+    if error or not output or not output.strip():
+        return CheckResult(
+            check="tailscale_installed",
+            status=CheckStatus.WARN,
+            severity="high",
+            message="Tailscale is not installed. Install Tailscale to restrict SSH access to "
+                    "your VPN network only, removing port 22 from the public internet. "
+                    "See: https://tailscale.com/download/linux",
+            fix_available=False,
+            fix_agent=None,
+        )
+
+    # Check if tailscaled is running
+    is_active = _check_service_active("tailscaled")
+    if is_active is not True:
+        return CheckResult(
+            check="tailscale_installed",
+            status=CheckStatus.WARN,
+            severity="high",
+            message="Tailscale is installed but the service is not running. "
+                    "Start with: systemctl enable --now tailscaled && tailscale up",
+            fix_available=False,
+            fix_agent=None,
+        )
+
+    return CheckResult(
+        check="tailscale_installed",
+        status=CheckStatus.PASS,
+        severity="high",
+        message="Tailscale VPN is installed and running",
+        fix_available=False,
+        fix_agent=None,
+    )
+
+
+def _check_auto_reboot() -> CheckResult:
+    """Check if unattended-upgrades is configured to auto-reboot when needed.
+
+    Kernel updates require a reboot to take effect. Without auto-reboot enabled,
+    the server stays on the old vulnerable kernel until manually rebooted.
+    """
+    config_path = "/etc/apt/apt.conf.d/50unattended-upgrades"
+
+    try:
+        with open(config_path, "r") as f:
+            content = f.read()
+    except FileNotFoundError:
+        return CheckResult(
+            check="auto_reboot",
+            status=CheckStatus.WARN,
+            severity="medium",
+            message="Unattended-upgrades config not found. Cannot check auto-reboot setting.",
+            fix_available=True,
+            fix_agent="orchagent/vps-fixer",
+        )
+    except PermissionError:
+        return CheckResult(
+            check="auto_reboot",
+            status=CheckStatus.WARN,
+            severity="medium",
+            message="Permission denied reading unattended-upgrades config.",
+            fix_available=False,
+            fix_agent=None,
+        )
+
+    # Check for active (uncommented) Automatic-Reboot "true" line
+    for line in content.splitlines():
+        stripped = line.strip()
+        # Skip commented lines
+        if stripped.startswith("//") or stripped.startswith("#"):
+            continue
+        if "Automatic-Reboot" in stripped and '"true"' in stripped.lower():
+            return CheckResult(
+                check="auto_reboot",
+                status=CheckStatus.PASS,
+                severity="medium",
+                message="Automatic reboot is enabled for unattended-upgrades",
+                fix_available=False,
+                fix_agent=None,
+            )
+
+    return CheckResult(
+        check="auto_reboot",
+        status=CheckStatus.WARN,
+        severity="medium",
+        message="Automatic reboot is NOT enabled for unattended-upgrades. Kernel updates won't "
+                "take effect until manual reboot. Enable with: "
+                'Unattended-Upgrade::Automatic-Reboot "true"; in /etc/apt/apt.conf.d/50unattended-upgrades',
+        fix_available=True,
+        fix_agent="orchagent/vps-fixer",
+    )
+
+
 def run_services_checks() -> list[CheckResult]:
     """Run all services security checks.
 
@@ -304,5 +405,11 @@ def run_services_checks() -> list[CheckResult]:
 
     # Check for automatic updates
     results.append(_check_auto_updates())
+
+    # Check Tailscale VPN installation
+    results.append(_check_tailscale_installed())
+
+    # Check auto-reboot for unattended-upgrades
+    results.append(_check_auto_reboot())
 
     return results

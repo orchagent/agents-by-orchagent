@@ -118,6 +118,42 @@ def read_file_safe(file_path: str) -> tuple[str, Optional[str]]:
         return "", f"Failed to read file: {file_path} ({exc})"
 
 
+def _find_python_function_end(lines: list[str], start_idx: int, func_indent: int) -> int:
+    """Find the last line belonging to a Python function using indentation.
+
+    Args:
+        lines: All source lines (0-indexed).
+        start_idx: Index of the ``def`` line.
+        func_indent: Column of the ``def`` keyword.
+
+    Returns:
+        0-based index of the last line that belongs to the function body.
+    """
+    last_body_line = start_idx  # at minimum the def line itself
+    for j in range(start_idx + 1, len(lines)):
+        stripped = lines[j].strip()
+        if not stripped:
+            # Blank lines don't end a function – but only count them if
+            # there is still body content after them.
+            continue
+        # Measure leading whitespace
+        leading = len(lines[j]) - len(lines[j].lstrip())
+        if leading > func_indent:
+            # Still inside the function body
+            last_body_line = j
+        else:
+            # Dedented to the same or outer level → function ended
+            break
+    else:
+        # Reached end of file while inside the function
+        # Walk back from EOF to find the last non-blank line
+        for j in range(len(lines) - 1, start_idx, -1):
+            if lines[j].strip():
+                last_body_line = j
+                break
+    return last_body_line
+
+
 def analyze_python(code: str) -> tuple[Metrics, list[FunctionInfo]]:
     """Analyze Python code."""
     lines = code.split('\n')
@@ -126,45 +162,27 @@ def analyze_python(code: str) -> tuple[Metrics, list[FunctionInfo]]:
     comment_lines = sum(1 for line in lines if line.strip().startswith('#'))
     code_lines = total_lines - blank_lines - comment_lines
 
-    # Find functions
     functions: list[FunctionInfo] = []
     class_count = 0
 
-    # Simple regex-based function detection
     func_pattern = re.compile(r'^(\s*)def\s+(\w+)\s*\(')
-    class_pattern = re.compile(r'^class\s+\w+')
+    class_pattern = re.compile(r'^\s*class\s+\w+')
 
-    current_func: Optional[tuple[str, int, int]] = None  # (name, start_line, indent)
-
-    for i, line in enumerate(lines, 1):
-        # Check for class
+    for i, line in enumerate(lines):
         if class_pattern.match(line):
             class_count += 1
 
-        # Check for function start
         func_match = func_pattern.match(line)
         if func_match:
-            # Save previous function if exists
-            if current_func:
-                name, start, indent = current_func
-                functions.append(FunctionInfo(
-                    name=name,
-                    lines=i - start,
-                    start_line=start
-                ))
-
             indent_level = len(func_match.group(1))
             func_name = func_match.group(2)
-            current_func = (func_name, i, indent_level)
-
-    # Don't forget the last function
-    if current_func:
-        name, start, indent = current_func
-        functions.append(FunctionInfo(
-            name=name,
-            lines=total_lines - start + 1,
-            start_line=start
-        ))
+            end_idx = _find_python_function_end(lines, i, indent_level)
+            line_count = end_idx - i + 1
+            functions.append(FunctionInfo(
+                name=func_name,
+                lines=line_count,
+                start_line=i + 1,  # 1-based
+            ))
 
     metrics = Metrics(
         total_lines=total_lines,
@@ -172,10 +190,61 @@ def analyze_python(code: str) -> tuple[Metrics, list[FunctionInfo]]:
         blank_lines=blank_lines,
         comment_lines=comment_lines,
         functions=len(functions),
-        classes=class_count
+        classes=class_count,
     )
 
     return metrics, functions
+
+
+_JS_NOT_METHODS = frozenset({
+    'if', 'else', 'for', 'while', 'switch', 'catch', 'with', 'do', 'return',
+    'throw', 'new', 'delete', 'typeof', 'void', 'in', 'of',
+})
+
+
+def _count_js_comment_lines(lines: list[str]) -> int:
+    """Count comment lines in JS/TS, handling single-line and block comments."""
+    count = 0
+    in_block = False
+    for line in lines:
+        stripped = line.strip()
+        if in_block:
+            count += 1
+            if '*/' in stripped:
+                in_block = False
+            continue
+        if stripped.startswith('//'):
+            count += 1
+            continue
+        if stripped.startswith('/*'):
+            count += 1
+            if '*/' not in stripped or stripped.endswith('*/') and not stripped.endswith('/*/'):
+                # Block continues unless closed on the same line
+                if '*/' not in stripped[2:]:
+                    in_block = True
+            continue
+    return count
+
+
+def _count_brace_body(lines: list[str], start_idx: int) -> int:
+    """Count lines from *start_idx* until braces balance (depth 0).
+
+    Returns the number of lines occupied by the body (including the opening
+    line).  Falls back to 1 if no opening brace is found on the start line.
+    """
+    depth = 0
+    found_open = False
+    for j in range(start_idx, len(lines)):
+        for ch in lines[j]:
+            if ch == '{':
+                depth += 1
+                found_open = True
+            elif ch == '}':
+                depth -= 1
+        if found_open and depth <= 0:
+            return j - start_idx + 1
+    # If braces never balanced, return lines to EOF
+    return len(lines) - start_idx if found_open else 1
 
 
 def analyze_javascript(code: str) -> tuple[Metrics, list[FunctionInfo]]:
@@ -183,28 +252,32 @@ def analyze_javascript(code: str) -> tuple[Metrics, list[FunctionInfo]]:
     lines = code.split('\n')
     total_lines = len(lines)
     blank_lines = sum(1 for line in lines if not line.strip())
-    comment_lines = sum(1 for line in lines if line.strip().startswith('//') or line.strip().startswith('*'))
+    comment_lines = _count_js_comment_lines(lines)
     code_lines = total_lines - blank_lines - comment_lines
 
-    # Find functions (simplified)
     functions: list[FunctionInfo] = []
     class_count = len(re.findall(r'\bclass\s+\w+', code))
 
-    # Match function declarations, arrow functions, and methods
+    # Match function declarations, arrow functions, and method shorthand
     func_patterns = [
-        re.compile(r'^\s*(?:async\s+)?function\s+(\w+)\s*\('),
-        re.compile(r'^\s*(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function|\([^)]*\)\s*=>|\w+\s*=>)'),
-        re.compile(r'^\s*(\w+)\s*\([^)]*\)\s*\{'),  # method shorthand
+        re.compile(r'^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)\s*\('),
+        re.compile(r'^\s*(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function|\([^)]*\)\s*=>|\w+\s*=>)'),
+        re.compile(r'^\s*(?:async\s+)?(\w+)\s*\([^)]*\)\s*\{'),  # method shorthand
     ]
 
-    for i, line in enumerate(lines, 1):
+    for i, line in enumerate(lines):
         for pattern in func_patterns:
             match = pattern.match(line)
             if match:
+                name = match.group(1)
+                # Skip control-flow keywords misdetected as methods
+                if name in _JS_NOT_METHODS:
+                    continue
+                line_count = _count_brace_body(lines, i)
                 functions.append(FunctionInfo(
-                    name=match.group(1),
-                    lines=1,  # Simplified - would need brace matching for accurate count
-                    start_line=i
+                    name=name,
+                    lines=line_count,
+                    start_line=i + 1,  # 1-based
                 ))
                 break
 
@@ -214,9 +287,89 @@ def analyze_javascript(code: str) -> tuple[Metrics, list[FunctionInfo]]:
         blank_lines=blank_lines,
         comment_lines=comment_lines,
         functions=len(functions),
-        classes=class_count
+        classes=class_count,
     )
 
+    return metrics, functions
+
+
+def analyze_go(code: str) -> tuple[Metrics, list[FunctionInfo]]:
+    """Analyze Go code."""
+    lines = code.split('\n')
+    total_lines = len(lines)
+    blank_lines = sum(1 for line in lines if not line.strip())
+    comment_lines = _count_js_comment_lines(lines)  # Go uses same // and /* */ style
+    code_lines = total_lines - blank_lines - comment_lines
+
+    functions: list[FunctionInfo] = []
+    # Count struct types as "classes"
+    class_count = len(re.findall(r'\btype\s+\w+\s+struct\b', code))
+
+    # func Name(          — regular function
+    # func (r *Recv) Name( — method with receiver
+    func_pattern = re.compile(
+        r'^\s*func\s+(?:\([^)]*\)\s+)?(\w+)\s*\('
+    )
+
+    for i, line in enumerate(lines):
+        match = func_pattern.match(line)
+        if match:
+            line_count = _count_brace_body(lines, i)
+            functions.append(FunctionInfo(
+                name=match.group(1),
+                lines=line_count,
+                start_line=i + 1,
+            ))
+
+    metrics = Metrics(
+        total_lines=total_lines,
+        code_lines=code_lines,
+        blank_lines=blank_lines,
+        comment_lines=comment_lines,
+        functions=len(functions),
+        classes=class_count,
+    )
+    return metrics, functions
+
+
+def analyze_rust(code: str) -> tuple[Metrics, list[FunctionInfo]]:
+    """Analyze Rust code."""
+    lines = code.split('\n')
+    total_lines = len(lines)
+    blank_lines = sum(1 for line in lines if not line.strip())
+    comment_lines = _count_js_comment_lines(lines)  # Rust uses same // and /* */ style
+    code_lines = total_lines - blank_lines - comment_lines
+
+    functions: list[FunctionInfo] = []
+    # Count struct + enum + impl blocks as "classes"
+    class_count = (
+        len(re.findall(r'\bstruct\s+\w+', code))
+        + len(re.findall(r'\bimpl\s+\w+', code))
+    )
+
+    # pub/pub(crate)/async fn name(
+    func_pattern = re.compile(
+        r'^\s*(?:pub(?:\s*\([^)]*\))?\s+)?(?:async\s+)?fn\s+(\w+)\s*[<(]'
+    )
+
+    for i, line in enumerate(lines):
+        match = func_pattern.match(line)
+        if match:
+            line_count = _count_brace_body(lines, i)
+            functions.append(FunctionInfo(
+                name=match.group(1),
+                lines=line_count,
+                start_line=i + 1,
+            ))
+
+    metrics = Metrics(
+        total_lines=total_lines,
+        code_lines=code_lines,
+        blank_lines=blank_lines,
+        comment_lines=comment_lines,
+        functions=len(functions),
+        classes=class_count,
+    )
     return metrics, functions
 
 
@@ -232,7 +385,7 @@ def analyze_generic(code: str) -> tuple[Metrics, list[FunctionInfo]]:
         blank_lines=blank_lines,
         comment_lines=0,
         functions=0,
-        classes=0
+        classes=0,
     )
 
     return metrics, []
@@ -247,6 +400,10 @@ def analyze_code(code: str, language: Optional[str] = None) -> tuple[Metrics, li
         metrics, functions = analyze_python(code)
     elif language in ('javascript', 'typescript', 'js', 'ts'):
         metrics, functions = analyze_javascript(code)
+    elif language == 'go':
+        metrics, functions = analyze_go(code)
+    elif language == 'rust':
+        metrics, functions = analyze_rust(code)
     else:
         metrics, functions = analyze_generic(code)
 

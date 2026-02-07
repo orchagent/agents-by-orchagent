@@ -1,0 +1,61 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "files": {
+        "type": "array",
+        "description": "Upload a zip or tar.gz archive of your codebase (max 25 MB)"
+      },
+      "repo_url": {
+        "type": "string",
+        "description": "Public GitHub repository URL to audit (alternative to file upload)"
+      },
+      "exclude": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Additional directory names to skip during scanning"
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "score": {
+        "type": "number",
+        "description": "Security score from 0-100"
+      },
+      "grade": {
+        "type": "string",
+        "description": "Letter grade (A-F)"
+      },
+      "summary": {
+        "type": "string",
+        "description": "One-line scan summary"
+      },
+      "checklist": {
+        "type": "array",
+        "description": "15-point checklist with PASS/WARN/FAIL per category"
+      },
+      "critical_issues": {
+        "type": "array",
+        "description": "Critical/high severity findings with file locations"
+      },
+      "warnings": {
+        "type": "array",
+        "description": "Medium/low severity findings"
+      },
+      "recommendations": {
+        "type": "array",
+        "description": "Prioritized fix recommendations"
+      },
+      "files_scanned": {
+        "type": "number",
+        "description": "Total files scanned"
+      },
+      "passed_categories": {
+        "type": "array",
+        "description": "List of categories that passed"
+      }
+    }
+  }
+}

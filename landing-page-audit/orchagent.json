@@ -1,0 +1,13 @@
+{
+  "name": "landing-page-audit",
+  "type": "prompt",
+  "description": "Inspired by u/abhishvekc's viral Reddit post \"Landing page design that will get your paying users\" (r/SideProject, 836 upvotes, 88 comments \u2014 reddit.com/r/SideProject/comments/1kicwb0). Posted the same framework twice for 1,600+ total upvotes. Audits your landing page against a proven 7-section conversion framework: hero (heading + CTA + demo), trust logos, top features, differentiation, testimonials, FAQ, and closing CTA. Each section gets a PASS, PARTIAL, or MISSING verdict with specific fixes.",
+  "tags": ["landing-page", "conversion", "marketing", "saas", "startup", "audit", "framework"],
+  "supported_providers": ["anthropic", "openai", "gemini"],
+  "default_models": {
+    "anthropic": "claude-sonnet-4-20250514",
+    "openai": "gpt-4o",
+    "gemini": "gemini-2.5-flash"
+  },
+  "default_endpoint": "analyze"
+}

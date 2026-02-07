@@ -1,0 +1,108 @@
+{
+  "name": "saas-competitor-analyzer",
+  "type": "prompt",
+  "description": "Inspired by u/Sam_Tech1's viral Reddit post \"Building SaaS in 2025? My best advice\" (r/SaaS, 818 upvotes, 202 comments — reddit.com/r/SaaS/comments/1lpr050). Paste your SaaS product details and get a comprehensive competitive analysis: competitor identification, feature comparison, pricing evaluation, positioning gaps, and a differentiation matrix with specific recommendations to stand out in your market.",
+  "supported_providers": ["openai", "anthropic", "gemini"],
+  "tags": ["saas", "competitive-analysis", "strategy", "pricing", "positioning", "marketing"],
+  "prompt": "You are an experienced SaaS strategist who has analyzed hundreds of competitive landscapes.\n\nAnalyze the user's SaaS product and generate a comprehensive competitive analysis.\n\n## Your Analysis Framework\n\n### 1. COMPETITOR IDENTIFICATION\nIdentify 3-5 direct competitors and 1-2 indirect/adjacent competitors. For each: name, what they do (one sentence), their positioning, target audience, strengths, and weaknesses. If the user provided known competitors, analyze those first and add any they missed. Direct competitors solve the same problem for the same audience. Indirect competitors solve the same problem differently or solve an adjacent problem.\n\n### 2. FEATURE COMPARISON\nBuild a feature matrix comparing the user's product against competitors. Focus on features that matter to the target market: core functionality, integrations and ecosystem, ease of use, support and documentation, platform coverage. For each feature, rate: yes / no / partial / unknown.\n\n### 3. PRICING ANALYSIS\nAnalyze: the typical price range in this market, what pricing models competitors use (per seat, usage-based, flat rate, freemium, free trial), where the user's pricing sits relative to competitors, if there's a pricing gap being exploited, and a specific pricing recommendation.\n\nKey insight: \"Charge from day one\" — free products attract the wrong users and delay learning what customers value.\n\n### 4. POSITIONING GAPS\nIdentify underserved angles competitors are ignoring: audience segments, use cases, messaging angles, distribution channels. For each gap, assess the opportunity size and the risk.\n\n### 5. DIFFERENTIATION MATRIX\nDefine current differentiators (what already makes them different — be honest if nothing does), potential differentiators (what COULD make them different), and a positioning statement in the format: \"[Product] is the [category] for [specific audience] who need [specific outcome]. Unlike [competitor], we [key differentiator].\"\n\n### 6. STRATEGIC RECOMMENDATIONS\nProvide 3-5 prioritized moves. For each: specific action, impact level, effort level, and reasoning. High-impact + low-effort first. Don't try to out-feature an incumbent — find a wedge. Marketing is 50% of the battle.\n\n### 7. MARKET VERDICT\nOne honest paragraph. Don't sugarcoat. If the market is saturated, say so. If they have a real opening, explain why.\n\n## Rules\n- Be specific to THIS product in THIS market. Never generic advice.\n- When uncertain about a fact, say \"unknown\" or \"estimated\".\n- Don't fabricate product details.\n- If the market is saturated with no clear wedge, say so directly.\n- If analysis_focus is not \"full\", go deeper on that area but still provide the complete output structure.\n\nReturn ONLY a raw JSON object. Do NOT wrap it in code fences, backticks, or any other formatting. Start your response with { and end with }.\n\nThe JSON object must have these exact fields:\n- competitors: Array of objects with name, url, positioning, target_audience, strengths (array), weaknesses (array)\n- feature_matrix: Object where keys are feature names and values are objects mapping competitor names (including \"You\") to support level\n- pricing_analysis: Object with market_range, your_position, pricing_recommendation\n- positioning_gaps: Array of objects with gap, opportunity, risk\n- differentiation_matrix: Object with current_differentiators (array), potential_differentiators (array), positioning_statement (string)\n- strategic_recommendations: Array of objects with action, impact (high/medium/low), effort (high/medium/low), reasoning — ordered by priority\n- market_verdict: String with one honest paragraph",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "product_description": {
+        "type": "string",
+        "description": "Describe your SaaS product: what it does, who it's for, and what problem it solves. Include your current pricing if you have one.",
+        "minLength": 30,
+        "maxLength": 5000
+      },
+      "known_competitors": {
+        "type": "string",
+        "description": "List any competitors you already know about — names, URLs, or brief descriptions. Leave blank if you want the agent to identify them.",
+        "maxLength": 3000
+      },
+      "target_market": {
+        "type": "string",
+        "description": "Who are your target customers? (e.g., 'SMB SaaS founders', 'enterprise marketing teams', 'freelance designers')",
+        "maxLength": 1000
+      },
+      "analysis_focus": {
+        "type": "string",
+        "enum": ["full", "pricing", "positioning", "features"],
+        "default": "full",
+        "description": "What to focus the analysis on. 'full' covers everything."
+      }
+    },
+    "required": ["product_description"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "competitors": {
+        "type": "array",
+        "description": "List of identified competitors with analysis",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "url": { "type": "string" },
+            "positioning": { "type": "string" },
+            "target_audience": { "type": "string" },
+            "strengths": { "type": "array", "items": { "type": "string" } },
+            "weaknesses": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      },
+      "feature_matrix": {
+        "type": "object",
+        "description": "Feature comparison across you and competitors. Keys are feature names, values are objects mapping competitor names to support level (yes/no/partial/unknown)."
+      },
+      "pricing_analysis": {
+        "type": "object",
+        "description": "Pricing comparison and strategy evaluation",
+        "properties": {
+          "market_range": { "type": "string", "description": "Price range in the market" },
+          "your_position": { "type": "string", "description": "Where your pricing sits relative to competitors" },
+          "pricing_recommendation": { "type": "string", "description": "Specific pricing strategy advice" }
+        }
+      },
+      "positioning_gaps": {
+        "type": "array",
+        "description": "Underserved angles or positioning opportunities competitors are missing",
+        "items": {
+          "type": "object",
+          "properties": {
+            "gap": { "type": "string" },
+            "opportunity": { "type": "string" },
+            "risk": { "type": "string" }
+          }
+        }
+      },
+      "differentiation_matrix": {
+        "type": "object",
+        "description": "What makes you different and how to communicate it",
+        "properties": {
+          "current_differentiators": { "type": "array", "items": { "type": "string" } },
+          "potential_differentiators": { "type": "array", "items": { "type": "string" } },
+          "positioning_statement": { "type": "string", "description": "A clear, specific positioning statement you can use" }
+        }
+      },
+      "strategic_recommendations": {
+        "type": "array",
+        "description": "Prioritized list of strategic moves to make",
+        "items": {
+          "type": "object",
+          "properties": {
+            "action": { "type": "string" },
+            "impact": { "type": "string", "enum": ["high", "medium", "low"] },
+            "effort": { "type": "string", "enum": ["high", "medium", "low"] },
+            "reasoning": { "type": "string" }
+          }
+        }
+      },
+      "market_verdict": {
+        "type": "string",
+        "description": "One-paragraph honest assessment of your competitive position"
+      }
+    },
+    "required": ["competitors", "feature_matrix", "pricing_analysis", "positioning_gaps", "differentiation_matrix", "strategic_recommendations", "market_verdict"]
+  }
+}

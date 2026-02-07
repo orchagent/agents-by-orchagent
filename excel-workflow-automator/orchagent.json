@@ -1,0 +1,13 @@
+{
+  "name": "excel-workflow-automator",
+  "type": "prompt",
+  "description": "Inspired by u/Jiggles1232's Reddit post \"Does anyone else use Python with Excel, Power Query, VBA, and legacy apps at work?\" (r/learnpython, 87 upvotes, 71 comments \u2014 reddit.com/r/learnpython/comments/1n3mo8p). Describe your repetitive Excel/CSV data workflow in plain English and get a complete, ready-to-run Python automation script. Handles reading, cleaning, transforming, merging, and writing data \u2014 with error handling and step-by-step explanation.",
+  "tags": ["excel", "csv", "automation", "python", "pandas", "data", "workflow", "spreadsheet"],
+  "supported_providers": ["anthropic", "openai", "gemini"],
+  "default_models": {
+    "anthropic": "claude-sonnet-4-20250514",
+    "openai": "gpt-4o",
+    "gemini": "gemini-2.5-flash"
+  },
+  "default_endpoint": "generate"
+}

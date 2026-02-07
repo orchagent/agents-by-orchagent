@@ -1,0 +1,9 @@
+{
+  "description": "Clean, benign skill should return INFORMATIONAL",
+  "input": {
+    "skill_text": "# Grammar Checker\n\nYou are a grammar and spelling checker. Analyze the provided text for grammatical errors, spelling mistakes, and style issues.\n\n## Rules\n- Check for subject-verb agreement\n- Flag run-on sentences\n- Suggest improvements for clarity\n- Be concise in your feedback\n\nReturn a JSON object with:\n- errors: array of found issues\n- corrected_text: the improved text\n- score: grammar score from 1-10",
+    "skill_name": "grammar-checker",
+    "stated_purpose": "Check grammar and spelling in text"
+  },
+  "expected_contains": ["INFORMATIONAL", "disclaimer"]
+}

@@ -1,0 +1,98 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "product_description": {
+        "type": "string",
+        "description": "Describe your SaaS product: what it does, who it's for, and what problem it solves. Include your current pricing if you have one.",
+        "minLength": 30,
+        "maxLength": 5000
+      },
+      "known_competitors": {
+        "type": "string",
+        "description": "List any competitors you already know about — names, URLs, or brief descriptions. Leave blank if you want the agent to identify them.",
+        "maxLength": 3000
+      },
+      "target_market": {
+        "type": "string",
+        "description": "Who are your target customers? (e.g., 'SMB SaaS founders', 'enterprise marketing teams', 'freelance designers')",
+        "maxLength": 1000
+      },
+      "analysis_focus": {
+        "type": "string",
+        "enum": ["full", "pricing", "positioning", "features"],
+        "default": "full",
+        "description": "What to focus the analysis on. 'full' covers everything."
+      }
+    },
+    "required": ["product_description"]
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "competitors": {
+        "type": "array",
+        "description": "Identified competitors with analysis",
+        "items": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "url": { "type": "string" },
+            "positioning": { "type": "string" },
+            "target_audience": { "type": "string" },
+            "strengths": { "type": "array", "items": { "type": "string" } },
+            "weaknesses": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      },
+      "feature_matrix": {
+        "type": "object",
+        "description": "Feature comparison. Keys are feature names, values are objects mapping competitor names to support level."
+      },
+      "pricing_analysis": {
+        "type": "object",
+        "properties": {
+          "market_range": { "type": "string" },
+          "your_position": { "type": "string" },
+          "pricing_recommendation": { "type": "string" }
+        }
+      },
+      "positioning_gaps": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "gap": { "type": "string" },
+            "opportunity": { "type": "string" },
+            "risk": { "type": "string" }
+          }
+        }
+      },
+      "differentiation_matrix": {
+        "type": "object",
+        "properties": {
+          "current_differentiators": { "type": "array", "items": { "type": "string" } },
+          "potential_differentiators": { "type": "array", "items": { "type": "string" } },
+          "positioning_statement": { "type": "string" }
+        }
+      },
+      "strategic_recommendations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "action": { "type": "string" },
+            "impact": { "type": "string", "enum": ["high", "medium", "low"] },
+            "effort": { "type": "string", "enum": ["high", "medium", "low"] },
+            "reasoning": { "type": "string" }
+          }
+        }
+      },
+      "market_verdict": {
+        "type": "string",
+        "description": "One-paragraph honest assessment of competitive position"
+      }
+    },
+    "required": ["competitors", "feature_matrix", "pricing_analysis", "positioning_gaps", "differentiation_matrix", "strategic_recommendations", "market_verdict"]
+  }
+}

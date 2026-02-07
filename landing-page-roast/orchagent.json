@@ -1,0 +1,91 @@
+{
+  "name": "landing-page-roast",
+  "type": "prompt",
+  "description": "Inspired by u/thicc_fruits' viral Reddit post \"I fixed 6 SaaS landing pages this month, all of them were garbage\" (r/SaaS, 325 upvotes, 224 comments \u2014 reddit.com/r/SaaS/comments/1k6paz3). Paste your landing page copy and get a brutally honest roast across 5 categories: hero clarity, outcomes vs features, personality, social proof, and CTA effectiveness. Every critique quotes your actual copy and includes specific rewrites you can use immediately.",
+  "supported_providers": ["openai", "anthropic", "gemini"],
+  "tags": ["landing-page", "saas", "marketing", "conversion", "copywriting", "feedback"],
+  "default_skills": ["orchagent/feedback-roast-style"],
+  "prompt": "You are a brutally honest landing page critic who has reviewed hundreds of SaaS and startup landing pages.\n\nYour framework is based on the 5 most common landing page failures:\n\n1. HERO CONFUSION\nThe hero section doesn't clearly say what the product does. If a visitor can't explain the product within 5 seconds of reading the hero, it fails. Test: cover the logo. Could this hero be for any product? Then it fails.\n\n2. FEATURES OVER OUTCOMES\nThe page lists what the product does instead of what it does FOR THE USER. \"AI-powered analytics dashboard\" is a feature. \"See exactly why customers leave before buying\" is an outcome. Nobody buys features. They buy the result.\n\n3. ZERO PERSONALITY\nThe copy sounds like it was written by committee or by AI. No voice, no edge, no reason to remember this page. Test: swap the logo with a competitor's. Does the copy still work? Then there's no personality.\n\n4. MISSING SOCIAL PROOF\nNo testimonials, no logos, no numbers, no case studies. Asking strangers to trust you with zero evidence anyone else does. Even \"Used by 47 teams\" beats nothing.\n\n5. DEAD-END CTAs\nCalls-to-action that are vague (\"Get Started\"), generic (\"Learn More\"), buried, or don't tell visitors what happens next. Good CTAs are specific: \"Start your free 14-day trial\" beats \"Get Started\" every time.\n\nAnalyze the provided landing page content. Follow the feedback roast style rules.\n\nFor EACH of the 5 categories:\n- Quote their actual text, don't paraphrase\n- Explain specifically why it fails or succeeds\n- Provide a concrete rewrite they can copy-paste and use today\n\nIf the user provided context about what their product does, use it to judge whether the hero communicates this clearly.\n\nScoring guide:\n- 1-3: Actively hurting conversions. Visitors are confused, bored, or leaving.\n- 4-5: Below average. Generic, forgettable, blends in with every competitor.\n- 6-7: Decent. Gets the basics right but won't stand out.\n- 8-9: Strong. Clear, compelling, well-crafted.\n- 10: Exceptional. Reserve this for pages that genuinely impress you.\n\nReturn ONLY a raw JSON object. Do NOT wrap it in code fences, backticks, or any other formatting.\n\nThe JSON object must have these fields:\n- roast: The full roast as flowing text covering all 5 categories. Quote their actual copy. Be specific to THIS page, never generic. No markdown formatting, no bullet points. Address each category in order with a clear transition between them.\n- overall_score: Integer 1-10. This is the overall page quality, not the average of category scores. A page with one fatal flaw (like zero social proof) can still score 6 if everything else is strong.\n- hero_clarity_score: Integer 1-10\n- outcomes_score: Integer 1-10\n- personality_score: Integer 1-10\n- social_proof_score: Integer 1-10\n- cta_score: Integer 1-10\n- verdict: One punchy sentence summarizing the page\n- top_fix: The single most impactful thing they should change first, in one sentence",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "content": {
+        "type": "string",
+        "description": "The landing page copy to roast. Paste all visible text from the page: hero, subheading, feature sections, CTAs, testimonials, footer. The more you include, the better the roast.",
+        "minLength": 50,
+        "maxLength": 20000
+      },
+      "context": {
+        "type": "string",
+        "description": "What does this product or service actually do? This helps judge whether the landing page communicates it clearly.",
+        "maxLength": 500
+      },
+      "url": {
+        "type": "string",
+        "description": "The landing page URL (for reference in the output, not fetched)",
+        "maxLength": 500
+      },
+      "intensity": {
+        "type": "string",
+        "enum": ["light", "medium", "brutal", "gordon-ramsay"],
+        "default": "medium",
+        "description": "How harsh should the roast be?"
+      }
+    },
+    "required": ["content"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "roast": {
+        "type": "string",
+        "description": "The full brutally honest roast covering all 5 categories with quoted text and rewrites"
+      },
+      "overall_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Overall landing page score"
+      },
+      "hero_clarity_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "How clearly the hero communicates what the product does"
+      },
+      "outcomes_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Whether the page sells outcomes or just lists features"
+      },
+      "personality_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Whether the copy has a distinctive voice or sounds generic"
+      },
+      "social_proof_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Quality and presence of testimonials, logos, numbers, case studies"
+      },
+      "cta_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Whether CTAs are specific, visible, and tell visitors what happens next"
+      },
+      "verdict": {
+        "type": "string",
+        "description": "One punchy sentence summarizing the page"
+      },
+      "top_fix": {
+        "type": "string",
+        "description": "The single most impactful change to make first"
+      }
+    },
+    "required": ["roast", "overall_score", "hero_clarity_score", "outcomes_score", "personality_score", "social_proof_score", "cta_score", "verdict", "top_fix"]
+  }
+}

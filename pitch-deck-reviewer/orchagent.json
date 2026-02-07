@@ -1,0 +1,118 @@
+{
+  "name": "pitch-deck-reviewer",
+  "type": "prompt",
+  "description": "Inspired by u/duygudulger \u2014 reddit.com/r/startups/comments/1pylg24. Paste your pitch deck text and get a slide-by-slide teardown across 8 categories: problem slide strength, traction context, market sizing, team positioning, ask clarity, storytelling, visual/design signals, and common anti-patterns. Every critique references your actual content and includes specific rewrites.",
+  "supported_providers": ["openai", "anthropic", "gemini"],
+  "tags": ["startup", "pitch-deck", "fundraising", "investor", "feedback", "business"],
+  "default_skills": ["orchagent/feedback-roast-style"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "deck_content": {
+        "type": "string",
+        "description": "Your pitch deck content. Paste the text from each slide, ideally labeled (Slide 1: ..., Slide 2: ...). Include all text: headlines, bullet points, numbers, footnotes. The more complete, the better the review.",
+        "minLength": 100,
+        "maxLength": 30000
+      },
+      "company_context": {
+        "type": "string",
+        "description": "What does your company actually do? One paragraph. This helps judge whether the deck communicates it clearly.",
+        "maxLength": 1000
+      },
+      "stage": {
+        "type": "string",
+        "enum": ["pre-seed", "seed", "series-a", "series-b-plus"],
+        "default": "seed",
+        "description": "Your fundraising stage. Expectations differ: pre-seed can lack traction, Series A cannot."
+      },
+      "ask_amount": {
+        "type": "string",
+        "description": "How much you're raising (e.g. '$1.5M'). Helps evaluate whether your ask slide makes sense.",
+        "maxLength": 100
+      },
+      "intensity": {
+        "type": "string",
+        "enum": ["light", "medium", "brutal", "gordon-ramsay"],
+        "default": "medium",
+        "description": "How harsh should the feedback be?"
+      }
+    },
+    "required": ["deck_content"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "review": {
+        "type": "string",
+        "description": "The full slide-by-slide review as flowing text. Quotes actual deck content. Covers all 8 categories with clear transitions."
+      },
+      "overall_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Overall deck quality score"
+      },
+      "problem_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "How compelling is the problem slide? Does it make investors lean forward?"
+      },
+      "traction_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Is traction presented with context (growth rate, unit economics) or just vanity numbers?"
+      },
+      "market_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Is market sizing based on real math or copy-pasted Statista numbers?"
+      },
+      "team_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Does the team slide answer 'why you, why now'?"
+      },
+      "ask_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Is the fundraising ask tied to specific milestones?"
+      },
+      "storytelling_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Does the deck tell a clear narrative? Clarity over cleverness."
+      },
+      "design_signals_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Do formatting, consistency, and slide density signal competence?"
+      },
+      "anti_patterns_found": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "List of specific anti-patterns detected (e.g. 'Uses platform', 'Uber for X analogy', 'Font size too small')"
+      },
+      "verdict": {
+        "type": "string",
+        "description": "One punchy sentence summarizing the deck"
+      },
+      "top_fix": {
+        "type": "string",
+        "description": "The single most impactful change to make before sending this to investors"
+      },
+      "investor_readiness": {
+        "type": "string",
+        "enum": ["not-ready", "needs-work", "almost-there", "send-it"],
+        "description": "Overall readiness assessment"
+      }
+    },
+    "required": ["review", "overall_score", "problem_score", "traction_score", "market_score", "team_score", "ask_score", "storytelling_score", "design_signals_score", "anti_patterns_found", "verdict", "top_fix", "investor_readiness"]
+  }
+}

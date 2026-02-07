@@ -1,0 +1,96 @@
+{
+  "name": "content-engagement-analyzer",
+  "type": "prompt",
+  "description": "Inspired by @Jonasackerman00's guide on mastering attention in writing (https://x.com/Jonasackerman00/status/1749470098027323578). Paste any content — blog post, newsletter, social post, landing page copy — and get a detailed engagement analysis across 6 dimensions: hook strength, structure, sentence energy, specificity, emotional triggers, and call-to-action. Every critique quotes your actual text and includes specific rewrites you can use immediately.",
+  "supported_providers": ["openai", "anthropic", "gemini"],
+  "tags": ["writing", "content", "engagement", "copywriting", "marketing", "editing"],
+  "default_skills": ["orchagent/natural-writing-style"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "content": {
+        "type": "string",
+        "description": "The content to analyze for engagement. Paste the full text of your blog post, newsletter, social post, landing page copy, or any written content.",
+        "minLength": 50,
+        "maxLength": 20000
+      },
+      "content_type": {
+        "type": "string",
+        "enum": ["blog_post", "newsletter", "social_post", "landing_page", "email", "documentation", "other"],
+        "default": "other",
+        "description": "What type of content is this? Helps calibrate expectations — a technical doc has different engagement needs than a tweet thread."
+      },
+      "target_audience": {
+        "type": "string",
+        "description": "Who is this content for? Helps judge whether the tone and hooks are appropriate for the intended readers.",
+        "maxLength": 500
+      }
+    },
+    "required": ["content"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "analysis": {
+        "type": "string",
+        "description": "Full engagement analysis covering all 6 dimensions with quoted text and rewrites"
+      },
+      "overall_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Overall engagement score"
+      },
+      "hook_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "How well the opening grabs attention"
+      },
+      "structure_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "How scannable and well-organized the content is"
+      },
+      "sentence_energy_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Active voice, varied rhythm, no flabby writing"
+      },
+      "specificity_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Concrete details and proof vs. vague claims"
+      },
+      "emotional_triggers_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Does the content make the reader feel something"
+      },
+      "cta_score": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Clear payoff and next step for the reader"
+      },
+      "verdict": {
+        "type": "string",
+        "description": "One sentence summarizing the content's engagement quality"
+      },
+      "top_3_fixes": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 3,
+        "maxItems": 3,
+        "description": "The 3 highest-impact changes with specific rewrite examples"
+      }
+    },
+    "required": ["analysis", "overall_score", "hook_score", "structure_score", "sentence_energy_score", "specificity_score", "emotional_triggers_score", "cta_score", "verdict", "top_3_fixes"]
+  }
+}

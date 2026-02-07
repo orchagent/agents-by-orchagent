@@ -1,0 +1,132 @@
+{
+  "input": {
+    "type": "object",
+    "description": "Landing page content to audit against the 7-section conversion framework",
+    "properties": {
+      "content": {
+        "type": "string",
+        "description": "The landing page copy to audit. Paste all visible text from the page in order: hero section, any logos/trust badges, feature sections, comparison/differentiation content, testimonials, FAQ, footer CTA. The more complete the content, the more accurate the audit.",
+        "minLength": 50,
+        "maxLength": 25000
+      },
+      "context": {
+        "type": "string",
+        "description": "What does this product or service actually do? Who is the target audience? This helps judge whether the page communicates it clearly.",
+        "maxLength": 1000
+      },
+      "url": {
+        "type": "string",
+        "description": "The landing page URL (for reference in the output, not fetched)",
+        "maxLength": 500
+      }
+    },
+    "required": ["content"]
+  },
+  "output": {
+    "type": "object",
+    "description": "Section-by-section audit results with verdicts and fixes",
+    "properties": {
+      "hero": {
+        "type": "object",
+        "description": "Hero section audit (heading + CTA + demo)",
+        "properties": {
+          "verdict": { "type": "string", "enum": ["PASS", "PARTIAL", "MISSING"] },
+          "has_heading": { "type": "boolean", "description": "Whether the hero has a clear heading that says what the product does" },
+          "has_cta": { "type": "boolean", "description": "Whether there is a visible call-to-action in the hero" },
+          "has_demo": { "type": "boolean", "description": "Whether there is a product screenshot, video, or preview" },
+          "analysis": { "type": "string", "description": "What works and what doesn't, quoting actual copy" },
+          "fix": { "type": "string", "description": "Specific fix if PARTIAL or MISSING, empty string if PASS" }
+        },
+        "required": ["verdict", "has_heading", "has_cta", "has_demo", "analysis", "fix"]
+      },
+      "trust_logos": {
+        "type": "object",
+        "description": "Trust logos section audit",
+        "properties": {
+          "verdict": { "type": "string", "enum": ["PASS", "PARTIAL", "MISSING"] },
+          "analysis": { "type": "string" },
+          "fix": { "type": "string" }
+        },
+        "required": ["verdict", "analysis", "fix"]
+      },
+      "features": {
+        "type": "object",
+        "description": "Top features section audit",
+        "properties": {
+          "verdict": { "type": "string", "enum": ["PASS", "PARTIAL", "MISSING"] },
+          "feature_count": { "type": "integer", "description": "Number of features listed" },
+          "leads_with_benefits": { "type": "boolean", "description": "Whether features lead with outcomes/benefits rather than feature names" },
+          "analysis": { "type": "string" },
+          "fix": { "type": "string" }
+        },
+        "required": ["verdict", "feature_count", "leads_with_benefits", "analysis", "fix"]
+      },
+      "differentiation": {
+        "type": "object",
+        "description": "Differentiation section audit",
+        "properties": {
+          "verdict": { "type": "string", "enum": ["PASS", "PARTIAL", "MISSING"] },
+          "analysis": { "type": "string" },
+          "fix": { "type": "string" }
+        },
+        "required": ["verdict", "analysis", "fix"]
+      },
+      "testimonials": {
+        "type": "object",
+        "description": "Testimonials section audit",
+        "properties": {
+          "verdict": { "type": "string", "enum": ["PASS", "PARTIAL", "MISSING"] },
+          "testimonial_count": { "type": "integer", "description": "Number of testimonials found" },
+          "has_specific_results": { "type": "boolean", "description": "Whether testimonials mention specific outcomes or metrics" },
+          "analysis": { "type": "string" },
+          "fix": { "type": "string" }
+        },
+        "required": ["verdict", "testimonial_count", "has_specific_results", "analysis", "fix"]
+      },
+      "faq": {
+        "type": "object",
+        "description": "FAQ section audit",
+        "properties": {
+          "verdict": { "type": "string", "enum": ["PASS", "PARTIAL", "MISSING"] },
+          "question_count": { "type": "integer", "description": "Number of FAQ questions found" },
+          "analysis": { "type": "string" },
+          "fix": { "type": "string" }
+        },
+        "required": ["verdict", "question_count", "analysis", "fix"]
+      },
+      "closing_cta": {
+        "type": "object",
+        "description": "Closing CTA section audit",
+        "properties": {
+          "verdict": { "type": "string", "enum": ["PASS", "PARTIAL", "MISSING"] },
+          "analysis": { "type": "string" },
+          "fix": { "type": "string" }
+        },
+        "required": ["verdict", "analysis", "fix"]
+      },
+      "overall_score": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 14,
+        "description": "Total score (PASS=2, PARTIAL=1, MISSING=0 per section)"
+      },
+      "grade": {
+        "type": "string",
+        "enum": ["A", "B", "C", "D", "F"],
+        "description": "Letter grade: A (12-14), B (9-11), C (6-8), D (3-5), F (0-2)"
+      },
+      "summary": {
+        "type": "string",
+        "description": "2-3 sentence executive summary of strengths and weaknesses"
+      },
+      "priority_fixes": {
+        "type": "array",
+        "description": "Top 3 most impactful changes ordered by impact",
+        "items": { "type": "string" },
+        "minItems": 1,
+        "maxItems": 3
+      }
+    },
+    "required": ["hero", "trust_logos", "features", "differentiation", "testimonials", "faq", "closing_cta", "overall_score", "grade", "summary", "priority_fixes"]
+  }
+}

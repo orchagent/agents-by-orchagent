@@ -1,0 +1,87 @@
+{
+  "name": "skill-scanner",
+  "type": "prompt",
+  "description": "Inspired by @pors (https://x.com/pors/status/2016922486437216260). Security scanner for AI agent skills and prompts. Detects prompt injection, data exfiltration, credential theft, and other threats using LLM semantic analysis.",
+  "supported_providers": ["openai", "anthropic", "gemini"],
+  "tags": ["security", "skills", "prompt-injection", "audit", "safety"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "skill_text": {
+        "type": "string",
+        "description": "The full text content of the skill to scan (paste the SKILL.md, prompt, or instruction text)",
+        "minLength": 10,
+        "maxLength": 50000
+      },
+      "skill_name": {
+        "type": "string",
+        "description": "Name of the skill being scanned (optional, for context)",
+        "maxLength": 200
+      },
+      "stated_purpose": {
+        "type": "string",
+        "description": "What the skill claims to do (optional, helps detect scope violations)",
+        "maxLength": 1000
+      }
+    },
+    "required": ["skill_text"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "risk_level": {
+        "type": "string",
+        "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFORMATIONAL"],
+        "description": "Overall risk assessment"
+      },
+      "findings": {
+        "type": "array",
+        "description": "List of security findings",
+        "items": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string",
+              "description": "Threat category"
+            },
+            "severity": {
+              "type": "string",
+              "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+              "description": "Finding severity"
+            },
+            "title": {
+              "type": "string",
+              "description": "Short description of the finding"
+            },
+            "detail": {
+              "type": "string",
+              "description": "Explanation of the threat"
+            },
+            "snippet": {
+              "type": "string",
+              "description": "Relevant text from the skill"
+            },
+            "line_hint": {
+              "type": "string",
+              "description": "Approximate location"
+            }
+          },
+          "required": ["category", "severity", "title", "detail"]
+        }
+      },
+      "summary": {
+        "type": "string",
+        "description": "Plain English summary of findings"
+      },
+      "recommendation": {
+        "type": "string",
+        "description": "What the user should do"
+      },
+      "disclaimer": {
+        "type": "string",
+        "description": "Safety disclaimer"
+      }
+    },
+    "required": ["risk_level", "findings", "summary", "recommendation", "disclaimer"]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "backend-security-auditor",
+  "type": "code",
+  "is_public": true,
+  "description": "Inspired by @0xlelouch_ (https://x.com/0xlelouch_/status/2016874653059522802). Audits backend codebases against a 15-point security hardening checklist: authentication, token management, authorization, input validation, SQL safety, rate limiting, secrets management, TLS, file handling, logging, error handling, dependency hygiene, data protection, API defaults, and security observability. Supports Python and JavaScript/TypeScript backends.",
+  "supported_providers": ["any"],
+  "tags": ["security", "backend", "audit", "hardening", "checklist", "devops"],
+  "default_endpoint": "audit",
+  "entrypoint": "sandbox_main.py",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "files": {
+        "type": "array",
+        "description": "Upload a zip or tar.gz archive of your codebase (max 25 MB)"
+      },
+      "repo_url": {
+        "type": "string",
+        "description": "Public GitHub repository URL to audit (alternative to file upload)"
+      },
+      "exclude": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Additional directory names to skip during scanning"
+      }
+    }
+  }
+}

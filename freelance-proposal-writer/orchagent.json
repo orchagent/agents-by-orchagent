@@ -1,0 +1,72 @@
+{
+  "name": "freelance-proposal-writer",
+  "type": "prompt",
+  "description": "Inspired by u/ClawedPlatypus' viral Reddit post \"Steal My $20k+ Copy Proposal Template\" (r/copywriting, 69 upvotes, 27 comments \u2014 reddit.com/r/copywriting/comments/1kkkwbp). Paste your client brief and get a transformation-focused proposal that sells outcomes, not deliverables. Built on the framework: identify pain, articulate the future state, frame your work as the bridge. Structures pricing around value with tiered options.",
+  "supported_providers": ["openai", "anthropic", "gemini"],
+  "tags": ["freelance", "proposal", "copywriting", "sales", "business", "consulting"],
+  "default_skills": ["orchagent/natural-writing-style"],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "client_brief": {
+        "type": "string",
+        "description": "Everything you know about this client and project. Include: who they are, what they need, their current situation, any budget hints, their goals. The more detail you provide, the more specific the proposal. Paste notes from a discovery call, an email thread, or just describe the situation.",
+        "minLength": 50,
+        "maxLength": 10000
+      },
+      "your_background": {
+        "type": "string",
+        "description": "Your relevant experience, past results, and specialization. Include specific metrics if you have them (e.g. '40% conversion lift for a SaaS client'). If you're newer, describe relevant skills or adjacent experience.",
+        "minLength": 20,
+        "maxLength": 3000
+      },
+      "service_type": {
+        "type": "string",
+        "description": "What type of work is this? e.g. 'website copy', 'email sequences', 'brand messaging', 'sales page', 'content strategy', 'UX writing', 'ad copy'",
+        "maxLength": 200
+      },
+      "budget_range": {
+        "type": "string",
+        "description": "Approximate budget range if known, e.g. '$3k-$5k', '$10k+', 'unknown'. Helps calibrate the pricing tiers.",
+        "maxLength": 100
+      },
+      "tone": {
+        "type": "string",
+        "enum": ["professional", "casual-confident", "premium"],
+        "default": "professional",
+        "description": "Proposal tone. 'professional' is safe and polished. 'casual-confident' is more conversational. 'premium' positions you as a high-end specialist."
+      }
+    },
+    "required": ["client_brief", "your_background"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "proposal": {
+        "type": "string",
+        "description": "The complete transformation-focused proposal text ready to send"
+      },
+      "subject_line": {
+        "type": "string",
+        "description": "Email subject line for sending the proposal"
+      },
+      "pricing_summary": {
+        "type": "string",
+        "description": "Brief breakdown of the pricing tiers"
+      },
+      "scope_boundaries": {
+        "type": "string",
+        "description": "What's explicitly NOT included to prevent scope creep"
+      },
+      "estimated_timeline": {
+        "type": "string",
+        "description": "Overall project timeline estimate"
+      },
+      "confidence_notes": {
+        "type": "string",
+        "description": "Internal notes on what additional info would strengthen this proposal"
+      }
+    },
+    "required": ["proposal", "subject_line", "pricing_summary", "scope_boundaries", "estimated_timeline", "confidence_notes"]
+  }
+}

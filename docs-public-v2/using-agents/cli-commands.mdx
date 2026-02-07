@@ -587,6 +587,9 @@ orch publish
 
 # Publish with default skills
 orch publish --skills yourorg/style@v1,yourorg/rules@v1
+
+# Publish with local download enabled (allows orch run)
+orch publish --public --local-download
 ```
 
 ### delete
@@ -866,9 +869,15 @@ orch pricing my-agent 0.50
 
 # Remove pricing (make free)
 orch pricing my-agent 0
+
+# Enable local download
+orch pricing my-agent free --local-download
+
+# Disable local download (server-only)
+orch pricing my-agent free --no-local-download
 ```
 
-Minimum price: $0.01. Paid agents become server-only for non-owners.
+Minimum price: $0.01. Paid agents become server-only for non-owners. The `--local-download` / `--no-local-download` flags control whether free agents can be downloaded with `orch run`.
 
 See [Monetization](/concepts/monetization) for full details on pricing, revenue splits, and payouts.
 
@@ -886,11 +895,15 @@ orch star acme/invoice-scanner
 
 ### fork
 
-Fork a public agent to your account.
+Fork a public agent to your account. Only available for agents with local download enabled (source-available). Paid and server-only agents cannot be forked.
 
 ```bash
 orch fork acme/invoice-scanner
 ```
+
+<Note>
+If the agent's author has disabled local download, forking is blocked to protect their intellectual property. You'll see a 403 error. Use `orch call` to run server-only agents instead.
+</Note>
 
 ---
 

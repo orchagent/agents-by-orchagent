@@ -62,6 +62,21 @@ orch pricing my-agent 0.50
 
 Paid agents are **server-only for non-owners** — other users must use `orch call` (not `orch run`). You can still download your own paid agents for testing.
 
+### Source Available vs Server Only
+
+Agents have two visibility modes that control what non-owners can see and do:
+
+| Mode | Prompt/code visible? | `orch run` | `orch fork` | Badge |
+|------|---------------------|------------|-------------|-------|
+| **Source Available** (`--local-download`) | Yes | Yes | Yes | "Source Available" |
+| **Server Only** (default) | No — redacted | No — use `orch call` | No — blocked | "Server Only" |
+
+**Server-only agents** (the default) redact the prompt, manifest, and skill files from public API responses. This protects your intellectual property while still letting users run the agent via `orch call`.
+
+**Source-available agents** expose the full prompt and code. Users can inspect, fork, and run locally. Use this for open/community agents where transparency builds trust.
+
+Paid agents are always server-only regardless of the `--local-download` flag.
+
 See [Monetization](/concepts/monetization) for full details on pricing, credits, and payouts.
 
 ## Publishing Skills
@@ -354,6 +369,32 @@ export ORCHAGENT_SERVICE_KEY="sk_agent_..."
 | `--skills <list>` | Default skills (comma-separated, e.g., `org/skill@v1,org/other@v1`) |
 | `--skills-locked` | Lock default skills (callers cannot override via flags) |
 | `--price <amount>` | Set per-call price in USD (e.g., `0.50` for $0.50). Requires seller onboarding. |
+| `--local-download` | Allow users to download and run locally. Without this flag, agents default to server-only. |
+
+## Distribution
+
+By default, new agents are **server-only** — users run them via `orch call` on orchagent's servers. This is the recommended default for most agents.
+
+To allow users to download and run your agent locally with `orch run`:
+
+```bash
+# Publish with local download enabled
+orch publish --public --local-download
+```
+
+You can also toggle this after publishing:
+
+```bash
+# Enable local download
+orch pricing my-agent free --local-download
+
+# Disable local download (back to server-only)
+orch pricing my-agent free --no-local-download
+```
+
+<Note>
+Paid agents are always server-only. The `--local-download` flag is ignored when pricing is set to `per_call`. Agent owners can always download their own agents regardless of this setting.
+</Note>
 
 ## Troubleshooting
 

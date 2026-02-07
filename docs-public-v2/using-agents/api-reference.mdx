@@ -211,7 +211,13 @@ GET /public/agents/{org}/{agent}/{version}
 GET /public/agents/{org}/{agent}/{version}/download
 ```
 
-Response:
+Returns the full agent data needed for local execution. Only works for agents with `allow_local_download` enabled.
+
+- **Server-only agents** (`allow_local_download=false`): Returns `403 DOWNLOAD_DISABLED`
+- **Paid agents**: Returns `403 PAID_AGENT_SERVER_ONLY`
+- **Source-available agents** (`allow_local_download=true`): Returns full agent data including prompt, manifest, and schemas
+
+Response (source-available agent):
 
 ```json
 {
@@ -223,6 +229,10 @@ Response:
   "run_command": "python3 -m leak_finder.cli"
 }
 ```
+
+<Note>
+The public detail endpoint (`GET /public/agents/{org}/{agent}/{version}`) also redacts `prompt`, `manifest`, and `skill_files` for server-only and paid agents. Only metadata (name, description, schemas, tags) is visible.
+</Note>
 
 ## Authenticated Endpoints
 

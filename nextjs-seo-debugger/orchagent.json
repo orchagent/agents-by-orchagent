@@ -1,0 +1,55 @@
+{
+  "name": "nextjs-seo-debugger",
+  "type": "code",
+  "is_public": true,
+  "description": "Inspired by u/JosephDoUrden (https://www.reddit.com/r/nextjs/comments/1qs38nw/). Diagnoses why Google refuses to index Next.js and Vercel sites. Checks redirect chains (301/302/307/308), canonical tag misconfigs, sitemap completeness, robots.txt rules, meta tag validation, and common Vercel/Next.js platform issues. Based on real debugging patterns from production indexing failures.",
+  "supported_providers": [
+    "any"
+  ],
+  "tags": [
+    "seo",
+    "nextjs",
+    "vercel",
+    "indexing",
+    "google",
+    "debugging"
+  ],
+  "default_endpoint": "debug",
+  "source_url": "git+https://github.com/jp730/agents-by-orchagent.git#subdirectory=nextjs-seo-debugger",
+  "entrypoint": "sandbox_main.py",
+  "manifest": {
+    "manifest_version": 1,
+    "dependencies": [],
+    "max_hops": 1,
+    "timeout_ms": 120000,
+    "per_call_downstream_cap": 50,
+    "downstream_spend_cap": 500
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "url": {
+        "type": "string",
+        "description": "URL of the Next.js site to debug (e.g., https://example.com)"
+      },
+      "check_sitemap": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether to check sitemap.xml"
+      },
+      "follow_redirects": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether to follow and report redirect chains"
+      },
+      "max_pages": {
+        "type": "integer",
+        "default": 10,
+        "description": "Maximum number of internal pages to check (1-50)"
+      }
+    },
+    "required": [
+      "url"
+    ]
+  }
+}

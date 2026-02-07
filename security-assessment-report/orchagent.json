@@ -1,0 +1,52 @@
+{
+  "name": "security-assessment-report",
+  "type": "code",
+  "is_public": true,
+  "description": "Inspired by u/QoTSankgreall (https://www.reddit.com/r/cybersecurity/comments/1q0g8py/). Generates executive-level security assessment reports from codebase scans. Frames findings as financial risk with business-impact language, calculates 'time to low risk', and produces prioritized remediation roadmaps. Based on a 10-year IR veteran's methodology that evaluates resilience over compliance.",
+  "supported_providers": ["any"],
+  "tags": ["security", "orchestrator", "assessment", "risk", "executive", "report"],
+  "default_endpoint": "assess",
+  "source_url": "git+https://github.com/jp730/agents-by-orchagent.git#subdirectory=security-assessment-report",
+  "entrypoint": "sandbox_main.py",
+  "manifest": {
+    "manifest_version": 1,
+    "dependencies": [
+      {
+        "id": "orchagent/security-review",
+        "version": "v1"
+      }
+    ],
+    "max_hops": 3,
+    "timeout_ms": 240000,
+    "per_call_downstream_cap": 50,
+    "downstream_spend_cap": 500
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "repo_url": {
+        "type": "string",
+        "description": "URL of the git repository to assess (use this OR path)"
+      },
+      "path": {
+        "type": "string",
+        "description": "Local directory path to assess (use this OR repo_url)"
+      },
+      "org_name": {
+        "type": "string",
+        "default": "Organization",
+        "description": "Organization name for the report header"
+      },
+      "annual_revenue_usd": {
+        "type": "number",
+        "description": "Annual revenue in USD for financial impact calculations (optional)"
+      },
+      "industry": {
+        "type": "string",
+        "enum": ["technology", "finance", "healthcare", "retail", "government", "other"],
+        "default": "technology",
+        "description": "Industry vertical for risk context"
+      }
+    }
+  }
+}

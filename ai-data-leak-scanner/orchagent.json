@@ -1,0 +1,63 @@
+{
+  "name": "ai-data-leak-scanner",
+  "type": "code",
+  "is_public": true,
+  "description": "Inspired by u/cnrdvdsmt (https://www.reddit.com/r/cybersecurity/comments/1p0lne3/). Scans codebases for data exposure risks specific to AI tool usage \u2014 detects PII patterns, database schemas, API keys flowing to LLM APIs, unprotected AI integration points, and generates an AI data loss prevention policy report. Built after a real incident where an employee pasted 200+ customer records into ChatGPT.",
+  "supported_providers": [
+    "any"
+  ],
+  "tags": [
+    "security",
+    "ai",
+    "dlp",
+    "pii",
+    "data-leak",
+    "orchestrator",
+    "privacy"
+  ],
+  "default_endpoint": "scan",
+  "source_url": "git+https://github.com/jp730/agents-by-orchagent.git#subdirectory=ai-data-leak-scanner",
+  "entrypoint": "sandbox_main.py",
+  "manifest": {
+    "manifest_version": 1,
+    "dependencies": [
+      {
+        "id": "orchagent/leak-finder",
+        "version": "v1"
+      }
+    ],
+    "max_hops": 2,
+    "timeout_ms": 180000,
+    "per_call_downstream_cap": 50,
+    "downstream_spend_cap": 500
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "repo_url": {
+        "type": "string",
+        "description": "URL of the git repository to scan (use this OR path)"
+      },
+      "path": {
+        "type": "string",
+        "description": "Local directory path to scan (use this OR repo_url)"
+      },
+      "scan_mode": {
+        "type": "string",
+        "enum": [
+          "full",
+          "secrets-only",
+          "pii-only",
+          "ai-integrations-only"
+        ],
+        "default": "full",
+        "description": "What to scan: full, secrets-only (via leak-finder), pii-only, or ai-integrations-only"
+      },
+      "generate_policy": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether to generate an AI usage DLP policy document"
+      }
+    }
+  }
+}

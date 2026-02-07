@@ -1,0 +1,49 @@
+{
+  "name": "react-security-scanner",
+  "type": "code",
+  "is_public": true,
+  "description": "Inspired by u/abd3ll4tif (https://www.reddit.com/r/reactjs/comments/1pfvsvh/). Scans React and Next.js projects for security vulnerabilities — CVEs in dependencies, insecure React Server Component endpoints, exposed server actions, environment variable leaks, and dangerous patterns like dangerouslySetInnerHTML with user input. Built from a real post-mortem of a breach affecting 10+ apps via React Server Components RCE.",
+  "supported_providers": ["any"],
+  "tags": ["security", "react", "nextjs", "cve", "scanning", "orchestrator"],
+  "default_endpoint": "scan",
+  "source_url": "git+https://github.com/jp730/agents-by-orchagent.git#subdirectory=react-security-scanner",
+  "entrypoint": "sandbox_main.py",
+  "manifest": {
+    "manifest_version": 1,
+    "dependencies": [
+      {
+        "id": "orchagent/dep-scanner",
+        "version": "v1"
+      }
+    ],
+    "max_hops": 2,
+    "timeout_ms": 180000,
+    "per_call_downstream_cap": 50,
+    "downstream_spend_cap": 500
+  },
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "repo_url": {
+        "type": "string",
+        "description": "URL of the git repository to scan (use this OR path)"
+      },
+      "path": {
+        "type": "string",
+        "description": "Local directory path to scan (use this OR repo_url)"
+      },
+      "scan_mode": {
+        "type": "string",
+        "enum": ["full", "deps-only", "patterns-only"],
+        "default": "full",
+        "description": "What to scan: full (everything), deps-only (CVEs), or patterns-only (code patterns)"
+      },
+      "framework": {
+        "type": "string",
+        "enum": ["auto", "nextjs", "react", "remix"],
+        "default": "auto",
+        "description": "Framework to target (auto-detected if not specified)"
+      }
+    }
+  }
+}

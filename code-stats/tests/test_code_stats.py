@@ -933,3 +933,220 @@ class TestFileFiltering:
         files = main.collect_files_from_directory(str(tmp_path))
         assert len(files) == 1
         assert files[0]["original_name"] == "app.py"
+
+    def test_deterministic_file_ordering(self, tmp_path):
+        """File ordering should be deterministic (sorted) regardless of OS."""
+        for name in ("zebra.py", "alpha.py", "middle.py"):
+            (tmp_path / name).write_text("x = 1", encoding="utf-8")
+
+        files = main.collect_files_from_directory(str(tmp_path))
+        names = [f["original_name"] for f in files]
+        assert names == sorted(names)
+
+
+class TestBugfixRegressions:
+    """Regression tests for specific bugs found in code review."""
+
+    # -- Bug 1: JS ternary regex over-counting ?. / ?? / ?: --
+
+    def test_optional_chaining_not_counted_as_branch(self):
+        """a?.b should NOT add a branch point."""
+        code = "\n".join([
+            "function f() {",
+            "  return a?.b?.c;",
+            "}",
+        ])
+        _, functions = main.analyze_javascript(code)
+        assert functions[0].complexity == 1  # just the base, no branches
+
+    def test_nullish_coalescing_counted_once(self):
+        """?? should be counted as one logical operator, not two ?s."""
+        code = "\n".join([
+            "function f() {",
+            "  return a ?? b;",
+            "}",
+        ])
+        _, functions = main.analyze_javascript(code)
+        assert functions[0].complexity == 2  # base 1 + ?? = 2
+
+    def test_ts_optional_param_not_counted(self):
+        """x?: string in TS should NOT add a branch."""
+        lines = [
+            "  name?: string;",
+            "  age?: number;",
+            "  email?: string;",
+        ]
+        count = main._count_complexity(lines, "typescript")
+        assert count == 0
+
+    def test_mixed_optional_chaining_and_ternary(self):
+        """a?.b ?? c ? 'yes' : 'no' → only ?? and ternary ? count."""
+        code = "\n".join([
+            "function f() {",
+            "  const x = a?.b ?? c ? 'yes' : 'no';",
+            "}",
+        ])
+        _, functions = main.analyze_javascript(code)
+        # base 1 + ?? + ternary ? = 3
+        assert functions[0].complexity == 3
+
+    # -- Bug 2: Braces in strings truncating function bodies --
+
+    def test_brace_in_string_does_not_truncate(self):
+        """console.log("}") should NOT end the function body."""
+        code = "\n".join([
+            'function f() {',
+            '  console.log("}");',
+            '  return 1;',
+            '}',
+        ])
+        _, functions = main.analyze_javascript(code)
+        assert functions[0].lines == 4
+
+    def test_brace_in_single_quote_string(self):
+        code = "\n".join([
+            "function f() {",
+            "  const s = '{}}}}';",
+            "  return s;",
+            "}",
+        ])
+        _, functions = main.analyze_javascript(code)
+        assert functions[0].lines == 4
+
+    def test_brace_in_template_literal(self):
+        code = "\n".join([
+            "function f() {",
+            "  const s = `value: }`;",
+            "  return s;",
+            "}",
+        ])
+        _, functions = main.analyze_javascript(code)
+        assert functions[0].lines == 4
+
+    def test_brace_in_comment_does_not_count(self):
+        code = "\n".join([
+            "function f() {",
+            "  // this } does not close",
+            "  return 1;",
+            "}",
+        ])
+        _, functions = main.analyze_javascript(code)
+        assert functions[0].lines == 4
+
+    def test_brace_in_block_comment(self):
+        code = "\n".join([
+            "function f() {",
+            "  /* } */",
+            "  return 1;",
+            "}",
+        ])
+        _, functions = main.analyze_javascript(code)
+        assert functions[0].lines == 4
+
+    # -- Bug 3: Negative code_lines from block comments with blank lines --
+
+    def test_code_lines_never_negative(self):
+        """Block comments with blank lines must not produce negative code_lines."""
+        code = "\n".join([
+            "/*",
+            " * A big comment block",
+            "",
+            " * with blank lines inside",
+            "",
+            " * more commentary",
+            " */",
+        ])
+        metrics, _ = main.analyze_javascript(code)
+        assert metrics.code_lines >= 0
+
+    def test_block_comment_blank_lines_not_double_counted(self):
+        """Blank lines inside block comments shouldn't be counted as comment lines."""
+        code = "\n".join([
+            "/*",
+            "",
+            " */",
+            "const x = 1;",
+        ])
+        metrics, _ = main.analyze_javascript(code)
+        # total=4, blank=1 (the empty line), comment=2 (/* and */), code=1
+        assert metrics.blank_lines == 1
+        assert metrics.comment_lines == 2
+        assert metrics.code_lines == 1
+
+    def test_go_code_lines_never_negative(self):
+        """Same bug can happen in Go which uses the same comment counter."""
+        code = "\n".join([
+            "package main",
+            "",
+            "/*",
+            "",
+            "  Big comment",
+            "",
+            "*/",
+        ])
+        metrics, _ = main.analyze_go(code)
+        assert metrics.code_lines >= 0
+
+    # -- Bug 4: Keywords in strings inflating complexity --
+
+    def test_python_keyword_in_string_not_counted(self):
+        """raise ValueError('if data is empty') should not count 'if'."""
+        code = "\n".join([
+            "def validate(data):",
+            "    if not data:",
+            "        raise ValueError('if data is empty')",
+            "    return data",
+        ])
+        _, functions = main.analyze_python(code)
+        # base 1 + 1 real if = 2 (not 3)
+        assert functions[0].complexity == 2
+
+    def test_js_keyword_in_string_not_counted(self):
+        """Keywords inside string literals should not inflate complexity."""
+        code = "\n".join([
+            "function f() {",
+            '  console.log("if for while case");',
+            "  return 1;",
+            "}",
+        ])
+        _, functions = main.analyze_javascript(code)
+        assert functions[0].complexity == 1  # just the base
+
+    def test_python_keyword_in_inline_comment_not_counted(self):
+        """Keywords in inline comments should not be counted."""
+        code = "\n".join([
+            "def process():",
+            "    x = 1  # if this fails, retry",
+            "    return x",
+        ])
+        _, functions = main.analyze_python(code)
+        assert functions[0].complexity == 1  # just the base
+
+    def test_js_keyword_in_inline_comment_not_counted(self):
+        code = "\n".join([
+            "function f() {",
+            "  const x = 1; // if this fails, catch it",
+            "  return x;",
+            "}",
+        ])
+        _, functions = main.analyze_javascript(code)
+        assert functions[0].complexity == 1
+
+    def test_go_keyword_in_string_not_counted(self):
+        code = "\n".join([
+            'func f() {',
+            '    fmt.Sprintf("for each %s", x)',
+            '}',
+        ])
+        _, functions = main.analyze_go(code)
+        assert functions[0].complexity == 1
+
+    # -- Bug 6/7: Dead code removal --
+
+    def test_python_branch_re_removed(self):
+        """_PYTHON_BRANCH_RE should no longer exist."""
+        assert not hasattr(main, '_PYTHON_BRANCH_RE')
+
+    def test_rust_arrow_not_in_regex(self):
+        """=> should not be in _RUST_BRANCH_RE (it can never match with \\b)."""
+        assert '=>' not in main._RUST_BRANCH_RE.pattern

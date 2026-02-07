@@ -89,20 +89,14 @@ class Metrics:
 # -- Cyclomatic complexity helpers ------------------------------------------
 # Each branch keyword / operator adds 1 to the base complexity of 1.
 
-_PYTHON_BRANCH_RE = re.compile(
-    r'\b(?:if|elif|for|while|except|with|and|or)\b'
-    r'|(?<!\w)\bas\b'   # `except X as e` — the `as` is not a branch
-    r'',
-)
-# Simpler: just count keywords that represent a new branch path.
 _PYTHON_BRANCH_KEYWORDS = re.compile(
     r'\b(if|elif|for|while|except|and|or)\b'
 )
 
 _JS_BRANCH_RE = re.compile(
     r'\b(if|else\s+if|for|while|case|catch)\b'
-    r'|(\?\s*)'          # ternary ?
-    r'|(&&|\|\||\?\?)'   # logical operators
+    r'|(\?(?![?.:])\s*)'  # ternary ? (not ?. or ?? or ?:)
+    r'|(&&|\|\||\?\?)'    # logical operators
 )
 
 _GO_BRANCH_RE = re.compile(
@@ -111,9 +105,37 @@ _GO_BRANCH_RE = re.compile(
 )
 
 _RUST_BRANCH_RE = re.compile(
-    r'\b(if|else\s+if|for|while|loop|match|=>)\b'
+    r'\b(if|else\s+if|for|while|loop|match)\b'
     r'|(&&|\|\|)'
 )
+
+
+_STRIP_STRINGS_RE = re.compile(
+    r'"(?:[^"\\]|\\.)*"'
+    r"|'(?:[^'\\]|\\.)*'"
+    r'|`(?:[^`\\]|\\.)*`'
+)
+
+
+def _strip_strings_and_comments(line: str, language: str) -> str:
+    """Remove string literal contents and inline comments from a line.
+
+    This is best-effort — it handles the vast majority of real-world code
+    without needing a full parser.
+    """
+    # Strip string contents first (replace with empty string literals)
+    result = _STRIP_STRINGS_RE.sub('""', line)
+    # Strip inline comments
+    if language == 'python':
+        # Remove everything after # (not inside a string, which we already stripped)
+        idx = result.find('#')
+        if idx >= 0:
+            result = result[:idx]
+    elif language in ('javascript', 'typescript', 'js', 'ts', 'go', 'rust'):
+        idx = result.find('//')
+        if idx >= 0:
+            result = result[:idx]
+    return result
 
 
 def _count_complexity(code_lines: list[str], language: str) -> int:
@@ -143,7 +165,8 @@ def _count_complexity(code_lines: list[str], language: str) -> int:
         if language in ('javascript', 'typescript', 'js', 'ts', 'go', 'rust'):
             if stripped.startswith('//') or stripped.startswith('/*') or stripped.startswith('*'):
                 continue
-        branches += len(pattern.findall(stripped))
+        cleaned = _strip_strings_and_comments(stripped, language)
+        branches += len(pattern.findall(cleaned))
     return branches
 
 
@@ -269,13 +292,19 @@ _JS_NOT_METHODS = frozenset({
 
 
 def _count_js_comment_lines(lines: list[str]) -> int:
-    """Count comment lines in JS/TS, handling single-line and block comments."""
+    """Count comment lines in JS/TS, handling single-line and block comments.
+
+    Blank lines inside block comments are NOT counted (they are already
+    counted separately as blank_lines), preventing code_lines from going
+    negative.
+    """
     count = 0
     in_block = False
     for line in lines:
         stripped = line.strip()
         if in_block:
-            count += 1
+            if stripped:  # skip blank lines inside block comments
+                count += 1
             if '*/' in stripped:
                 in_block = False
             continue
@@ -297,16 +326,56 @@ def _count_brace_body(lines: list[str], start_idx: int) -> int:
 
     Returns the number of lines occupied by the body (including the opening
     line).  Falls back to 1 if no opening brace is found on the start line.
+
+    Skips braces inside string literals and comments.
     """
     depth = 0
     found_open = False
+    in_block_comment = False
     for j in range(start_idx, len(lines)):
-        for ch in lines[j]:
+        line = lines[j]
+        i = 0
+        while i < len(line):
+            # Inside a block comment, look only for */
+            if in_block_comment:
+                if line[i] == '*' and i + 1 < len(line) and line[i + 1] == '/':
+                    in_block_comment = False
+                    i += 2
+                    continue
+                i += 1
+                continue
+
+            ch = line[i]
+
+            # Single-line comment: skip rest of line
+            if ch == '/' and i + 1 < len(line) and line[i + 1] == '/':
+                break
+            # Block comment start
+            if ch == '/' and i + 1 < len(line) and line[i + 1] == '*':
+                in_block_comment = True
+                i += 2
+                continue
+            # String literals: skip to closing quote
+            if ch in ('"', "'", '`'):
+                quote = ch
+                i += 1
+                while i < len(line):
+                    if line[i] == '\\':
+                        i += 2  # skip escaped char
+                        continue
+                    if line[i] == quote:
+                        break
+                    i += 1
+                i += 1
+                continue
+
             if ch == '{':
                 depth += 1
                 found_open = True
             elif ch == '}':
                 depth -= 1
+            i += 1
+
         if found_open and depth <= 0:
             return j - start_idx + 1
     # If braces never balanced, return lines to EOF
@@ -701,7 +770,7 @@ def collect_files_from_directory(directory: str, max_files: int = 100) -> list[d
     gitignore_patterns = _parse_gitignore(str(dir_path))
 
     files = []
-    for file_path in dir_path.rglob("*"):
+    for file_path in sorted(dir_path.rglob("*")):
         if not file_path.is_file():
             continue
 

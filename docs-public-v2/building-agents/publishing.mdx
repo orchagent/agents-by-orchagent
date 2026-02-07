@@ -125,13 +125,16 @@ Create a new agent project:
 # Create prompt-based agent
 orch init my-agent --type prompt
 
-# Create code-based agent
+# Create agentic agent (LLM with tools in sandbox)
+orch init my-agent --type agentic
+
+# Create code-based agent (full control)
 orch init my-agent --type code
 
 cd my-agent
 ```
 
-This creates a `my-agent/` directory with the basic structure and `orchagent.json`.
+This creates a `my-agent/` directory with the basic structure. Prompt and agentic agents get `orchagent.json`, `prompt.md`, and `schema.json`. Code agents get `orchagent.json` and a `main.py` template.
 
 ### Step 2: Configure Your Manifest
 
@@ -179,7 +182,15 @@ The platform runs several checks:
 3. **Dependency check** - Verifies all dependencies exist (for orchestrators)
 4. **Cycle detection** - Ensures no circular dependencies
 
-For code-based agents, the platform also:
+For **agentic agents**, the platform also:
+
+1. Stores your `prompt.md` as the agent's system prompt
+2. Stores `custom_tools` and `max_turns` from your manifest
+3. On each call, spins up an E2B sandbox with an agentic runner
+4. The runner gives the LLM your prompt, built-in tools, and custom tools
+5. The LLM iterates until it calls `submit_result` or hits `max_turns`
+
+For **code agents**, the platform also:
 
 1. Creates a ZIP bundle of your code
 2. Stores the bundle securely

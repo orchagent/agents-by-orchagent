@@ -31,9 +31,9 @@ Every agent needs an `orchagent.json` file that defines its configuration, depen
 | Field | Type | Description |
 |-------|------|-------------|
 | `name` | string | Agent name (lowercase, hyphens allowed) |
-| `type` | string | `"code"` or `"prompt"` |
+| `type` | string | `"prompt"`, `"agentic"`, or `"code"` |
 | `description` | string | Short description of what the agent does |
-| `supported_providers` | array | LLM providers: `["openai", "anthropic", "gemini", "any"]` |
+| `supported_providers` | array | LLM providers: `["openai", "anthropic", "gemini", "any"]`. Agentic agents must use `["anthropic"]`. |
 
 ## Optional Fields
 
@@ -130,6 +130,63 @@ Additional fields for prompt agents:
   }
 }
 ```
+
+## Agentic Agent Fields
+
+Additional fields for agentic agents:
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `custom_tools` | array | `[]` | Command-wrapper tools available to the LLM |
+| `max_turns` | number | `25` | Maximum agentic loop iterations (platform max: 50) |
+| `timeout_seconds` | number | `300` | Overall execution timeout |
+
+### Custom Tools Format
+
+Each custom tool has:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Tool name the LLM will call |
+| `description` | Yes | What the tool does (shown to LLM) |
+| `command` | Yes | Shell command to execute. Use `{{param}}` for parameters. |
+| `input_schema` | No | JSON Schema for parameters (required if command has `{{param}}` placeholders) |
+
+### Example
+
+```json
+{
+  "name": "cairo-test-engineer",
+  "type": "agentic",
+  "description": "Fixes Cairo code until tests pass",
+  "supported_providers": ["anthropic"],
+  "max_turns": 30,
+  "timeout_seconds": 300,
+  "custom_tools": [
+    {
+      "name": "run_tests",
+      "description": "Run the Cairo test suite",
+      "command": "snforge test"
+    },
+    {
+      "name": "deploy",
+      "description": "Deploy to the specified network",
+      "command": "sncast deploy --network {{network}}",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "network": { "type": "string", "description": "Target network" }
+        },
+        "required": ["network"]
+      }
+    }
+  ]
+}
+```
+
+<Note>
+Agentic agents also get built-in tools automatically: `bash`, `read_file`, `write_file`, `list_files`, and `submit_result`. You don't need to define these. See [Agent Types](/building-agents/agent-types#built-in-tools) for details.
+</Note>
 
 ## Skill Composition
 

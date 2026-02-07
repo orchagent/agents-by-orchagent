@@ -20,16 +20,50 @@ orchagent hosts two types of content: **agents** that execute tasks, and **skill
 
 ## At a Glance
 
-| | Prompt Agent | Code Agent | Skill |
-|-|--------------|------------|-------|
-| **Purpose** | Execute via LLM | Execute via code | Provide knowledge |
-| **You provide** | Prompt + schemas | Python/JS code | SKILL.md file |
-| **Complexity** | Single LLM call | Any logic | Instructions only |
-| **Best for** | Extraction, summarization | Multi-step workflows, APIs | Standards, guidelines, domain rules |
+orchagent supports three agent types, each designed for different levels of complexity:
+
+| | Prompt Agent | Agentic Agent | Code Agent | Skill |
+|-|--------------|---------------|------------|-------|
+| **Purpose** | Single LLM call | LLM with tools in a sandbox | Full custom code | Provide knowledge |
+| **You provide** | Prompt + schemas | Prompt + custom tools | Python/JS code | SKILL.md file |
+| **Code required** | None | None | Yes (all of it) | None |
+| **Sandbox** | No | Yes (E2B) | Yes (E2B) | No |
+| **LLM handling** | Platform handles | Platform handles | You handle | N/A |
+| **Best for** | Extraction, summarization | Multi-step tool-use workflows | Full control, non-LLM tasks | Standards, guidelines |
+
+## Which Type Should I Use?
+
+```
+I want to build an agent
+  │
+  ├─ Does it need to run commands or work with files in a sandbox?
+  │   │
+  │   ├─ No → Prompt agent
+  │   │   "Just an LLM call with your prompt and schema"
+  │   │
+  │   └─ Yes
+  │       │
+  │       ├─ Do I need full programmatic control or non-LLM logic?
+  │       │   │
+  │       │   ├─ No → Agentic agent
+  │       │   │   "Give it a prompt + tools, platform runs the loop"
+  │       │   │
+  │       │   └─ Yes → Code agent
+  │       │       "You write main.py, you control everything"
+  │       │
+  │
+  └─ I don't want to execute tasks, I want to share knowledge
+      └─ Skill
+          "Markdown instructions that enhance any agent"
+```
+
+<Tip>
+**Start with the simplest type that works.** Most agents should be prompt agents. If you need tools, try agentic first. Only reach for code agents when you need full control.
+</Tip>
 
 ---
 
-## Prompt-Based Agents
+## Prompt Agents
 
 The simplest agent type. You provide a prompt template with variable placeholders, and orchagent handles the LLM call.
 
@@ -38,23 +72,46 @@ The simplest agent type. You provide a prompt template with variable placeholder
 - No external API calls needed
 - No complex logic or branching
 
-### Example Configuration
+**What you provide:**
+```
+my-prompt-agent/
+├── orchagent.json      # Agent manifest (type: "prompt")
+├── prompt.md           # Your prompt template
+├── schema.json         # Input/output schemas (optional)
+└── README.md           # Documentation (optional)
+```
 
+### Example
+
+**`orchagent.json`:**
 ```json
 {
   "name": "sentiment-analyzer",
   "type": "prompt",
   "description": "Analyze sentiment of text",
-  "supported_providers": ["openai", "anthropic"],
-  "prompt_template": "Analyze the sentiment of the following text and return a JSON object with 'sentiment' (positive, negative, or neutral) and 'confidence' (0-1).\n\nText: {{text}}",
-  "input_schema": {
+  "supported_providers": ["openai", "anthropic"]
+}
+```
+
+**`prompt.md`:**
+```markdown
+Analyze the sentiment of the following text and return a JSON object
+with 'sentiment' (positive, negative, or neutral) and 'confidence' (0-1).
+
+Text: {{text}}
+```
+
+**`schema.json`:**
+```json
+{
+  "input": {
     "type": "object",
     "properties": {
       "text": { "type": "string", "description": "Text to analyze" }
     },
     "required": ["text"]
   },
-  "output_schema": {
+  "output": {
     "type": "object",
     "properties": {
       "sentiment": { "type": "string", "enum": ["positive", "negative", "neutral"] },
@@ -66,7 +123,7 @@ The simplest agent type. You provide a prompt template with variable placeholder
 
 ### Prompt Variables
 
-Use `{{variable}}` syntax in your prompt template:
+Use `{{variable}}` syntax in your `prompt.md`:
 
 ```
 Summarize the following {{document_type}} in {{language}}:
@@ -78,25 +135,152 @@ Focus on: {{focus_areas}}
 
 Variables are replaced with input values at runtime. All template variables must be provided with non-empty values — the API returns a `400 MISSING_INPUT_FIELDS` error listing any that are missing.
 
-### Directory Structure
+---
 
+## Agentic Agents
+
+Agentic agents give the LLM a **tool-use loop inside a sandbox**. Think of it as "Claude Code in a container, configured by you." The platform provides built-in tools (bash, file read/write, list files) and you can define custom command-wrapper tools. The LLM iterates autonomously until it solves the task and submits a result.
+
+**When to use:**
+- The task requires running commands, reading/writing files, or iterating
+- You want the LLM to figure out the steps, not hard-code them
+- You'd otherwise write a code agent just to orchestrate LLM + subprocess calls
+
+**What you provide:**
 ```
-my-prompt-agent/
-├── orchagent.json      # Agent configuration
-└── README.md           # Documentation (optional)
+my-agentic-agent/
+├── orchagent.json      # Agent manifest (type: "agentic", custom_tools)
+├── prompt.md           # Agent instructions (system prompt)
+├── schema.json         # Input/output schemas (optional)
+├── Dockerfile          # Custom environment (optional)
+└── requirements.txt    # Extra sandbox deps (optional)
 ```
+
+**What the platform provides:**
+1. E2B sandbox with your custom environment (if Dockerfile provided)
+2. Built-in tools: `bash`, `read_file`, `write_file`, `list_files`, `submit_result`
+3. Your custom tools converted to named tool definitions
+4. An agentic loop that runs until the LLM calls `submit_result` or hits `max_turns`
+
+### Example: Cairo Test Engineer
+
+This agent fixes Cairo code until tests pass — with **zero lines of orchestration code**.
+
+**`orchagent.json`:**
+```json
+{
+  "name": "cairo-test-engineer",
+  "type": "agentic",
+  "description": "Fixes Cairo code until tests pass",
+  "supported_providers": ["anthropic"],
+  "max_turns": 30,
+  "timeout_seconds": 300,
+  "custom_tools": [
+    {
+      "name": "run_tests",
+      "description": "Run the Cairo test suite with snforge",
+      "command": "snforge test"
+    },
+    {
+      "name": "build_project",
+      "description": "Build the scarb project",
+      "command": "scarb build"
+    },
+    {
+      "name": "format_code",
+      "description": "Format Cairo source files",
+      "command": "scarb fmt"
+    }
+  ]
+}
+```
+
+**`prompt.md`:**
+```markdown
+You are a Cairo test engineer. You have scarb and snforge installed.
+
+Given source files and test files in the input:
+1. Create a scarb project directory structure
+2. Write the source and test files
+3. Run tests using the run_tests tool
+4. If tests pass, submit the result with the passing output
+5. If tests fail, analyze the errors, fix the code, and try again
+6. Keep iterating until tests pass or you've tried 5 times
+
+Submit your final result with test output and any fixes applied.
+```
+
+### Before vs After
+
+Without agentic agents, this same agent required **200+ lines of Python** handling the Claude API calls, retry loops, file scaffolding, error analysis, and file merging. With agentic agents, it's just a prompt and a few tool definitions.
+
+### Custom Tools
+
+Custom tools are command wrappers that give the LLM clean, named operations instead of having to guess shell commands.
+
+**Simple tools** (no parameters):
+```json
+{
+  "name": "run_tests",
+  "description": "Run the test suite",
+  "command": "pytest"
+}
+```
+
+**Tools with parameters** (use `{{param}}` placeholders):
+```json
+{
+  "name": "deploy",
+  "description": "Deploy to the specified network",
+  "command": "sncast deploy --network {{network}}",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "network": { "type": "string", "description": "Target network (testnet/mainnet)" }
+    },
+    "required": ["network"]
+  }
+}
+```
+
+The LLM sees named tools like `run_tests` and `deploy` instead of guessing raw bash commands. Bash is always available as a fallback for ad-hoc commands.
+
+### Built-in Tools
+
+Every agentic agent automatically gets these tools:
+
+| Tool | Description |
+|------|-------------|
+| `bash` | Run shell commands (120s per-command timeout) |
+| `read_file` | Read file contents |
+| `write_file` | Write/create files (auto-creates parent directories) |
+| `list_files` | List directory contents (optional recursive) |
+| `submit_result` | Submit final structured output and end the loop |
+
+### Safety Limits
+
+| Limit | Default | Configurable |
+|-------|---------|-------------|
+| `max_turns` | 25 | Yes, in orchagent.json (platform max: 50) |
+| Per-command timeout | 120 seconds | No |
+| Overall timeout | Agent's `timeout_seconds` | Yes |
+
+### Provider Support
+
+Agentic agents currently support **Anthropic only** (Claude). This is because Anthropic has the best tool-use support. More providers will be added in the future.
 
 ---
 
-## Code-Based Agents
+## Code Agents
 
-Code agents run your Python or JavaScript in **E2B sandboxes** - secure, isolated environments. Each call spins up a fresh sandbox, runs your script, and returns the result.
+Code agents run your Python or JavaScript in **E2B sandboxes** — secure, isolated environments. Each call spins up a fresh sandbox, runs your script, and returns the result. You have full control over everything.
 
 **When to use:**
-- Multiple LLM calls needed
-- External API integrations
-- Complex data processing or conditional logic
-- Need to call other agents (orchestration)
+- You need full programmatic control over the execution flow
+- Your agent doesn't use an LLM at all (pure data processing, file conversion, etc.)
+- You need multi-model orchestration (calling different LLMs for different steps)
+- You have an existing codebase you want to wrap as an agent
+- Agentic agents don't give you enough control
 
 ### Example
 
@@ -197,7 +381,7 @@ Skills are written to `/home/user/orchagent/skills/` with filenames like `org_na
 
 ## Skills
 
-Skills are passive knowledge - markdown files containing instructions, rules, or expertise that enhance agents.
+Skills are passive knowledge — markdown files containing instructions, rules, or expertise that enhance agents.
 
 **Use cases:**
 - Coding standards (React patterns, security rules)
@@ -293,16 +477,20 @@ Use `"any"` if your agent works with any provider:
 {"supported_providers": ["any"]}
 ```
 
+<Note>
+Agentic agents currently only support `"anthropic"`. This will be expanded in the future.
+</Note>
+
 ---
 
 ## Choosing the Right Type
 
-| Create a **Skill** when... | Create an **Agent** when... |
-|---------------------------|----------------------------|
-| You have knowledge to share | You have a task to automate |
-| Content is reusable across contexts | Logic is specific to one workflow |
-| No structured I/O needed | You need defined schemas |
-| Instructions could help any agent | You need code execution |
+| Create a **Skill** when... | Create a **Prompt Agent** when... | Create an **Agentic Agent** when... | Create a **Code Agent** when... |
+|---------------------------|----------------------------------|------------------------------------|---------------------------------|
+| You have knowledge to share | A single LLM call is enough | The LLM needs to use tools and iterate | You need full programmatic control |
+| Content is reusable across contexts | No sandbox or file access needed | You'd otherwise write boilerplate orchestration | Your agent doesn't use an LLM |
+| No structured I/O needed | Input/output is straightforward | The task involves running commands or editing files | You need multi-model orchestration |
+| Instructions could help any agent | No retry logic needed | You want the LLM to figure out the steps | You have existing code to wrap |
 
 ## Next Steps
 

@@ -14,7 +14,7 @@ Every agent needs an `orchagent.json` file that defines its configuration, depen
 ```json
 {
   "name": "my-agent",
-  "type": "code",
+  "type": "tool",
   "description": "What my agent does",
   "supported_providers": ["openai", "anthropic"],
   "default_endpoint": "analyze",
@@ -31,9 +31,9 @@ Every agent needs an `orchagent.json` file that defines its configuration, depen
 | Field | Type | Description |
 |-------|------|-------------|
 | `name` | string | Agent name (lowercase, hyphens allowed) |
-| `type` | string | `"prompt"`, `"agentic"`, or `"code"` |
+| `type` | string | `"prompt"`, `"agent"`, `"tool"`, or `"skill"` |
 | `description` | string | Short description of what the agent does |
-| `supported_providers` | array | LLM providers: `["openai", "anthropic", "gemini", "any"]`. Agentic agents must use `["anthropic"]`. |
+| `supported_providers` | array | LLM providers: `["openai", "anthropic", "gemini", "any"]`. Agents (type `"agent"`) must use `["anthropic"]`. |
 
 ## Optional Fields
 
@@ -46,9 +46,9 @@ Every agent needs an `orchagent.json` file that defines its configuration, depen
 | `default_skills` | array | `[]` | Skills to inject into agent prompts (e.g., `["yourorg/writing-style"]`) |
 | `skills_locked` | boolean | `false` | When true, callers cannot override default_skills via flags (immutable after publish) |
 
-## Code-Based Agent Fields
+## Tool Fields
 
-Additional fields for code agents:
+Additional fields for tools:
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -60,7 +60,7 @@ Additional fields for code agents:
 
 ### Bundle Configuration
 
-Control what files are included in your code bundle:
+Control what files are included in your tool bundle:
 
 ```json
 {
@@ -81,7 +81,7 @@ Control what files are included in your code bundle:
 ```json
 {
   "name": "leak-finder",
-  "type": "code",
+  "type": "tool",
   "description": "Finds leaked secrets in codebases",
   "supported_providers": ["gemini"],
   "entrypoint": "sandbox_main.py",
@@ -131,14 +131,14 @@ Additional fields for prompt agents:
 }
 ```
 
-## Agentic Agent Fields
+## Agent Fields
 
-Additional fields for agentic agents:
+Additional fields for agents (type `"agent"`):
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `custom_tools` | array | `[]` | Command-wrapper tools available to the LLM |
-| `max_turns` | number | `25` | Maximum agentic loop iterations (platform max: 50) |
+| `max_turns` | number | `25` | Maximum agent loop iterations (platform max: 50) |
 | `timeout_seconds` | number | `300` | Overall execution timeout |
 
 ### Custom Tools Format
@@ -157,7 +157,7 @@ Each custom tool has:
 ```json
 {
   "name": "cairo-test-engineer",
-  "type": "agentic",
+  "type": "agent",
   "description": "Fixes Cairo code until tests pass",
   "supported_providers": ["anthropic"],
   "max_turns": 30,
@@ -185,7 +185,7 @@ Each custom tool has:
 ```
 
 <Note>
-Agentic agents also get built-in tools automatically: `bash`, `read_file`, `write_file`, `list_files`, and `submit_result`. You don't need to define these. See [Agent Types](/building-agents/agent-types#built-in-tools) for details.
+Agents also get built-in tools automatically: `bash`, `read_file`, `write_file`, `list_files`, and `submit_result`. You don't need to define these. See [Agent Types](/building-agents/agent-types#built-in-tools) for details.
 </Note>
 
 ## Skill Composition
@@ -233,7 +233,7 @@ Agents that call other agents need a `manifest` section:
 ```json
 {
   "name": "security-review",
-  "type": "code",
+  "type": "tool",
   "description": "Comprehensive security review",
   "manifest": {
     "manifest_version": 1,
@@ -285,7 +285,7 @@ The platform validates manifests on publish:
 ```json
 {
   "name": "security-review",
-  "type": "code",
+  "type": "tool",
   "description": "Comprehensive security review combining multiple scanners",
   "supported_providers": ["any"],
   "default_endpoint": "review",

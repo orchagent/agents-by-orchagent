@@ -125,16 +125,16 @@ Create a new agent project:
 # Create prompt-based agent
 orch init my-agent --type prompt
 
-# Create agentic agent (LLM with tools in sandbox)
-orch init my-agent --type agentic
+# Create agent (LLM with tools in sandbox)
+orch init my-agent --type agent
 
-# Create code-based agent (full control)
-orch init my-agent --type code
+# Create tool (your code, full control)
+orch init my-tool --type tool
 
 cd my-agent
 ```
 
-This creates a `my-agent/` directory with the basic structure. Prompt and agentic agents get `orchagent.json`, `prompt.md`, and `schema.json`. Code agents get `orchagent.json` and a `main.py` template.
+This creates a directory with the basic structure. Prompt and agent types get `orchagent.json`, `prompt.md`, and `schema.json`. Tools get `orchagent.json` and a `main.py` template.
 
 ### Step 2: Configure Your Manifest
 
@@ -159,7 +159,7 @@ Before publishing, test your agent locally:
 # For prompt-based agents
 orch run . --input '{"text": "test input"}'
 
-# For code-based agents
+# For tools
 orch run .
 ```
 
@@ -182,15 +182,15 @@ The platform runs several checks:
 3. **Dependency check** - Verifies all dependencies exist (for orchestrators)
 4. **Cycle detection** - Ensures no circular dependencies
 
-For **agentic agents**, the platform also:
+For **agents** (type `"agent"`), the platform also:
 
 1. Stores your `prompt.md` as the agent's system prompt
 2. Stores `custom_tools` and `max_turns` from your manifest
-3. On each call, spins up an E2B sandbox with an agentic runner
+3. On each call, spins up an E2B sandbox with an agent runner
 4. The runner gives the LLM your prompt, built-in tools, and custom tools
 5. The LLM iterates until it calls `submit_result` or hits `max_turns`
 
-For **code agents**, the platform also:
+For **tools** (type `"tool"`), the platform also:
 
 1. Creates a ZIP bundle of your code
 2. Stores the bundle securely
@@ -228,13 +228,13 @@ orch call yourorg/my-agent@v2
 
 Callers should pin to specific versions for stability in production environments.
 
-## Code Agent Bundling
+## Tool Bundling
 
-For code-based agents, the CLI automatically creates a ZIP bundle of your project.
+For tools, the CLI automatically creates a ZIP bundle of your project.
 
 ### Auto-Detection
 
-The CLI detects code projects by looking for:
+The CLI detects tool projects by looking for:
 - Python files (`.py`) with `requirements.txt`
 - JavaScript files (`.js`) with `package.json`
 
@@ -324,7 +324,7 @@ This shows:
 
 ## Web UI Upload
 
-You can also upload code agent bundles through the web dashboard as an alternative to the CLI.
+You can also upload tool bundles through the web dashboard as an alternative to the CLI.
 
 ### Upload via Dashboard
 
@@ -376,7 +376,7 @@ export ORCHAGENT_SERVICE_KEY="sk_agent_..."
 | `--public` | Make agent publicly visible in marketplace |
 | `--private` | (Deprecated) Private is now the default - this flag still works but is no longer needed |
 | `--dry-run` | Validate and preview bundle without publishing |
-| `--entrypoint <file>` | Override entrypoint for code agents |
+| `--entrypoint <file>` | Override entrypoint for tools |
 | `--skills <list>` | Default skills (comma-separated, e.g., `org/skill@v1,org/other@v1`) |
 | `--skills-locked` | Lock default skills (callers cannot override via flags) |
 | `--price <amount>` | Set per-call price in USD (e.g., `0.50` for $0.50). Requires seller onboarding. |
@@ -425,7 +425,7 @@ Verify all dependencies in your manifest exist:
 
 ### "Bundle too large"
 
-Code agent bundles have a 50MB size limit. To reduce size:
+Tool bundles have a 50MB size limit. To reduce size:
 - Check for large files that shouldn't be included
 - Remove `node_modules/` or `venv/` directories
 - Use `bundle.exclude` in your manifest to exclude files

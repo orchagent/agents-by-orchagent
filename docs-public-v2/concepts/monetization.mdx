@@ -175,18 +175,26 @@ The platform validates at publish time that your price covers the worst-case dow
 
 ## Access Control
 
-| Pricing | `orch call` (server) | `orch run` (local) |
-|---------|---------------------|--------------------|
-| **Free** | Anyone | Anyone |
-| **Paid** | Anyone (charged per call) | Owner only |
+| Pricing | Download Enabled | `orch call` (server) | `orch run` / install |
+|---------|-----------------|-------------|---------------------|
+| **Free** | OFF (default) | Anyone | Blocked — use `orch call` |
+| **Free** | ON | Anyone | Anyone |
+| **Paid** | N/A (forced off) | Anyone (charged) | Owner only |
+
+New agents default to server-only (`allow_local_download=false`). Authors opt-in to local download via `--local-download` flag or the web UI toggle. Paid agents always force local download off.
 
 ```bash
+# Non-owner trying to download a server-only agent:
+$ orch run acme/server-agent
+Error: This agent is server-only and cannot be downloaded.
+Use: orch call acme/server-agent@latest --data '{...}'
+
 # Non-owner trying to download a paid agent:
 $ orch run acme/paid-agent
 Error: This agent is paid ($0.50/call) and runs on server only.
 Use: orch call acme/paid-agent@latest --data '{...}'
 
-# Owner downloading their own paid agent:
+# Owner downloading their own agent (always works):
 $ orch run acme/paid-agent
 ✔ Downloaded acme/paid-agent@latest
 ```

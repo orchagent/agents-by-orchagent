@@ -22,6 +22,7 @@ orchagent offers three ways to use agents:
 | **LLM keys** | From your environment | From your account |
 | **Rate limits** | Your LLM provider limits | 1000 calls/day free |
 | **Dependencies** | Must be downloadable | Handled automatically |
+| **Download toggle** | Author must enable `allow_local_download` | Always available |
 | **Paid agents** | Owner only (free for testing) | Anyone (credits charged) |
 | **Best for** | Development, exploration | Production integration |
 
@@ -29,6 +30,10 @@ Note: `orch call` is a CLI tool for testing the HTTP API. Production apps call t
 
 <Note>
 **Paid agents** are server-only for non-owners. If an agent has a per-call price, other users must use `orch call` — `orch run` will return an error. Authors can always download and run their own paid agents locally. See [Monetization](/concepts/monetization).
+</Note>
+
+<Note>
+**Local download is opt-in.** New agents and skills default to server-only (not locally downloadable). Authors must explicitly enable local download using the `--local-download` flag at publish time or the toggle in the web UI. Existing free public agents have been backfilled with `allow_local_download` enabled.
 </Note>
 
 ## Local Execution (`orch run`)
@@ -61,6 +66,7 @@ orch run acme/summarizer --input '{"text": "..."}'
 ### Requirements
 
 - Agent must have `source_url` or `pip_package` in manifest
+- Agent must have `allow_local_download` enabled by its author
 - LLM API key in environment variable
 - For orchestrators: dependencies must also be downloadable
 
@@ -210,6 +216,7 @@ See [CLI Commands](/using-agents/cli-commands#install) for full details.
 - You're developing or debugging an agent
 - You want to try an agent without an account
 - The agent doesn't have complex dependencies
+- The agent author has enabled `allow_local_download`
 
 ### Use Server When
 
@@ -217,6 +224,7 @@ See [CLI Commands](/using-agents/cli-commands#install) for full details.
 - The agent has dependencies (orchestrator)
 - You want managed infrastructure
 - You need usage tracking and logs
+- The agent does not allow local download
 
 ## Mixed Mode
 

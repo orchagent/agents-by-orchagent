@@ -127,7 +127,7 @@ orch run joe/summarizer --input '{"text":"..."}' --provider openai --model gpt-4
 Execute an agent on orchagent's cloud servers.
 
 ```bash
-# Basic call with file (code agents: uploaded to sandbox)
+# Basic call with file (tool agents: uploaded to sandbox)
 orch call acme/invoice-scanner invoice.pdf
 
 # Pass file to prompt agent (content mapped to input schema)
@@ -373,12 +373,6 @@ orch skill install yourorg/react-best-practices --format claude-code,cursor
 ```bash
 # Search for skills
 orch search react --type skills
-
-# Show popular skills
-orch search --popular --type skills
-
-# Show recent skills
-orch search --recent --type skills
 ```
 
 ### Using Skills with Agents
@@ -398,21 +392,15 @@ orch call acme/code-reviewer code.py --no-skills
 
 ---
 
-## Discovery
+## Search
 
 ### search
 
-Search and discover agents and skills.
+Search for agents and skills on the platform.
 
 ```bash
 # Search by keyword
 orch search invoice
-
-# Show top agents/skills by stars
-orch search --popular
-
-# Show most recently published
-orch search --recent
 
 # Filter to agents only
 orch search invoice --type agents
@@ -434,7 +422,7 @@ orch search invoice --json
 ```
 
 <Tip>
-Use `--mine` to see all your published agents, including private ones that don't appear in public search results.
+Use `--mine` to see all your deployed agents, including private ones in your workspace.
 </Tip>
 
 ---
@@ -559,8 +547,8 @@ Initialize a new agent or skill project.
 # Create a prompt-based agent in a new directory
 orch init my-agent --type prompt
 
-# Create a code-based agent in a new directory
-orch init my-agent --type code
+# Create a tool agent in a new directory
+orch init my-agent --type tool
 
 # Create a skill in a new directory
 orch init my-skill --type skill
@@ -819,9 +807,9 @@ orch billing history
 
 ---
 
-## Selling & Pricing
+## Pricing & Payouts
 
-Monetize your agents by setting per-call prices. Requires Stripe Connect onboarding.
+Authors can optionally set per-call prices on their agents. Requires Stripe Connect onboarding.
 
 ### seller onboard
 

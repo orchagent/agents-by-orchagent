@@ -145,9 +145,9 @@ Content-Type: application/json
 ------Boundary--
 ```
 
-## Code Agent Input Contract
+## Tool Agent Input Contract
 
-When files are uploaded to a code agent, the agent receives a JSON manifest via stdin:
+When files are uploaded to a tool agent, the agent receives a JSON manifest via stdin:
 
 ```json
 {
@@ -177,7 +177,7 @@ When files are uploaded to a code agent, the agent receives a JSON manifest via 
 | `files[].size_bytes` | File size in bytes |
 | `metadata` | Optional JSON metadata from the request |
 
-Your code agent reads the files from their `path` locations and processes them.
+Your tool agent reads the files from their `path` locations and processes them.
 
 ## Rate Limit Headers
 
@@ -221,7 +221,7 @@ Response (source-available agent):
 
 ```json
 {
-  "type": "code",
+  "type": "tool",
   "name": "leak-finder",
   "version": "v1",
   "description": "Finds leaked secrets in your codebase",
@@ -264,7 +264,7 @@ The public detail endpoint (`GET /public/agents/{org}/{agent}/{version}`) also r
 | `POST /agents/{id}/star` | Star an agent |
 | `DELETE /agents/{id}/star` | Unstar an agent |
 | `POST /agents/{id}/fork` | Fork an agent |
-| `POST /agents/{id}/upload` | Upload code bundle (code agents only) |
+| `POST /agents/{id}/upload` | Upload code bundle (tool agents only) |
 | `GET /agents/{id}/logs` | Get execution logs (owner only) |
 
 ### Billing & Credits
@@ -288,7 +288,7 @@ The public detail endpoint (`GET /public/agents/{org}/{agent}/{version}`) also r
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /usage/compute` | Get compute usage for code agents |
+| `GET /usage/compute` | Get compute usage for sandbox agents |
 
 ## Versioning
 

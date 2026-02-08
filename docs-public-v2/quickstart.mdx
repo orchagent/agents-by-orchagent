@@ -1,9 +1,9 @@
 ---
 title: "Quickstart"
-description: "Get running in 60 seconds"
+description: "Deploy your first agent in minutes"
 ---
 
-Get started with orchagent in two ways: run agents locally (no account needed) or on our servers (free account required).
+Build an agent, deploy it, and run it — all from your terminal.
 
 <Tip>
 orchagent hosts both **agents** (active executors) and **skills** (passive knowledge). The commands below work for both. See [Agent Types](/building-agents/agent-types) for the difference.
@@ -25,50 +25,19 @@ export ANTHROPIC_API_KEY="your-key"
 API keys are separate from subscriptions. If you use Claude Pro/Max or ChatGPT Plus, you'll need to set up API billing separately at [console.anthropic.com](https://console.anthropic.com) or [platform.openai.com](https://platform.openai.com).
 </Note>
 
-## Option 1: Run Locally (No Account)
-
-Run an agent on your machine with a single command:
-
-```bash
-npx @orchagent/cli run orchagent/secrets-scanner https://github.com/your/repo
-
-# Output:
-# {
-#   "findings": [...],
-#   "summary": "Found 2 potential secrets in 47 files"
-# }
-```
-
-**What happens:**
-
-1. CLI downloads agent code from our registry
-2. Agent runs locally on your machine
-3. Agent calls LLM API using your key
-4. Results returned to terminal
-
-## Option 2: Run on Server (Free Account)
-
-Run agents on orchagent's servers with more features.
-
-### Step 1: Sign Up
-
-Go to [orchagent.io](https://orchagent.io) and create a free account.
-
-### Step 2: Install CLI
+## Step 1: Install CLI & Sign Up
 
 ```bash
 npm install -g @orchagent/cli
 ```
 
-### Step 3: Login
+Go to [orchagent.io](https://orchagent.io) and create a free account, then authenticate:
 
 ```bash
 orchagent login
 ```
 
-This opens your browser for authentication and stores your API key.
-
-### Step 4: Verify Setup (Optional)
+### Verify Setup (Optional)
 
 ```bash
 orchagent doctor
@@ -76,23 +45,66 @@ orchagent doctor
 
 This checks your environment, config, and connectivity. If everything shows green checkmarks, you're ready to go.
 
-### Step 5: Call an Agent
+## Step 2: Create an Agent
+
+Initialize a new agent project:
+
+```bash
+orch init my-agent --type prompt
+cd my-agent
+```
+
+This creates:
+- `orchagent.json` — agent manifest
+- `prompt.md` — your prompt template
+- `schema.json` — input/output schemas
+
+Edit `prompt.md` with your prompt and `schema.json` with your input/output definitions.
+
+## Step 3: Test Locally
+
+```bash
+orch run . --input '{"text": "test input"}'
+```
+
+This runs the agent on your machine using your local LLM keys.
+
+## Step 4: Publish
+
+```bash
+orch publish --public
+```
+
+Your agent is now live and callable by your team.
+
+## Step 5: Run It
+
+```bash
+# Via CLI
+orchagent call yourorg/my-agent --data '{"text": "hello world"}'
+
+# Or your team can use the web UI at orchagent.io
+```
+
+---
+
+## Try a Deployed Agent
+
+Want to see the platform in action first? Run one of our showcase agents:
+
+### Run Locally (No Account Needed)
+
+```bash
+npx @orchagent/cli run orchagent/secrets-scanner https://github.com/your/repo
+```
+
+### Run on Server
 
 ```bash
 orchagent call orchagent/secrets-scanner https://github.com/your/repo
-
-# Output:
-# {
-#   "findings": [...],
-#   "summary": "Found 2 potential secrets in 47 files"
-# }
 ```
 
-**What happens:**
-
-1. CLI sends request to gateway (api.orchagent.io)
-2. Gateway routes to agent container
-3. Agent processes request and returns results
+---
 
 ## Quick Reference
 

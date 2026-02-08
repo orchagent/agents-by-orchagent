@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "orchagent API",
-    "description": "AI agent marketplace and runtime API",
+    "description": "AI agent deployment platform API",
     "version": "1.0.0",
     "contact": {
       "name": "orchagent Support",
@@ -319,7 +319,7 @@
     "/agents/{id}/logs": {
       "get": {
         "summary": "Get execution logs",
-        "description": "Get execution logs for a code agent (owner only)",
+        "description": "Get execution logs for a sandbox agent (owner only)",
         "operationId": "getAgentLogs",
         "tags": ["Agent Management"],
         "security": [{ "bearerAuth": [] }],
@@ -455,7 +455,7 @@
     "/usage/compute": {
       "get": {
         "summary": "Get compute usage",
-        "description": "Get compute usage statistics for code agents",
+        "description": "Get compute usage statistics for sandbox agents",
         "operationId": "getComputeUsage",
         "tags": ["Usage"],
         "security": [{ "bearerAuth": [] }],
@@ -711,7 +711,7 @@
       "ComputeUsageStats": {
         "type": "object",
         "properties": {
-          "total_executions": { "type": "integer", "description": "Total code agent executions" },
+          "total_executions": { "type": "integer", "description": "Total sandbox agent executions" },
           "executions_remaining": { "type": "integer", "description": "Remaining executions this period" },
           "total_compute_seconds": { "type": "number", "description": "Total compute time in seconds" },
           "period_start": { "type": "string", "format": "date-time" },

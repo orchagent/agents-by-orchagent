@@ -29,19 +29,17 @@ orch publish
 
 orchagent supports both public and private agents/skills, with optional per-call pricing:
 
-| Visibility | Plan | Who Can Access | Marketplace |
-|------------|------|----------------|-------------|
-| **Public** | Free | Anyone | Listed |
-| **Private** | Pro | Your org only | Hidden |
+| Visibility | Plan | Who Can Access |
+|------------|------|----------------|
+| **Public** | Free | Anyone with the CLI or API |
+| **Private** | Pro | Your workspace only |
 
 ### Public (Free)
-- Visible in marketplace and search
-- Anyone can discover and call your agent
-- Great for open-source tools and community sharing
+- Anyone can call your agent via CLI or API
+- Great for open-source tools, showcase agents, and team sharing
 
 ### Private (Pro)
-- Hidden from marketplace and search
-- Only accessible with your org's API key
+- Only accessible within your workspace
 - Ideal for proprietary tools, internal workflows, or client-specific agents
 
 <Note>
@@ -169,7 +167,7 @@ orch run .
 # Publish as private (default)
 orch publish
 
-# Publish as public (visible in marketplace)
+# Publish as public (accessible to anyone)
 orch publish --public
 ```
 
@@ -373,7 +371,7 @@ export ORCHAGENT_SERVICE_KEY="sk_agent_..."
 
 | Flag | Description |
 |------|-------------|
-| `--public` | Make agent publicly visible in marketplace |
+| `--public` | Make agent publicly accessible |
 | `--private` | (Deprecated) Private is now the default - this flag still works but is no longer needed |
 | `--dry-run` | Validate and preview bundle without publishing |
 | `--entrypoint <file>` | Override entrypoint for tools |

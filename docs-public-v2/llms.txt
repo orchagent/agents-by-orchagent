@@ -1,40 +1,46 @@
 # orchagent
 
-> AI agent marketplace and runtime. Publish agents, call them via API. BYOK model - you bring your own LLM keys.
+> AI agent deployment platform. Build agents, deploy to secure cloud sandboxes, run via CLI, API, or web UI. BYOK model - you bring your own LLM keys.
 
 ## Overview
 
-orchagent is a free marketplace where developers find, run, and share AI agents. The agent marketplace that runs your code securely.
+orchagent is a deployment platform where developers build, deploy, and run AI agents for their teams. Deploy your AI agent. Your team can use it.
 
 **Key features:**
-- Publish agents in minutes (prompt-based or code-based)
-- Call any agent via simple API
-- Fork and improve others' agents
+- Build agents in Python/JS or plain English (prompt-based)
+- Deploy to secure E2B cloud sandboxes
+- Run via CLI, HTTP API, or web UI
+- Team workspaces with access control
+- Run history, scheduling, and managed secrets
 - Free tier: 1000 calls/day
 - BYOK: Bring your own LLM API keys
-- Author monetization: Charge per call, earn revenue, get monthly payouts via Stripe
+- Optional per-call pricing for authors
 
 ## Agent Types
 
-**Prompt-based agents:** Provide a prompt template + input/output schema. orchagent handles the LLM call.
+**Prompt agents:** Provide a prompt template + input/output schema. orchagent handles the LLM call.
 
-**Code-based agents:** Provide Python/JS code that runs on orchagent infrastructure. Full control over logic, external APIs, multi-step workflows.
+**Tool agents:** Provide Python/JS code that runs in E2B sandboxes. Full control over logic, external APIs, multi-step workflows.
+
+**Agent type:** Provide a prompt + custom tools. The platform runs an agentic loop in a sandbox.
+
+**Skills:** Passive knowledge (markdown) that enhances agents.
 
 ## Docs
 
 - [Introduction](https://docs.orchagent.io/introduction): What is orchagent
-- [Quickstart](https://docs.orchagent.io/quickstart): Get running in 60 seconds
+- [Quickstart](https://docs.orchagent.io/quickstart): Deploy your first agent in minutes
 - [API Reference](https://docs.orchagent.io/using-agents/api-reference): Authentication, endpoints, errors
 - [CLI Commands](https://docs.orchagent.io/using-agents/cli-commands): orch login, call, run, publish
 - [Code Snippets](https://docs.orchagent.io/using-agents/code-snippets): curl, Python, JavaScript, TypeScript examples
-- [Agent Types](https://docs.orchagent.io/building-agents/agent-types): Prompt-based vs code-based
+- [Agent Types](https://docs.orchagent.io/building-agents/agent-types): Prompt, tool, agent, skill
 - [Manifest Format](https://docs.orchagent.io/building-agents/manifest-format): orchagent.json schema
-- [Publishing](https://docs.orchagent.io/building-agents/publishing): Publish your agent
+- [Publishing](https://docs.orchagent.io/building-agents/publishing): Deploy your agent
 - [Orchestration](https://docs.orchagent.io/building-agents/orchestration): Agent-to-agent calls
 - [BYOK](https://docs.orchagent.io/concepts/byok): Bring Your Own Key model
 - [Local vs Server](https://docs.orchagent.io/concepts/local-vs-server): orch run vs orch call
 - [Rate Limits](https://docs.orchagent.io/concepts/rate-limits): Platform limits
-- [Monetization](https://docs.orchagent.io/concepts/monetization): Per-call pricing, credits, seller payouts
+- [Monetization](https://docs.orchagent.io/concepts/monetization): Per-call pricing, credits, author payouts
 
 ## API
 
@@ -44,16 +50,24 @@ orchagent is a free marketplace where developers find, run, and share AI agents.
 
 ## Quick Start
 
-### Call an agent (no account needed, runs locally)
+### Deploy an agent
 ```bash
-npx orchagent run orchagent/summarizer --input '{"text": "Your text here"}'
+npm install -g @orchagent/cli
+orch login
+orch init my-agent --type prompt
+cd my-agent
+# Edit prompt.md and schema.json
+orch publish --public
 ```
 
-### Call an agent (server execution, account required)
+### Run an agent (server execution)
 ```bash
-npm install -g orchagent
-orch login
-orch call orchagent/summarizer --data '{"text": "Your text here"}'
+orch call yourorg/my-agent --data '{"text": "Your text here"}'
+```
+
+### Run locally (no account needed)
+```bash
+npx @orchagent/cli run orchagent/summarizer --input '{"text": "Your text here"}'
 ```
 
 ### API call
@@ -68,16 +82,16 @@ curl -X POST https://api.orchagent.io/acme/summarizer/v1/analyze \
 
 | Term | Definition |
 |------|------------|
-| Agent | An API endpoint that performs a task using AI |
-| Prompt-based agent | Author provides prompt + schema. orchagent handles LLM call. |
-| Code-based agent | Author provides code that runs on orchagent infrastructure. |
+| Agent | A deployed unit that performs a task using AI |
+| Prompt agent | Author provides prompt + schema. orchagent handles LLM call. |
+| Tool agent | Author provides code that runs in E2B sandbox. |
+| Agent type | Author provides prompt + tools. Platform runs agentic loop. |
+| Skill | Passive knowledge (markdown) that enhances agents. |
 | Orchestrator | An agent that calls other agents |
+| Workspace | Team-scoped container for agents, members, and settings |
 | BYOK | Bring Your Own Key - users provide their own LLM API keys |
-| Star | Users can star agents they like (like GitHub stars) |
-| Fork | Copy an agent to your account and modify it |
 | Version | Each publish creates a new version (v1, v2, v3...) |
 | Credits | Prepaid balance used to pay for calling paid agents |
-| Seller | An author who has completed Stripe Connect onboarding to receive payouts |
 
 ## Links
 

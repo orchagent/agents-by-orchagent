@@ -1,30 +1,29 @@
 ---
 title: "What is orchagent?"
-description: "The marketplace for AI agents and skills. Find, run, and share."
+description: "Deploy your AI agent. Your team can use it."
 ---
 
-orchagent is an **AI agent and skill marketplace**. The agent marketplace that runs your code securely: publish in minutes, call any agent via API, fork and improve others' work.
+orchagent is an **AI agent deployment platform**. Build agents in Python, JavaScript, or plain English — deploy them to secure cloud sandboxes — and give your team a URL to run them via CLI, API, or web UI.
 
 ## How It Works
 
-### For Users (Calling Agents)
-
-```
-1. Browse or search agents
-2. Try in playground
-3. Get API key (free account)
-4. Call agent: POST /agents/{author}/{name}/v1
-5. Get structured response
-```
-
-### For Authors (Building Agents)
+### For Developers (Building & Deploying)
 
 ```
 1. Create agent (prompt + schema, or code)
-2. Publish via CLI or web form
-3. Agent is live, callable via API
-4. Optionally set a per-call price to earn revenue
-5. See usage, stars, forks in dashboard
+2. Publish via CLI: orch publish
+3. Agent is live — callable via CLI, API, or web UI
+4. Team members run it from their workspace
+5. See usage, run history, and logs in dashboard
+```
+
+### For Teams (Running Agents)
+
+```
+1. Get access to your team's workspace
+2. Run agents: orch call team/agent-name
+3. Or open the web UI — fill a form, click Run
+4. Results displayed, logged, and tracked
 ```
 
 ## Agents vs Skills
@@ -46,8 +45,9 @@ orchagent hosts two types of things:
 
 | Type | What You Provide | Best For |
 |------|------------------|----------|
-| **Prompt-based agent** | Prompt template + input/output schema | Simple tasks (extraction, summarization, classification) |
-| **Code-based agent** | Python/JS code | Complex logic (multi-step, tools, external APIs) |
+| **Prompt** | Prompt template + input/output schema | Simple tasks (extraction, summarization, classification) |
+| **Tool** | Python/JS code | Complex logic (multi-step, tools, external APIs) |
+| **Agent** | Prompt + custom tools | Multi-step tool-use workflows in a sandbox |
 | **Skill** | SKILL.md file | Coding standards, style guides, domain rules |
 
 Agents are:
@@ -62,12 +62,15 @@ Skills use the industry-standard Agent Skills format (adopted by Anthropic, Goog
 
 | Feature | Description |
 |---------|-------------|
-| **Free hosting** | We run your agents. No infra to manage. |
-| **Free to call** | 1000 calls/day free. No payment required. |
-| **Author monetization** | Charge per call, earn revenue, get monthly payouts |
+| **Secure sandboxes** | Agents run in isolated E2B sandboxes. No infra to manage. |
+| **CLI & API** | Deploy and run agents from terminal or via HTTP API |
+| **Web Run UI** | Non-developers run agents via a web form |
+| **Team workspaces** | Organize agents by team, control access |
+| **Run history** | Every execution is logged with inputs, outputs, duration |
+| **Scheduled runs** | Run agents on a cron schedule or webhook trigger |
 | **BYOK model** | Bring your own LLM API keys |
-| **CLI** | Publish, call, fork, star from terminal |
-| **Skills** | Industry-standard format, composable with any agent |
+| **Secrets vault** | Store API keys securely in your workspace |
+| **Per-call pricing** | Authors can optionally charge per execution |
 
 ## BYOK: Bring Your Own Key
 
@@ -87,7 +90,7 @@ API keys are separate from subscriptions (Claude Pro/Max, ChatGPT Plus). You'll 
 
 <CardGroup cols={2}>
   <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Get running in 60 seconds
+    Deploy your first agent in minutes
   </Card>
   <Card title="API Reference" icon="code" href="/using-agents/api-reference">
     Authentication, endpoints, errors
@@ -97,8 +100,5 @@ API keys are separate from subscriptions (Claude Pro/Max, ChatGPT Plus). You'll 
   </Card>
   <Card title="Build" icon="hammer" href="/building-agents/agent-types">
     Create an agent or skill
-  </Card>
-  <Card title="Monetization" icon="dollar-sign" href="/concepts/monetization">
-    Charge for your agents
   </Card>
 </CardGroup>

@@ -1,9 +1,9 @@
 ---
 title: "Custom Environments"
-description: "Add dependencies to your code agents with Docker environments"
+description: "Add dependencies to your agents with Docker environments"
 ---
 
-Code agents run in E2B sandboxes with a base Python image. Custom environments let you add dependencies beyond the defaults.
+Tool and agent type agents run in E2B sandboxes with a base Python image. Custom environments let you add dependencies beyond the defaults.
 
 ## Predefined Environments
 
@@ -114,7 +114,7 @@ orch env clear-default                 # Clear workspace default
 
 ## Environment Priority
 
-When running a code agent:
+When running an agent in a sandbox:
 
 1. **Agent-specific** — Dockerfile in bundle creates dedicated environment
 2. **Workspace default** — Falls back to workspace's default environment

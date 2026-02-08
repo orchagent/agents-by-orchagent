@@ -3,22 +3,22 @@ title: "Monetization"
 description: "Charge per call for your agents and skills"
 ---
 
-Authors can charge per call for their agents and skills. Buyers pay from a prepaid credit balance, sellers receive payouts via Stripe.
+orchagent charges per execution for platform usage. Authors can also optionally set per-call pricing on their agents — users pay from a prepaid credit balance, and authors receive payouts via Stripe.
 
 ## How It Works
 
 ```
-Author sets price → Buyer calls agent → Credits deducted → Author earns revenue → Monthly payout
+Author deploys agent → User runs agent → Platform usage tracked → Optional per-call fee → Monthly payout
 ```
 
 | Role | What You Do |
 |------|-------------|
-| **Buyer** | Add credits, call paid agents, credits deducted per call |
-| **Seller** | Set pricing, onboard with Stripe, receive monthly payouts |
+| **User** | Run agents via CLI/API/web, add credits for paid agents |
+| **Author** | Deploy agents, optionally set per-call pricing, receive payouts |
 
 ---
 
-## For Buyers
+## For Users
 
 ### Adding Credits
 
@@ -55,7 +55,7 @@ Paid agents are **server-only**. You cannot download them with `orch run`. Use `
 
 ### Checking Costs
 
-Agent pricing is shown in the marketplace and agent detail pages. You can also check via the public API endpoint:
+Agent pricing is shown on agent detail pages. You can also check via the public API endpoint:
 
 ```http
 GET /public/agents/{org}/{agent}/{version}
@@ -63,11 +63,11 @@ GET /public/agents/{org}/{agent}/{version}
 
 ---
 
-## For Sellers
+## For Authors
 
 ### Becoming a Seller
 
-Complete Stripe Connect onboarding to receive payouts.
+Complete Stripe Connect onboarding to receive payouts for your agents.
 
 ```bash
 # Start onboarding (opens Stripe)
@@ -203,7 +203,7 @@ $ orch run acme/paid-agent
 
 ## CLI Commands Summary
 
-**Buyer:**
+**User:**
 
 | Command | Description |
 |---------|-------------|
@@ -211,7 +211,7 @@ $ orch run acme/paid-agent
 | `orch billing add <amount>` | Add credits ($5 minimum) |
 | `orch billing history` | View transaction history |
 
-**Seller:**
+**Author:**
 
 | Command | Description |
 |---------|-------------|

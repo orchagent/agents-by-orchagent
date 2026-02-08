@@ -274,14 +274,14 @@ The public detail endpoint (`GET /public/agents/{org}/{agent}/{version}`) also r
 | `GET /billing/balance` | Get your prepaid credit balance |
 | `POST /billing/checkout` | Create Stripe Checkout session to add credits |
 | `GET /billing/transactions` | List credit transactions (top-ups, charges, refunds) |
-| `GET /billing/earnings` | Get seller earnings breakdown |
+| `GET /billing/earnings` | Get author earnings breakdown |
 
-### Sellers
+### Payouts
 
 | Endpoint | Description |
 |----------|-------------|
 | `POST /sellers/onboard` | Start Stripe Connect onboarding |
-| `GET /sellers/status` | Get seller verification and payout status |
+| `GET /sellers/status` | Get payout verification status |
 | `POST /sellers/dashboard-link` | Get Stripe Express Dashboard login URL |
 
 ### Compute Usage

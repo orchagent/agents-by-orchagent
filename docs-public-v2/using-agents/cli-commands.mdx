@@ -46,7 +46,7 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch update` | Update installed agents | - |
 | `orch formats` | List available export formats | - |
 | `orch billing balance` | Check credit balance | - |
-| `orch seller onboard` | Start Stripe seller onboarding | - |
+| `orch seller onboard` | Start Stripe payout onboarding | - |
 | `orch pricing <agent> <price>` | Set per-call price | - |
 
 ### When to Use What
@@ -813,7 +813,7 @@ Authors can optionally set per-call prices on their agents. Requires Stripe Conn
 
 ### seller onboard
 
-Start Stripe Connect onboarding to receive payouts.
+Start Stripe Connect onboarding to receive payouts for your agents.
 
 ```bash
 # Opens Stripe-hosted onboarding
@@ -825,7 +825,7 @@ orch seller onboard --country US
 
 ### seller status
 
-Check your seller verification and payout status.
+Check your payout verification status.
 
 ```bash
 orch seller status

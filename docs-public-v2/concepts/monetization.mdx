@@ -22,7 +22,7 @@ Author deploys agent → User runs agent → Platform usage tracked → Optional
 
 ### Adding Credits
 
-Purchase prepaid credits to call paid agents.
+Add prepaid credits to call paid agents.
 
 ```bash
 # Add $10 in credits (minimum $5)
@@ -37,7 +37,7 @@ orch billing history
 
 You can also add credits from the dashboard at **Settings > Billing > Add Credits**.
 
-Credits are purchased via Stripe Checkout. They don't expire and are refundable on request.
+Credits are added via Stripe Checkout. They don't expire and are refundable on request.
 
 ### Calling Paid Agents
 
@@ -65,7 +65,7 @@ GET /public/agents/{org}/{agent}/{version}
 
 ## For Authors
 
-### Becoming a Seller
+### Setting Up Payouts
 
 Complete Stripe Connect onboarding to receive payouts for your agents.
 
@@ -80,7 +80,7 @@ orch seller status
 orch seller dashboard
 ```
 
-Or visit **Settings > Billing > Become a Seller** in the dashboard.
+Or visit **Settings > Billing > Payout Setup** in the dashboard.
 
 Stripe handles identity verification, bank account setup, and tax forms. Once verified, your status shows "Payouts Enabled".
 
@@ -102,11 +102,11 @@ orch pricing my-agent 0
 **Rules:**
 - Minimum price: **$0.01** per call
 - Paid agents become **server-only** for other users (you can still download your own for testing)
-- Pricing is per call — no subscriptions or one-time purchases
+- Pricing is per call — no subscriptions
 
 ### Revenue Split
 
-| Seller Type | Platform Fee | Author Receives |
+| Author Tier | Platform Fee | Author Receives |
 |-------------|--------------|-----------------|
 | **Founder** | 7.5% | 92.5% |
 | **Standard** | 15% | 85% |

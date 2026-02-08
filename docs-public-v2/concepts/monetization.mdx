@@ -41,16 +41,16 @@ Credits are added via Stripe Checkout. They don't expire and are refundable on r
 
 ### Calling Paid Agents
 
-Paid agents work the same as free agents — just use `orch call`:
+Paid agents work the same as free agents — just use `orch run`:
 
 ```bash
-orch call acme/premium-agent --data '{"text": "..."}'
+orch run acme/premium-agent --data '{"text": "..."}'
 ```
 
 The call price is deducted from your credit balance automatically. If your balance is insufficient, you'll get a `402 Payment Required` error.
 
 <Note>
-Paid agents are **server-only**. You cannot download them with `orch run`. Use `orch call` or the HTTP API.
+Paid agents are **server-only**. You cannot run them locally with `orch run --local`. Use `orch run` (cloud, the default) or the HTTP API.
 </Note>
 
 ### Checking Costs
@@ -175,27 +175,27 @@ The platform validates at publish time that your price covers the worst-case dow
 
 ## Access Control
 
-| Pricing | Download Enabled | `orch call` (server) | `orch run` / install |
+| Pricing | Download Enabled | `orch run` (cloud, default) | `orch run --local` / install |
 |---------|-----------------|-------------|---------------------|
-| **Free** | OFF (default) | Anyone | Blocked — use `orch call` |
+| **Free** | OFF (default) | Anyone | Blocked — cloud only |
 | **Free** | ON | Anyone | Anyone |
 | **Paid** | N/A (forced off) | Anyone (charged) | Owner only |
 
 New agents default to server-only (`allow_local_download=false`). Authors opt-in to local download via `--local-download` flag or the web UI toggle. Paid agents always force local download off.
 
 ```bash
-# Non-owner trying to download a server-only agent:
-$ orch run acme/server-agent
+# Non-owner trying to run a server-only agent locally:
+$ orch run --local acme/server-agent
 Error: This agent is server-only and cannot be downloaded.
-Use: orch call acme/server-agent@latest --data '{...}'
+Use: orch run acme/server-agent@latest --data '{...}'
 
-# Non-owner trying to download a paid agent:
-$ orch run acme/paid-agent
+# Non-owner trying to run a paid agent locally:
+$ orch run --local acme/paid-agent
 Error: This agent is paid ($0.50/call) and runs on server only.
-Use: orch call acme/paid-agent@latest --data '{...}'
+Use: orch run acme/paid-agent@latest --data '{...}'
 
 # Owner downloading their own agent (always works):
-$ orch run acme/paid-agent
+$ orch run --local acme/paid-agent
 ✔ Downloaded acme/paid-agent@latest
 ```
 

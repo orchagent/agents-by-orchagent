@@ -43,13 +43,13 @@ The downloaded agent bundle couldn't be extracted. This usually means:
 The agent requires an LLM provider but no API key is available.
 
 **Solutions:**
-- **For local execution (`orch run`)**: Set environment variable:
+- **For local execution (`orch run --local`)**: Set environment variable:
   ```bash
   export OPENAI_API_KEY=sk-...
   # or
   export ANTHROPIC_API_KEY=sk-ant-...
   ```
-- **For server execution (`orch call`)**: Add key in [Settings → LLM Keys](https://orchagent.io/settings)
+- **For cloud execution (`orch run`, the default)**: Add key in [Settings → LLM Keys](https://orchagent.io/settings)
 
 ---
 

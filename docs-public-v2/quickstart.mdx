@@ -64,7 +64,7 @@ Edit `prompt.md` with your prompt and `schema.json` with your input/output defin
 ## Step 3: Test Locally
 
 ```bash
-orch run . --input '{"text": "test input"}'
+orch run . --local --input '{"text": "test input"}'
 ```
 
 This runs the agent on your machine using your local LLM keys.
@@ -75,13 +75,13 @@ This runs the agent on your machine using your local LLM keys.
 orch publish --public
 ```
 
-Your agent is now live and callable by your team.
+Your agent is now live and runnable by your team.
 
 ## Step 5: Run It
 
 ```bash
 # Via CLI
-orchagent call yourorg/my-agent --data '{"text": "hello world"}'
+orchagent run yourorg/my-agent --data '{"text": "hello world"}'
 
 # Or your team can use the web UI at orchagent.io
 ```
@@ -95,13 +95,13 @@ Want to see the platform in action first? Run one of our showcase agents:
 ### Run Locally (No Account Needed)
 
 ```bash
-npx @orchagent/cli run orchagent/secrets-scanner https://github.com/your/repo
+npx @orchagent/cli run --local orchagent/secrets-scanner https://github.com/your/repo
 ```
 
 ### Run on Server
 
 ```bash
-orchagent call orchagent/secrets-scanner https://github.com/your/repo
+orchagent run orchagent/secrets-scanner https://github.com/your/repo
 ```
 
 ---
@@ -110,8 +110,8 @@ orchagent call orchagent/secrets-scanner https://github.com/your/repo
 
 | Command | What It Does | Where It Runs |
 |---------|--------------|---------------|
-| `orch run <agent>` | Download and execute agent locally | Your machine |
-| `orch call <agent>` | Execute agent via API | Cloud (E2B sandbox) |
+| `orch run <agent>` | Execute agent | Cloud (E2B sandbox) by default |
+| `orch run --local <agent>` | Download and execute agent locally | Your machine |
 | `orch install <agent>` | Export agent as sub-agent for AI tools | Local files |
 | `orch skill install <skill>` | Download skill files for AI tools | Local files |
 | `orch update` | Update installed agents to latest | - |
@@ -121,41 +121,41 @@ orchagent call orchagent/secrets-scanner https://github.com/your/repo
 
 ```
 Want AI to DO something now?
-  ├─ Need it local/private? → orch run
-  └─ Want managed infra?    → orch call
+  |-- Need it local/private? --> orch run --local
+  \-- Want managed infra?    --> orch run
 
 Want AI to KNOW something?
-  └─ Download knowledge     → orch skill install
+  \-- Download knowledge     --> orch skill install
 
 Want to DELEGATE to sub-agents?
-  └─ Export for AI tools    → orch install
+  \-- Export for AI tools    --> orch install
 ```
 
-## Calling with Files
+## Running with Files
 
 Many agents process files. Pass a file as an argument or use the `--file` flag:
 
 ```bash
 # Tools: pass file as argument (uploaded to sandbox)
-orchagent call acme/invoice-scanner invoice.pdf
+orchagent run acme/invoice-scanner invoice.pdf
 
 # Prompt agents: use --file (content is read and mapped to input schema)
-orchagent call acme/useeffect-checker --file src/App.tsx
+orchagent run acme/useeffect-checker --file src/App.tsx
 
 # Pipe file to stdin
-cat document.pdf | orchagent call acme/pdf-parser
+cat document.pdf | orchagent run acme/pdf-parser
 ```
 
-## Calling with JSON
+## Running with JSON
 
 For prompt-based agents that accept JSON input:
 
 ```bash
 # Inline JSON
-orchagent call acme/text-extractor --data '{"text":"hello world"}'
+orchagent run acme/text-extractor --data '{"text":"hello world"}'
 
 # JSON from file
-orchagent call acme/text-extractor --data @input.json
+orchagent run acme/text-extractor --data @input.json
 ```
 
 ## Next Steps

@@ -6,7 +6,7 @@ description: "Use your own LLM API keys with orchagent"
 orchagent uses a **Bring Your Own Key** model. You provide your own LLM API keys, and agents use them to make LLM calls.
 
 <Info>
-**When BYOK applies:** BYOK is relevant for `orch run` (local execution) and `orch call` (server execution). For `orch install`, no LLM keys are needed since you're just exporting configuration files.
+**When BYOK applies:** BYOK is relevant for `orch run` (cloud execution, the default) and `orch run --local` (local execution). For `orch install`, no LLM keys are needed since you're just exporting configuration files.
 </Info>
 
 ## Why BYOK?
@@ -50,7 +50,7 @@ export GEMINI_API_KEY="..."
 Then run agents locally:
 
 ```bash
-orch run acme/summarizer --input '{"text": "..."}'
+orch run --local acme/summarizer --input '{"text": "..."}'
 ```
 
 ### For Server Execution
@@ -63,10 +63,10 @@ orch llm-config --endpoint https://api.openai.com/v1 --model gpt-4o-mini --api-k
 
 Or configure in the [dashboard](https://orchagent.io/dashboard).
 
-Then call agents on the server:
+Then run agents on the cloud:
 
 ```bash
-orch call acme/summarizer --data '{"text": "..."}'
+orch run acme/summarizer --data '{"text": "..."}'
 ```
 
 ## Supported Providers

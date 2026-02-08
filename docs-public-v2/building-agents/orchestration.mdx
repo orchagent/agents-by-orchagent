@@ -36,13 +36,13 @@ Callers can modify skill behavior (unless the author has locked skills):
 
 ```bash
 # Add more skills to agent's defaults
-orch call yourorg/code-reviewer --skills yourorg/security-rules
+orch run yourorg/code-reviewer --skills yourorg/security-rules
 
 # Replace default_skills entirely
-orch call yourorg/code-reviewer --skills-only yourorg/security-rules
+orch run yourorg/code-reviewer --skills-only yourorg/security-rules
 
 # Ignore all skills
-orch call yourorg/code-reviewer --no-skills
+orch run yourorg/code-reviewer --no-skills
 ```
 
 ### Locking Skills
@@ -59,8 +59,8 @@ Authors can lock skills to prevent caller overrides. This is useful for agents w
 ```
 
 When `skills_locked: true`:
-- **Server (`orch call`)**: Caller override flags (`--skills`, `--skills-only`, `--no-skills`) are silently ignored
-- **Local (`orch run`)**: CLI shows a warning and asks for confirmation before overriding
+- **Cloud (`orch run`)**: Caller override flags (`--skills`, `--skills-only`, `--no-skills`) are silently ignored
+- **Local (`orch run --local`)**: CLI shows a warning and asks for confirmation before overriding
 
 <Note>
 `skills_locked` is immutable after publish. To change it, publish a new version.
@@ -289,7 +289,7 @@ This agent has dependencies:
   acme/premium-scan@v1 (cloud-only)
 
 Options:
-  [1] Run on server (orch call) - recommended
+  [1] Run on cloud (orch run) - recommended
   [2] Download 2 available deps, run locally
   [3] Cancel
 

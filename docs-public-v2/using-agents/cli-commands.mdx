@@ -26,7 +26,7 @@ Before diving into commands, understand the two types of content on orchagent:
 | **What they are** | Active executors that DO things | Passive knowledge that TEACHES things |
 | **Purpose** | Execute tasks and return results | Provide context, rules, guidelines |
 | **Example** | `code-reviewer` analyzes your code | `react-best-practices` teaches React patterns |
-| **How to use** | `run`, `call`, or `install` | `skill install` |
+| **How to use** | `run` or `install` | `skill install` |
 
 **Simple rule:**
 - Want AI to **DO** something? Use an **agent**
@@ -38,8 +38,8 @@ Before diving into commands, understand the two types of content on orchagent:
 
 | Command | What It Does | Where It Runs |
 |---------|--------------|---------------|
-| `orch run <agent>` | Download and execute agent | Your machine |
-| `orch call <agent>` | Execute agent via API | Cloud (E2B sandbox) |
+| `orch run <agent>` | Execute agent | Cloud (E2B sandbox) by default |
+| `orch run --local <agent>` | Download and execute agent locally | Your machine |
 | `orch install <agent>` | Export agent as sub-agent | Local files (for AI tools) |
 | `orch skill install <skill>` | Download skill files | Local files (for AI tools) |
 | `orch test` | Run agent tests locally | Your machine |
@@ -53,14 +53,14 @@ Before diving into commands, understand the two types of content on orchagent:
 
 ```
 Want AI to DO something now?
-  ├─ Need it local/private? → orch run
-  └─ Want managed infra?    → orch call
+  |-- Need it local/private? --> orch run --local
+  \-- Want managed infra?    --> orch run
 
 Want AI to KNOW something?
-  └─ Download knowledge     → orch skill install
+  \-- Download knowledge     --> orch skill install
 
 Want to DELEGATE to sub-agents?
-  └─ Export for AI tools    → orch install
+  \-- Export for AI tools    --> orch install
 ```
 
 ---
@@ -69,14 +69,14 @@ Want to DELEGATE to sub-agents?
 
 ### run
 
-Download and run an agent locally on your machine. No server execution.
+Execute an agent. By default, agents run on the cloud (E2B sandbox). Use `--local` to download and run on your machine instead.
 
 ```bash
 # Run agent with a URL input
 orch run joe/leak-finder https://github.com/user/repo
 
 # Run with JSON input
-orch run joe/summarizer --input '{"text": "..."}'
+orch run joe/summarizer --data '{"text": "..."}'
 
 # Just download without running
 orch run joe/leak-finder --download-only
@@ -85,35 +85,48 @@ orch run joe/leak-finder --download-only
 orch run joe/security-review --with-deps https://github.com/user/repo
 
 # Override LLM provider and model
-orch run joe/summarizer --input '{"text":"..."}' --provider openai --model gpt-4o-mini
+orch run joe/summarizer --data '{"text":"..."}' --provider openai --model gpt-4o-mini
 ```
 
 **Options:**
 
 | Flag | Description |
 |------|-------------|
-| `--input <json>` | JSON input data |
+| `--data <json>` | JSON payload (string or @file, @- for stdin) |
+| `--local` | Run on your machine instead of cloud |
+| `--file <path>` | Pass file content to agent (repeatable for multiple files) |
+| `--file-field <name>` | Schema field to map file content to (auto-detected if omitted) |
 | `--provider <name>` | LLM provider (openai, anthropic, gemini, ollama) |
 | `--model <model>` | LLM model to use (overrides agent default) |
 | `--download-only` | Download agent without executing |
 | `--with-deps` | Auto-download all dependencies |
+| `--endpoint <name>` | Override agent endpoint |
+| `--output <file>` | Save response to file |
 | `--json` | Raw JSON output |
+| `--skills <refs>` | Add skills (comma-separated) |
 
-**What happens:**
+**What happens (cloud, default):**
+
+1. CLI sends request to gateway (`api.orchagent.io`)
+2. Gateway spins up an E2B sandbox (ephemeral, isolated)
+3. Agent runs with your stored LLM keys
+4. Response returned through gateway
+
+**What happens (with `--local`):**
 
 1. CLI downloads agent code from orchagent registry
 2. Agent runs locally on your machine
 3. Agent calls LLM API using YOUR environment keys
 4. Results returned to terminal
 
-**When to use `run`:**
+**When to use `--local`:**
 
 - Development and testing
 - Keep data on your machine (privacy)
 - Try agents without an account
 - Debug agent behavior
 
-**Requirements:**
+**Requirements for `--local`:**
 
 - LLM API key in environment (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.)
 - Agent must be downloadable (has `source_url` in manifest)
@@ -122,88 +135,27 @@ orch run joe/summarizer --input '{"text":"..."}' --provider openai --model gpt-4
 **Dependency handling:** If an agent has dependencies, the CLI prompts you to choose between server execution or downloading available dependencies. Use `--with-deps` to auto-download.
 </Note>
 
-### call
-
-Execute an agent on orchagent's cloud servers.
-
-```bash
-# Basic call with file (tool agents: uploaded to sandbox)
-orch call acme/invoice-scanner invoice.pdf
-
-# Pass file to prompt agent (content mapped to input schema)
-orch call acme/useeffect-checker --file src/App.tsx
-
-# Specify which schema field to map file content to
-orch call acme/useeffect-checker --file src/App.tsx --file-field code
-
-# JSON payload
-orch call acme/text-extractor --data '{"text":"hello world"}'
-
-# JSON from file
-orch call acme/text-extractor --data @input.json
-
-# Pipe input via stdin
-cat document.pdf | orch call acme/pdf-parser
-
-# Specify version (default: v1)
-orch call acme/invoice-scanner@v2 invoice.pdf
-
-# Override endpoint
-orch call acme/invoice-scanner invoice.pdf --endpoint extract
-
-# JSON output for scripts
-orch call acme/invoice-scanner invoice.pdf --json
-
-# Save response to file
-orch call acme/image-processor photo.jpg --output result.png
-
-# Multiple files
-orch call acme/batch-processor --file doc1.pdf --file doc2.pdf
-
-# Compose with skills
-orch call acme/code-reviewer code.py --skills yourorg/react-best-practices
-
-# Override LLM provider and model
-orch call acme/summarizer --data '{"text":"..."}' --provider openai --model gpt-4o-mini
-```
-
-**Options:**
-
-| Flag | Description |
-|------|-------------|
-| `--data <json>` | JSON payload (string or @file, @- for stdin) |
-| `--file <path>` | Pass file content to agent (repeatable for multiple files) |
-| `--file-field <name>` | Schema field to map file content to (auto-detected if omitted) |
-| `--provider <name>` | LLM provider (openai, anthropic, gemini) |
-| `--model <model>` | LLM model to use (overrides agent default) |
-| `--endpoint <name>` | Override agent endpoint |
-| `--output <file>` | Save response to file |
-| `--json` | Raw JSON output |
-| `--skills <refs>` | Add skills (comma-separated) |
+### call (deprecated)
 
 <Note>
-**File handling for prompt agents:** When you pass files to a prompt agent, the CLI reads the file content and maps it to the agent's input schema automatically. It infers the correct field name (e.g., `code`, `content`, `text`) from the schema. Use `--file-field` to override if needed.
+The `call` command has been merged into `run`. Cloud execution is now the default behavior of `orch run`. All `orch call` invocations should be replaced with `orch run`. For local execution, use `orch run --local`.
 </Note>
 
-**What happens:**
+```bash
+# Old (deprecated):
+# orch call acme/invoice-scanner invoice.pdf
 
-1. CLI sends request to gateway (`api.orchagent.io`)
-2. Gateway spins up an E2B sandbox (ephemeral, isolated)
-3. Agent runs with your stored LLM keys
-4. Response returned through gateway
+# New (equivalent):
+orch run acme/invoice-scanner invoice.pdf
 
-**When to use `call`:**
+# Old (deprecated):
+# orch call acme/text-extractor --data '{"text":"hello world"}'
 
-- Production integrations
-- Agents with complex dependencies
-- Managed infrastructure (auto-scaling, health checks)
-- Usage tracking and logs
+# New (equivalent):
+orch run acme/text-extractor --data '{"text":"hello world"}'
+```
 
-**Requirements:**
-
-- orchagent account (free)
-- API key from dashboard
-- LLM key stored in account
+All flags that worked with `call` now work with `run` (e.g., `--data`, `--file`, `--file-field`, `--endpoint`, `--output`, `--json`, `--skills`, `--provider`, `--model`).
 
 ---
 
@@ -377,17 +329,17 @@ orch search react --type skills
 
 ### Using Skills with Agents
 
-When calling orchagent agents, you can compose skills:
+When running orchagent agents, you can compose skills:
 
 ```bash
-# Add skills to an agent call
-orch call acme/code-reviewer code.py --skills yourorg/react-best-practices
+# Add skills to an agent run
+orch run acme/code-reviewer code.py --skills yourorg/react-best-practices
 
 # Use ONLY specific skills (ignore agent's default_skills)
-orch call acme/code-reviewer code.py --skills-only yourorg/react-rules
+orch run acme/code-reviewer code.py --skills-only yourorg/react-rules
 
 # Ignore all skills
-orch call acme/code-reviewer code.py --no-skills
+orch run acme/code-reviewer code.py --no-skills
 ```
 
 ---
@@ -468,13 +420,13 @@ When you set an active workspace, CLI commands will look for agents there by def
 orch workspace use marketing-team
 
 # These now look in marketing-team workspace:
-orch call my-agent data.json          # → marketing-team/my-agent
-orch run my-agent --input '{}'        # → marketing-team/my-agent
+orch run my-agent --data '{}'         # → marketing-team/my-agent
+orch run --local my-agent --input '{}' # → marketing-team/my-agent
 orch install my-agent                 # → marketing-team/my-agent
 orch skill install my-skill           # → marketing-team/my-skill
 
 # Explicit org always overrides workspace:
-orch call other-team/my-agent data.json  # → other-team/my-agent
+orch run other-team/my-agent --data '{}' # → other-team/my-agent
 ```
 
 **Resolution order:** Explicit `org/agent` → Active workspace → Default org (from login)
@@ -507,7 +459,7 @@ Set the active workspace for agent lookups.
 orch workspace use my-team
 ```
 
-After this, `orch call agent` will look for `my-team/agent`.
+After this, `orch run agent` will look for `my-team/agent`.
 
 ### workspace members
 
@@ -732,7 +684,7 @@ The CLI stores configuration at `~/.orchagent/config.json`:
 | `default_formats` | Default export formats for `orch install` |
 | `default_scope` | Default install scope: `"user"` or `"project"` |
 
-**Agent resolution:** When you run `orch call agent`, the CLI looks for the agent in this order:
+**Agent resolution:** When you run `orch run agent`, the CLI looks for the agent in this order:
 1. Explicit org if provided (`org/agent`)
 2. Active `workspace` if set
 3. `default_org` (your personal workspace)
@@ -890,7 +842,7 @@ orch fork acme/invoice-scanner
 ```
 
 <Note>
-If the agent's author has disabled local download, forking is blocked to protect their intellectual property. You'll see a 403 error. Use `orch call` to run server-only agents instead.
+If the agent's author has disabled local download, forking is blocked to protect their intellectual property. You'll see a 403 error. Use `orch run` to run server-only agents on the cloud instead.
 </Note>
 
 ---
@@ -916,13 +868,13 @@ If the agent's author has disabled local download, forking is blocked to protect
 
 ```bash
 # Capture response, see errors
-result=$(orch call acme/scanner doc.pdf)
+result=$(orch run acme/scanner doc.pdf)
 
 # Suppress errors, check exit code
-orch call acme/scanner doc.pdf 2>/dev/null && echo "success"
+orch run acme/scanner doc.pdf 2>/dev/null && echo "success"
 
 # Process JSON output
-orch call acme/scanner doc.pdf --json | jq '.data.total'
+orch run acme/scanner doc.pdf --json | jq '.data.total'
 
 # Install agents in CI
 orch install acme/code-reviewer --format claude-code --scope project

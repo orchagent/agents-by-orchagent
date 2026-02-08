@@ -58,7 +58,7 @@ orch publish --public --price 0.50    # $0.50 per call
 orch pricing my-agent 0.50
 ```
 
-Paid agents are **server-only for non-owners** — other users must use `orch call` (not `orch run`). You can still download your own paid agents for testing.
+Paid agents are **server-only for non-owners** — other users must use `orch run` (cloud, the default). Local execution via `orch run --local` is not available for paid agents. You can still download your own paid agents for testing.
 
 ### Source Available vs Server Only
 
@@ -67,9 +67,9 @@ Agents have two visibility modes that control what non-owners can see and do:
 | Mode | Prompt/code visible? | `orch run` | `orch fork` | Badge |
 |------|---------------------|------------|-------------|-------|
 | **Source Available** (`--local-download`) | Yes | Yes | Yes | "Source Available" |
-| **Server Only** (default) | No — redacted | No — use `orch call` | No — blocked | "Server Only" |
+| **Server Only** (default) | No — redacted | No — cloud only (`orch run`) | No — blocked | "Server Only" |
 
-**Server-only agents** (the default) redact the prompt, manifest, and skill files from public API responses. This protects your intellectual property while still letting users run the agent via `orch call`.
+**Server-only agents** (the default) redact the prompt, manifest, and skill files from public API responses. This protects your intellectual property while still letting users run the agent via `orch run` (cloud execution).
 
 **Source-available agents** expose the full prompt and code. Users can inspect, fork, and run locally. Use this for open/community agents where transparency builds trust.
 
@@ -211,17 +211,17 @@ https://api.orchagent.io/yourorg/my-agent/v2/analyze
 - **Authors cannot control version numbers** - this is intentional for simplicity
 - **All versions remain accessible** - old versions stay available for 60 days after deprecation
 
-### Calling a Specific Version
+### Running a Specific Version
 
 Use the `@version` syntax to pin to a specific version:
 
 ```bash
-# Call the latest version
-orch call yourorg/my-agent
+# Run the latest version
+orch run yourorg/my-agent
 
-# Call a specific version
-orch call yourorg/my-agent@v1
-orch call yourorg/my-agent@v2
+# Run a specific version
+orch run yourorg/my-agent@v1
+orch run yourorg/my-agent@v2
 ```
 
 Callers should pin to specific versions for stability in production environments.
@@ -382,9 +382,9 @@ export ORCHAGENT_SERVICE_KEY="sk_agent_..."
 
 ## Distribution
 
-By default, new agents are **server-only** — users run them via `orch call` on orchagent's servers. This is the recommended default for most agents.
+By default, new agents are **server-only** — users run them via `orch run` on orchagent's cloud servers. This is the recommended default for most agents.
 
-To allow users to download and run your agent locally with `orch run`:
+To allow users to download and run your agent locally with `orch run --local`:
 
 ```bash
 # Publish with local download enabled

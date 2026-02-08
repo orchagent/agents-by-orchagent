@@ -1,81 +1,47 @@
 ---
 title: "Local vs Server Execution"
-description: "Understanding run, call, and install"
+description: "Understanding cloud, local, and install modes"
 ---
 
 orchagent offers three ways to use agents:
 
 | Command | Purpose | Where It Runs |
 |---------|---------|---------------|
-| `orch run` | Execute agent now | Your machine |
-| `orch call` | Execute agent now | Cloud (E2B sandbox) |
+| `orch run` | Execute agent now | Cloud (E2B sandbox) by default |
+| `orch run --local` | Execute agent now | Your machine |
 | `orch install` | Export for AI tools | Creates local files |
 
-## Quick Comparison: run vs call
+## Quick Comparison: Cloud vs Local
 
-| | Local (`orch run`) | Server (`orch call`) |
+| | Cloud (`orch run`, default) | Local (`orch run --local`) |
 |-|-------------------|-------------------|
-| **Primary users** | Power users, devs exploring | Apps in production |
-| **Interface** | CLI | CLI or HTTP API |
-| **Where code runs** | Your machine | E2B sandboxes (ephemeral) |
-| **Account required** | No | Yes (free) |
-| **LLM keys** | From your environment | From your account |
-| **Rate limits** | Your LLM provider limits | 1000 calls/day free |
-| **Dependencies** | Must be downloadable | Handled automatically |
-| **Download toggle** | Author must enable `allow_local_download` | Always available |
-| **Paid agents** | Owner only (free for testing) | Anyone (credits charged) |
-| **Best for** | Development, exploration | Production integration |
+| **Primary users** | Apps in production | Power users, devs exploring |
+| **Interface** | CLI or HTTP API | CLI |
+| **Where code runs** | E2B sandboxes (ephemeral) | Your machine |
+| **Account required** | Yes (free) | No |
+| **LLM keys** | From your account | From your environment |
+| **Rate limits** | 1000 calls/day free | Your LLM provider limits |
+| **Dependencies** | Handled automatically | Must be downloadable |
+| **Download toggle** | Always available | Author must enable `allow_local_download` |
+| **Paid agents** | Anyone (credits charged) | Owner only (free for testing) |
+| **Best for** | Production integration | Development, exploration |
 
-Note: `orch call` is a CLI tool for testing the HTTP API. Production apps call the HTTP API directly from code.
+Production apps call the HTTP API directly from code. The CLI is useful for testing.
 
 <Note>
-**Paid agents** are server-only for non-owners. If an agent has a per-call price, other users must use `orch call` — `orch run` will return an error. Authors can always download and run their own paid agents locally. See [Monetization](/concepts/monetization).
+**Paid agents** are server-only for non-owners. If an agent has a per-call price, other users must use `orch run` (cloud) — `orch run --local` will return an error. Authors can always download and run their own paid agents locally. See [Monetization](/concepts/monetization).
 </Note>
 
 <Note>
 **Local download is opt-in.** New agents and skills default to server-only (not locally downloadable). Authors must explicitly enable local download using the `--local-download` flag at publish time or the toggle in the web UI. Existing free public agents have been backfilled with `allow_local_download` enabled.
 </Note>
 
-## Local Execution (`orch run`)
+## Cloud Execution (`orch run`)
 
-Download and run an agent on your machine.
-
-```bash
-# No account needed for public agents
-npx orchagent run acme/summarizer --input '{"text": "..."}'
-
-# With CLI installed
-orch run acme/summarizer --input '{"text": "..."}'
-```
-
-### What Happens
-
-1. CLI downloads agent code from registry
-2. Agent installs on your machine
-3. Agent runs locally
-4. Agent calls LLM using YOUR environment keys
-5. Results returned to terminal
-
-### When to Use
-
-- **Development** - Test agents before calling server
-- **Privacy** - Keep data on your machine
-- **No account** - Try agents without signing up
-- **Debugging** - See full execution locally
-
-### Requirements
-
-- Agent must have `source_url` or `pip_package` in manifest
-- Agent must have `allow_local_download` enabled by its author
-- LLM API key in environment variable
-- For orchestrators: dependencies must also be downloadable
-
-## Server Execution (`orch call`)
-
-Run an agent on orchagent's servers.
+Run an agent on orchagent's servers. This is the default mode.
 
 ```bash
-orch call acme/summarizer --data '{"text": "..."}'
+orch run acme/summarizer --data '{"text": "..."}'
 ```
 
 ### What Happens
@@ -98,7 +64,41 @@ orch call acme/summarizer --data '{"text": "..."}'
 
 - orchagent account (free)
 - API key from dashboard
-- LLM key stored in account (for server execution)
+- LLM key stored in account
+
+## Local Execution (`orch run --local`)
+
+Download and run an agent on your machine.
+
+```bash
+# No account needed for public agents
+npx orchagent run --local acme/summarizer --input '{"text": "..."}'
+
+# With CLI installed
+orch run --local acme/summarizer --input '{"text": "..."}'
+```
+
+### What Happens
+
+1. CLI downloads agent code from registry
+2. Agent installs on your machine
+3. Agent runs locally
+4. Agent calls LLM using YOUR environment keys
+5. Results returned to terminal
+
+### When to Use
+
+- **Development** - Test agents before deploying
+- **Privacy** - Keep data on your machine
+- **No account** - Try agents without signing up
+- **Debugging** - See full execution locally
+
+### Requirements
+
+- Agent must have `source_url` or `pip_package` in manifest
+- Agent must have `allow_local_download` enabled by its author
+- LLM API key in environment variable
+- For orchestrators: dependencies must also be downloadable
 
 ## Architecture Diagrams
 
@@ -147,7 +147,7 @@ This agent has dependencies:
   acme/premium-scan@v1 (cloud-only)
 
 Options:
-  [1] Run on server (orch call) - recommended
+  [1] Run on cloud (orch run) - recommended
   [2] Download 2 available deps, run locally
   [3] Cancel
 ```
@@ -189,8 +189,8 @@ orch install joe/code-reviewer --scope project
 - You want sub-agents available across all your projects
 - You're building a team workflow with shared agents
 
-**Key difference from `run` and `call`:**
-- `run` and `call` execute the agent immediately and return results
+**Key difference from `run`:**
+- `run` executes the agent immediately and returns results
 - `install` creates files that your AI tool reads later
 
 See [CLI Commands](/using-agents/cli-commands#install) for full details.
@@ -199,18 +199,18 @@ See [CLI Commands](/using-agents/cli-commands#install) for full details.
 
 | Command | Mode | Description |
 |---------|------|-------------|
-| `npx orchagent run` | Local | Run without installing CLI |
-| `orch run` | Local | Run with installed CLI |
-| `orch run --download-only` | Local | Just download, don't execute |
-| `orch run --with-deps` | Local | Auto-download dependencies |
-| `orch call` | Server | Run on orchagent servers |
+| `orch run` | Cloud | Run on orchagent servers (default) |
+| `orch run --local` | Local | Run with installed CLI |
+| `npx orchagent run --local` | Local | Run without installing CLI |
+| `orch run --local --download-only` | Local | Just download, don't execute |
+| `orch run --local --with-deps` | Local | Auto-download dependencies |
 | `orch install` | Export | Create sub-agent files for AI tools |
 | `orch update` | Export | Update installed sub-agents |
 | `orch formats` | Export | List available export formats |
 
 ## Choosing the Right Mode
 
-### Use Local When
+### Use Local (`--local`) When
 
 - You want to keep data on your machine
 - You're developing or debugging an agent
@@ -218,13 +218,14 @@ See [CLI Commands](/using-agents/cli-commands#install) for full details.
 - The agent doesn't have complex dependencies
 - The agent author has enabled `allow_local_download`
 
-### Use Server When
+### Use Cloud (Default) When
 
 - You're building production integrations
 - The agent has dependencies (orchestrator)
 - You want managed infrastructure
 - You need usage tracking and logs
 - The agent does not allow local download
+- You want usage tracking and logs
 
 ## Mixed Mode
 
@@ -232,10 +233,10 @@ You can use both modes in your workflow:
 
 ```bash
 # Develop locally
-orch run my-agent --input '{"test": true}'
+orch run --local my-agent --input '{"test": true}'
 
-# Test on server
-orch call my-agent --data '{"test": true}'
+# Test on cloud
+orch run my-agent --data '{"test": true}'
 
 # Deploy to production
 # (Your app calls api.orchagent.io directly)

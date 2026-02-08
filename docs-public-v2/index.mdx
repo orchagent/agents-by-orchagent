@@ -21,7 +21,7 @@ orchagent is an **AI agent deployment platform**. Build agents in Python, JavaSc
 
 ```
 1. Get access to your team's workspace
-2. Run agents: orch call team/agent-name
+2. Run agents: orch run team/agent-name
 3. Or open the web UI — fill a form, click Run
 4. Results displayed, logged, and tracked
 ```
@@ -37,7 +37,7 @@ orchagent hosts two types of things:
 | **Output** | Structured results | Context for AI tools |
 
 **Simple rule:**
-- Want AI to **DO** something? Use an **agent** (`orch run` or `orch call`)
+- Want AI to **DO** something? Use an **agent** (`orch run`)
 - Want AI to **KNOW** something? Use a **skill** (`orch skill install`)
 - Want to **DELEGATE** to sub-agents? Export agents (`orch install`)
 
@@ -96,7 +96,7 @@ API keys are separate from subscriptions (Claude Pro/Max, ChatGPT Plus). You'll 
     Authentication, endpoints, errors
   </Card>
   <Card title="CLI Commands" icon="terminal" href="/using-agents/cli-commands">
-    orch login, call, run, publish
+    orch login, run, publish
   </Card>
   <Card title="Build" icon="hammer" href="/building-agents/agent-types">
     Create an agent or skill

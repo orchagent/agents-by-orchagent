@@ -11,7 +11,7 @@ orchagent hosts two types of content: **agents** that execute tasks, and **skill
 |---|--------|--------|
 | **What they do** | **DO** things (execute tasks) | **TEACH** things (provide knowledge) |
 | **Nature** | Active executors | Passive knowledge |
-| **Commands** | `orch run`, `orch call`, `orch install` | `orch skill install` |
+| **Commands** | `orch run`, `orch install` | `orch skill install` |
 | **Output** | Structured results | Context files for AI tools |
 
 <Info>
@@ -431,10 +431,10 @@ orch skill install yourorg/react-best-practices --format claude-code,cursor
 
 Writes to `.claude/skills/`, `.cursor/skills/`, `.codex/skills/`, `.agent/skills/`.
 
-**Compose with agents** at call time:
+**Compose with agents** at run time:
 
 ```bash
-orch call yourorg/code-reviewer --skills yourorg/react-best-practices
+orch run yourorg/code-reviewer --skills yourorg/react-best-practices
 ```
 
 ### Using Agents as Sub-Agents

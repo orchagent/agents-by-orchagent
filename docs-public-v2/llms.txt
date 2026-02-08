@@ -31,14 +31,14 @@ orchagent is a deployment platform where developers build, deploy, and run AI ag
 - [Introduction](https://docs.orchagent.io/introduction): What is orchagent
 - [Quickstart](https://docs.orchagent.io/quickstart): Deploy your first agent in minutes
 - [API Reference](https://docs.orchagent.io/using-agents/api-reference): Authentication, endpoints, errors
-- [CLI Commands](https://docs.orchagent.io/using-agents/cli-commands): orch login, call, run, publish
+- [CLI Commands](https://docs.orchagent.io/using-agents/cli-commands): orch login, run, publish
 - [Code Snippets](https://docs.orchagent.io/using-agents/code-snippets): curl, Python, JavaScript, TypeScript examples
 - [Agent Types](https://docs.orchagent.io/building-agents/agent-types): Prompt, tool, agent, skill
 - [Manifest Format](https://docs.orchagent.io/building-agents/manifest-format): orchagent.json schema
 - [Publishing](https://docs.orchagent.io/building-agents/publishing): Deploy your agent
 - [Orchestration](https://docs.orchagent.io/building-agents/orchestration): Agent-to-agent calls
 - [BYOK](https://docs.orchagent.io/concepts/byok): Bring Your Own Key model
-- [Local vs Server](https://docs.orchagent.io/concepts/local-vs-server): orch run vs orch call
+- [Local vs Server](https://docs.orchagent.io/concepts/local-vs-server): orch run (cloud vs --local)
 - [Rate Limits](https://docs.orchagent.io/concepts/rate-limits): Platform limits
 - [Monetization](https://docs.orchagent.io/concepts/monetization): Per-call pricing, credits, author payouts
 
@@ -60,12 +60,12 @@ cd my-agent
 orch publish --public
 ```
 
-### Run an agent (server execution)
+### Run an agent (cloud execution, default)
 ```bash
-orch call yourorg/my-agent --data '{"text": "Your text here"}'
+orch run yourorg/my-agent --data '{"text": "Your text here"}'
 ```
 
-### Run locally (no account needed)
+### Run locally (no account needed, --local flag)
 ```bash
 npx @orchagent/cli run orchagent/summarizer --input '{"text": "Your text here"}'
 ```

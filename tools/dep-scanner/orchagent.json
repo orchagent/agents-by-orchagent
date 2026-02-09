@@ -1,6 +1,6 @@
 {
   "name": "dep-scanner",
-  "type": "code",
+  "type": "tool",
   "description": "Inspired by @burakeregar (https://x.com/burakeregar/status/2014696329549648137). Scans project dependencies for known vulnerabilities (CVEs). Runs npm audit, pip-audit, and similar tools to identify outdated or insecure packages.",
   "supported_providers": [
     "any"

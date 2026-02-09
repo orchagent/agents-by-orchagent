@@ -1,0 +1,121 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Path to the codebase to review (default: /home/user)",
+        "default": "/home/user"
+      },
+      "repo_url": {
+        "type": "string",
+        "description": "Git repository URL to clone and review (optional, alternative to path)"
+      },
+      "focus": {
+        "type": "string",
+        "description": "What to focus the review on",
+        "enum": ["all", "bugs", "security", "performance", "style", "architecture"],
+        "default": "all"
+      },
+      "file_extensions": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Limit review to specific file types (e.g., [\".py\", \".ts\"]). If empty, reviews all source files."
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "summary": {
+        "type": "object",
+        "properties": {
+          "files_reviewed": {
+            "type": "integer",
+            "description": "Number of files analyzed"
+          },
+          "languages": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Programming languages found"
+          },
+          "overall_quality": {
+            "type": "number",
+            "description": "Quality rating from 1-10"
+          },
+          "key_strengths": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "What the codebase does well"
+          },
+          "key_concerns": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Most important problems found"
+          }
+        },
+        "required": ["files_reviewed", "languages", "overall_quality", "key_strengths", "key_concerns"]
+      },
+      "findings": {
+        "type": "array",
+        "description": "Individual code review findings",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Finding identifier (e.g., CR-001)"
+            },
+            "title": {
+              "type": "string",
+              "description": "Short descriptive title"
+            },
+            "severity": {
+              "type": "string",
+              "enum": ["critical", "high", "medium", "low"]
+            },
+            "category": {
+              "type": "string",
+              "description": "Category: bugs, security, performance, style, architecture, error_handling, testing"
+            },
+            "file": {
+              "type": "string",
+              "description": "File path"
+            },
+            "line": {
+              "type": "integer",
+              "description": "Line number (if applicable)"
+            },
+            "description": {
+              "type": "string",
+              "description": "What is wrong and why it matters"
+            },
+            "current_code": {
+              "type": "string",
+              "description": "The problematic code"
+            },
+            "suggested_fix": {
+              "type": "string",
+              "description": "The corrected code"
+            },
+            "explanation": {
+              "type": "string",
+              "description": "Why the fix is better"
+            }
+          },
+          "required": ["id", "title", "severity", "category", "description", "suggested_fix"]
+        }
+      },
+      "architecture_notes": {
+        "type": "string",
+        "description": "Observations about project structure and design patterns"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Top-priority actions ordered by importance"
+      }
+    },
+    "required": ["summary", "findings", "architecture_notes", "recommendations"]
+  }
+}

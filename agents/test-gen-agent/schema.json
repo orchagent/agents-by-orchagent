@@ -1,0 +1,131 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Root directory of the project (default: /home/user)",
+        "default": "/home/user"
+      },
+      "repo_url": {
+        "type": "string",
+        "description": "Git repository URL to clone and test (optional, alternative to path)"
+      },
+      "target_files": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Specific file paths to generate tests for. If empty, the agent chooses based on importance."
+      },
+      "test_framework": {
+        "type": "string",
+        "description": "Override test framework (e.g., pytest, jest, vitest, go test). If not set, auto-detected."
+      },
+      "coverage_goal": {
+        "type": "string",
+        "description": "What to target",
+        "enum": ["critical_paths", "comprehensive", "edge_cases"],
+        "default": "critical_paths"
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "summary": {
+        "type": "object",
+        "properties": {
+          "files_analyzed": {
+            "type": "integer",
+            "description": "Number of source files analyzed"
+          },
+          "test_files_created": {
+            "type": "integer",
+            "description": "Number of test files generated"
+          },
+          "total_tests": {
+            "type": "integer",
+            "description": "Total number of test cases"
+          },
+          "tests_passing": {
+            "type": "integer",
+            "description": "Number of passing tests"
+          },
+          "tests_failing": {
+            "type": "integer",
+            "description": "Number of failing tests"
+          },
+          "iterations": {
+            "type": "integer",
+            "description": "Total write-run-fix cycles"
+          },
+          "test_framework": {
+            "type": "string",
+            "description": "Test framework used"
+          }
+        },
+        "required": ["files_analyzed", "test_files_created", "total_tests", "tests_passing", "tests_failing", "iterations", "test_framework"]
+      },
+      "test_files": {
+        "type": "array",
+        "description": "Generated test files",
+        "items": {
+          "type": "object",
+          "properties": {
+            "file_path": {
+              "type": "string",
+              "description": "Path to the test file"
+            },
+            "source_file_tested": {
+              "type": "string",
+              "description": "Path to the source file being tested"
+            },
+            "test_count": {
+              "type": "integer",
+              "description": "Number of test cases in this file"
+            },
+            "all_passing": {
+              "type": "boolean",
+              "description": "Whether all tests in this file pass"
+            },
+            "final_code": {
+              "type": "string",
+              "description": "The complete test file source code"
+            }
+          },
+          "required": ["file_path", "source_file_tested", "test_count", "all_passing", "final_code"]
+        }
+      },
+      "coverage_notes": {
+        "type": "string",
+        "description": "What was tested, what wasn't, and why"
+      },
+      "iterations_log": {
+        "type": "array",
+        "description": "Log of write-run-fix iterations",
+        "items": {
+          "type": "object",
+          "properties": {
+            "iteration": {
+              "type": "integer"
+            },
+            "action": {
+              "type": "string",
+              "description": "What was done (e.g., 'Wrote test_utils.py with 8 tests')"
+            },
+            "result": {
+              "type": "string",
+              "description": "Outcome (e.g., '6 passed, 2 failed — TypeError in test_parse_date')"
+            }
+          },
+          "required": ["iteration", "action", "result"]
+        }
+      },
+      "recommendations": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Suggestions for improving testability"
+      }
+    },
+    "required": ["summary", "test_files", "coverage_notes", "iterations_log", "recommendations"]
+  }
+}

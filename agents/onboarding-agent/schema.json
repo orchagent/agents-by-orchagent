@@ -1,0 +1,171 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Root directory of the project to analyze (default: /home/user)",
+        "default": "/home/user"
+      },
+      "repo_url": {
+        "type": "string",
+        "description": "Git repository URL to clone and analyze (optional, alternative to path)"
+      },
+      "audience": {
+        "type": "string",
+        "description": "Who the guide is for",
+        "enum": ["new_hire", "senior_dev", "non_technical"],
+        "default": "new_hire"
+      },
+      "focus_areas": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Optional areas to focus on (e.g., [\"frontend\", \"api\", \"database\", \"deployment\"])"
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "project_overview": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Project name"
+          },
+          "description": {
+            "type": "string",
+            "description": "What this project does"
+          },
+          "tech_stack": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Technologies used (e.g., [\"Next.js 15\", \"FastAPI\", \"PostgreSQL\"])"
+          },
+          "architecture_type": {
+            "type": "string",
+            "description": "Architecture style: monolith, monorepo, microservices, frontend-backend, etc."
+          }
+        },
+        "required": ["name", "description", "tech_stack", "architecture_type"]
+      },
+      "getting_started": {
+        "type": "object",
+        "properties": {
+          "prerequisites": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "What you need installed (e.g., Node.js 20+, Python 3.11+, Docker)"
+          },
+          "setup_steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": { "type": "string" },
+                "instructions": { "type": "string" }
+              },
+              "required": ["title", "instructions"]
+            },
+            "description": "Step-by-step setup instructions"
+          },
+          "run_commands": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string", "description": "What this command does" },
+                "command": { "type": "string", "description": "The actual command" },
+                "description": { "type": "string", "description": "More detail about when/why to use it" }
+              },
+              "required": ["name", "command"]
+            },
+            "description": "Common commands for development"
+          }
+        },
+        "required": ["prerequisites", "setup_steps", "run_commands"]
+      },
+      "architecture_guide": {
+        "type": "object",
+        "properties": {
+          "overview": {
+            "type": "string",
+            "description": "High-level architecture description"
+          },
+          "directory_map": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": { "type": "string" },
+                "purpose": { "type": "string" }
+              },
+              "required": ["path", "purpose"]
+            },
+            "description": "Key directories and what they contain"
+          },
+          "key_files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file": { "type": "string" },
+                "purpose": { "type": "string" },
+                "read_priority": {
+                  "type": "string",
+                  "enum": ["high", "medium", "low"]
+                }
+              },
+              "required": ["file", "purpose", "read_priority"]
+            },
+            "description": "Important files and their read priority"
+          },
+          "data_flow": {
+            "type": "string",
+            "description": "How data moves through the system"
+          }
+        },
+        "required": ["overview", "directory_map", "key_files", "data_flow"]
+      },
+      "key_concepts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "concept": { "type": "string" },
+            "explanation": { "type": "string" },
+            "where_to_find": { "type": "string" }
+          },
+          "required": ["concept", "explanation", "where_to_find"]
+        },
+        "description": "Domain-specific concepts a new developer needs to understand"
+      },
+      "common_tasks": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "task": { "type": "string" },
+            "steps": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "relevant_files": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "required": ["task", "steps", "relevant_files"]
+        },
+        "description": "How to do common development tasks"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Suggestions for improving the onboarding experience"
+      }
+    },
+    "required": ["project_overview", "getting_started", "architecture_guide", "key_concepts", "common_tasks", "recommendations"]
+  }
+}

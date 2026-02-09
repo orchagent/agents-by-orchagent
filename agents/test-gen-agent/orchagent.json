@@ -1,0 +1,78 @@
+{
+  "name": "test-gen-agent",
+  "type": "agent",
+  "description": "Automated test suite generator. Reads your codebase, generates comprehensive tests, RUNS them, iterates on failures, and delivers a passing test suite. Supports Python (pytest), JavaScript/TypeScript (jest/vitest), Go, Rust, and more.",
+  "supported_providers": ["anthropic", "openai", "gemini"],
+  "max_turns": 50,
+  "timeout_seconds": 600,
+  "custom_tools": [
+    {
+      "name": "find_source_files",
+      "description": "Find all source code files, excluding test files, node_modules, .git, build artifacts, and virtual environments.",
+      "command": "find {{path}} -type f \\( -name '*.py' -o -name '*.js' -o -name '*.ts' -o -name '*.tsx' -o -name '*.jsx' -o -name '*.go' -o -name '*.java' -o -name '*.rs' -o -name '*.rb' \\) -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/build/*' -not -path '*/__pycache__/*' -not -path '*/.next/*' -not -path '*/venv/*' -not -path '*/.venv/*' -not -path '*/target/*' -not -path '*/coverage/*' -not -name 'test_*' -not -name '*.test.*' -not -name '*.spec.*' -not -name '*_test.go' -not -name '*_test.py' | sort",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Root directory to search for source files",
+            "default": "/home/user"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "find_test_files",
+      "description": "Find existing test files to understand the project's testing patterns, framework, and conventions.",
+      "command": "find {{path}} -type f \\( -name 'test_*' -o -name '*_test.*' -o -name '*.test.*' -o -name '*.spec.*' -o -name '*_test.go' -o -name '*Test.java' -o -name '*_spec.rb' \\) -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/build/*' -not -path '*/venv/*' -not -path '*/.venv/*' -not -path '*/target/*' | sort",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Root directory to search for test files",
+            "default": "/home/user"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "find_imports",
+      "description": "Search for import/require patterns to understand dependencies between modules. Useful for understanding what a source file depends on before writing tests.",
+      "command": "grep -rn --include='*.py' --include='*.js' --include='*.ts' --include='*.tsx' --include='*.jsx' --include='*.go' --include='*.java' --include='*.rs' --include='*.rb' '{{pattern}}' {{path}} | head -80",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "description": "Import/require pattern to search for"
+          },
+          "path": {
+            "type": "string",
+            "description": "Root directory to search",
+            "default": "/home/user"
+          }
+        },
+        "required": ["pattern"]
+      }
+    },
+    {
+      "name": "detect_test_framework",
+      "description": "Auto-detect which test framework the project uses by checking for configuration files, dependencies, and conventions.",
+      "command": "echo '=== Checking test frameworks ===' && ([ -f {{path}}/pytest.ini ] && echo 'FOUND: pytest.ini') || true && ([ -f {{path}}/pyproject.toml ] && grep -q pytest {{path}}/pyproject.toml 2>/dev/null && echo 'FOUND: pytest in pyproject.toml') || true && ([ -f {{path}}/package.json ] && grep -q jest {{path}}/package.json 2>/dev/null && echo 'FOUND: jest in package.json') || true && ([ -f {{path}}/jest.config.js ] || [ -f {{path}}/jest.config.ts ]) && echo 'FOUND: jest config file' || true && ([ -f {{path}}/vitest.config.ts ] || [ -f {{path}}/vitest.config.js ]) && echo 'FOUND: vitest config file' || true && ([ -f {{path}}/package.json ] && grep -q vitest {{path}}/package.json 2>/dev/null && echo 'FOUND: vitest in package.json') || true && ([ -f {{path}}/package.json ] && grep -q mocha {{path}}/package.json 2>/dev/null && echo 'FOUND: mocha in package.json') || true && ([ -f {{path}}/Cargo.toml ] && echo 'FOUND: Cargo.toml (Rust - cargo test)') || true && (find {{path}} -maxdepth 3 -name '*_test.go' -not -path '*/vendor/*' 2>/dev/null | head -1 | grep -q . && echo 'FOUND: Go test files') || true && ([ -f {{path}}/Gemfile ] && grep -q rspec {{path}}/Gemfile 2>/dev/null && echo 'FOUND: rspec in Gemfile') || true && echo '=== Language detection ===' && ([ -f {{path}}/requirements.txt ] && echo 'Python project (requirements.txt)') || true && ([ -f {{path}}/pyproject.toml ] && echo 'Python project (pyproject.toml)') || true && ([ -f {{path}}/package.json ] && echo 'Node.js project (package.json)') || true && ([ -f {{path}}/go.mod ] && echo 'Go project (go.mod)') || true && ([ -f {{path}}/Cargo.toml ] && echo 'Rust project (Cargo.toml)') || true && echo '=== Done ==='",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Project root directory",
+            "default": "/home/user"
+          }
+        },
+        "required": ["path"]
+      }
+    }
+  ]
+}

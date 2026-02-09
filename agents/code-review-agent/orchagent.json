@@ -1,0 +1,78 @@
+{
+  "name": "code-review-agent",
+  "type": "agent",
+  "description": "Comprehensive code reviewer. Analyzes your codebase for bugs, security issues, performance problems, and code smells. Reads every file in context, traces cross-file relationships, and provides specific fixes with actual code.",
+  "supported_providers": ["anthropic", "openai", "gemini"],
+  "max_turns": 35,
+  "timeout_seconds": 300,
+  "custom_tools": [
+    {
+      "name": "find_source_files",
+      "description": "Find all source code files excluding node_modules, .git, build artifacts, and virtual environments. Covers Python, JavaScript, TypeScript, Go, Java, Ruby, PHP, Rust, C/C++.",
+      "command": "find {{path}} -type f \\( -name '*.py' -o -name '*.js' -o -name '*.ts' -o -name '*.tsx' -o -name '*.jsx' -o -name '*.go' -o -name '*.java' -o -name '*.rb' -o -name '*.php' -o -name '*.rs' -o -name '*.c' -o -name '*.cpp' -o -name '*.h' \\) -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/build/*' -not -path '*/__pycache__/*' -not -path '*/.next/*' -not -path '*/venv/*' -not -path '*/.venv/*' -not -path '*/vendor/*' -not -path '*/target/*' | sort",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Root directory to search",
+            "default": "/home/user"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "count_lines",
+      "description": "Count lines of code per file in a directory. Returns file paths with line counts, sorted largest first. Useful for identifying complex files to prioritize.",
+      "command": "find {{path}} -type f \\( -name '*.py' -o -name '*.js' -o -name '*.ts' -o -name '*.tsx' -o -name '*.jsx' -o -name '*.go' -o -name '*.java' -o -name '*.rb' -o -name '*.php' -o -name '*.rs' \\) -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/build/*' -not -path '*/__pycache__/*' -not -path '*/venv/*' -print0 | xargs -0 wc -l 2>/dev/null | sort -rn | head -40",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Root directory to analyze",
+            "default": "/home/user"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "grep_pattern",
+      "description": "Search for a regex pattern across source files. Use for finding anti-patterns, TODOs, dangerous code, debug logging, etc. Returns matches with file paths and line numbers.",
+      "command": "grep -rn --include='*.py' --include='*.js' --include='*.ts' --include='*.tsx' --include='*.jsx' --include='*.go' --include='*.java' --include='*.rb' --include='*.php' --include='*.rs' '{{pattern}}' {{path}} | head -100",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "description": "Regex pattern to search for"
+          },
+          "path": {
+            "type": "string",
+            "description": "Directory to search",
+            "default": "/home/user"
+          }
+        },
+        "required": ["pattern", "path"]
+      }
+    },
+    {
+      "name": "find_tests",
+      "description": "Find test files to assess test coverage. Detects common test file naming conventions across languages.",
+      "command": "find {{path}} -type f \\( -name 'test_*' -o -name '*_test.*' -o -name '*.test.*' -o -name '*.spec.*' -o -name '*Test.java' -o -name '*_spec.rb' \\) -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/build/*' | sort",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Root directory to search for test files",
+            "default": "/home/user"
+          }
+        },
+        "required": ["path"]
+      }
+    }
+  ]
+}

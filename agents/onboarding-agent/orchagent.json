@@ -1,0 +1,94 @@
+{
+  "name": "onboarding-agent",
+  "type": "agent",
+  "description": "Scans a codebase and generates a comprehensive onboarding guide for new developers. Maps project structure, identifies architecture patterns, reads key source files, and produces an actionable guide covering setup, architecture, key concepts, and common tasks.",
+  "supported_providers": ["anthropic", "openai", "gemini"],
+  "max_turns": 40,
+  "timeout_seconds": 300,
+  "custom_tools": [
+    {
+      "name": "find_source_files",
+      "description": "Find all source code files excluding node_modules, .git, build artifacts, and virtual environments. Covers Python, JavaScript, TypeScript, Go, Java, Ruby, PHP, Rust, C/C++, Shell scripts.",
+      "command": "find {{path}} -type f \\( -name '*.py' -o -name '*.js' -o -name '*.ts' -o -name '*.tsx' -o -name '*.jsx' -o -name '*.go' -o -name '*.java' -o -name '*.rb' -o -name '*.php' -o -name '*.rs' -o -name '*.c' -o -name '*.cpp' -o -name '*.h' -o -name '*.sh' \\) -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/build/*' -not -path '*/__pycache__/*' -not -path '*/.next/*' -not -path '*/venv/*' -not -path '*/.venv/*' -not -path '*/vendor/*' -not -path '*/target/*' | sort",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Root directory to search",
+            "default": "/home/user"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "find_config_files",
+      "description": "Find configuration and manifest files: package.json, requirements.txt, pyproject.toml, Cargo.toml, go.mod, Dockerfile, docker-compose.yml, Makefile, tsconfig.json, .env.example, and deployment configs.",
+      "command": "find {{path}} -type f \\( -name 'package.json' -o -name 'requirements.txt' -o -name 'pyproject.toml' -o -name 'setup.py' -o -name 'Cargo.toml' -o -name 'go.mod' -o -name 'pom.xml' -o -name 'build.gradle' -o -name 'Gemfile' -o -name 'composer.json' -o -name 'Dockerfile' -o -name 'docker-compose.yml' -o -name 'docker-compose.yaml' -o -name 'Makefile' -o -name 'tsconfig.json' -o -name '.env.example' -o -name '.env.sample' -o -name 'Procfile' -o -name 'vercel.json' -o -name 'netlify.toml' \\) -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/venv/*' -not -path '*/.venv/*' | sort",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Root directory to search",
+            "default": "/home/user"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "find_docs",
+      "description": "Find documentation files: Markdown (.md), reStructuredText (.rst), and text files (.txt). Excludes node_modules, .git, and vendor directories.",
+      "command": "find {{path}} -type f \\( -name '*.md' -o -name '*.rst' \\) -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/venv/*' -not -path '*/.venv/*' -not -path '*/vendor/*' | sort",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Root directory to search",
+            "default": "/home/user"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "count_by_extension",
+      "description": "Count files by extension to understand language distribution. Groups files by extension, sorted most to least common.",
+      "command": "find {{path}} -type f -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/dist/*' -not -path '*/build/*' -not -path '*/__pycache__/*' -not -path '*/venv/*' -not -path '*/.venv/*' -not -path '*/vendor/*' -not -path '*/target/*' | awk -F. 'NF>1 {print $NF}' | sort | uniq -c | sort -rn | head -30",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Root directory to analyze",
+            "default": "/home/user"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "grep_pattern",
+      "description": "Search for a regex pattern across source files. Use for finding routes, handlers, models, exports, entry points, and other code patterns.",
+      "command": "grep -rn --include='*.py' --include='*.js' --include='*.ts' --include='*.tsx' --include='*.jsx' --include='*.go' --include='*.java' --include='*.rb' --include='*.php' --include='*.rs' '{{pattern}}' {{path}} | head -100",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "description": "Regex pattern to search for"
+          },
+          "path": {
+            "type": "string",
+            "description": "Directory to search",
+            "default": "/home/user"
+          }
+        },
+        "required": ["pattern", "path"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "name": "useeffect-agent",
+  "type": "agent",
+  "description": "Scans your entire React project for unnecessary useEffect hooks. Reads every component, identifies anti-patterns, understands cross-file context, and provides refactored code.",
+  "tags": ["react", "code-review", "hooks", "refactoring", "performance", "best-practices"],
+  "supported_providers": ["anthropic", "openai", "gemini"],
+  "max_turns": 40,
+  "timeout_seconds": 300,
+  "custom_tools": [
+    {
+      "name": "find_react_files",
+      "description": "Find all React component files (.tsx, .jsx) in a directory. Excludes node_modules, dist, build, .next, and coverage directories. Returns sorted file paths.",
+      "command": "find {{path}} -type f \\( -name '*.tsx' -o -name '*.jsx' \\) -not -path '*/node_modules/*' -not -path '*/dist/*' -not -path '*/build/*' -not -path '*/.next/*' -not -path '*/coverage/*' | sort",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Root directory to search for React files",
+            "default": "/home/user"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "count_useeffects",
+      "description": "Count useEffect calls in all React files under a directory. Returns each file with its useEffect count, sorted highest first. Use to prioritize which files to analyze.",
+      "command": "find {{path}} -type f \\( -name '*.tsx' -o -name '*.jsx' \\) -not -path '*/node_modules/*' -not -path '*/dist/*' -not -path '*/build/*' -not -path '*/.next/*' -not -path '*/coverage/*' -print0 | xargs -0 grep -l 'useEffect' 2>/dev/null | while IFS= read -r f; do count=$(grep -c 'useEffect' \"$f\"); echo \"$count $f\"; done | sort -rn",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Root directory to search",
+            "default": "/home/user"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "find_useeffect_lines",
+      "description": "Show all useEffect calls in a file with line numbers and 5 lines of surrounding context. Use for quick triage before reading the full file.",
+      "command": "grep -n -B2 -A5 'useEffect(' {{file_path}}",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Path to the file to search"
+          }
+        },
+        "required": ["file_path"]
+      }
+    },
+    {
+      "name": "find_imports",
+      "description": "Find where a specific hook, component, or module is imported across the project. Useful for understanding cross-file dependencies.",
+      "command": "grep -rn --include='*.tsx' --include='*.jsx' --include='*.ts' --include='*.js' '{{pattern}}' {{path}} | head -50",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "string",
+            "description": "Import pattern to search for (e.g., hook name, component name)"
+          },
+          "path": {
+            "type": "string",
+            "description": "Root directory to search",
+            "default": "/home/user"
+          }
+        },
+        "required": ["pattern"]
+      }
+    }
+  ]
+}

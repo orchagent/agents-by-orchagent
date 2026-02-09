@@ -1,0 +1,116 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Root directory of the React project to scan",
+        "default": "/home/user"
+      },
+      "repo_url": {
+        "type": "string",
+        "description": "Git repository URL to clone and scan (alternative to path)"
+      },
+      "strictness": {
+        "type": "string",
+        "enum": ["lenient", "standard", "strict"],
+        "default": "standard",
+        "description": "Analysis strictness: lenient (only obvious issues), standard (clear anti-patterns), strict (flag anything refactorable)"
+      }
+    }
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "summary": {
+        "type": "object",
+        "properties": {
+          "files_scanned": {
+            "type": "integer",
+            "description": "Total React component files scanned"
+          },
+          "total_useeffects": {
+            "type": "integer",
+            "description": "Total useEffect hooks found across all files"
+          },
+          "unnecessary_count": {
+            "type": "integer",
+            "description": "Number of useEffects flagged as unnecessary"
+          },
+          "necessary_count": {
+            "type": "integer",
+            "description": "Number of useEffects deemed necessary"
+          },
+          "needs_review_count": {
+            "type": "integer",
+            "description": "Number of useEffects that need human review"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["none", "low", "medium", "high"],
+            "description": "Overall project severity"
+          }
+        },
+        "required": ["files_scanned", "total_useeffects", "unnecessary_count", "necessary_count", "severity"]
+      },
+      "findings": {
+        "type": "array",
+        "description": "Individual useEffect findings",
+        "items": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "File path"
+            },
+            "line": {
+              "type": "integer",
+              "description": "Line number of the useEffect"
+            },
+            "verdict": {
+              "type": "string",
+              "enum": ["unnecessary", "necessary", "needs_review"]
+            },
+            "category": {
+              "type": "string",
+              "description": "Pattern category (derived_state, event_handler_logic, reset_state_on_prop, adjust_state_from_props, notify_parent, chained_updates, initialize_from_props, subscription, data_fetching, dom_manipulation, cleanup, external_sync, other)"
+            },
+            "severity": {
+              "type": "string",
+              "enum": ["high", "medium", "low"],
+              "description": "Impact severity: high (bugs/perf), medium (code smell), low (style)"
+            },
+            "current_code": {
+              "type": "string",
+              "description": "The current useEffect code"
+            },
+            "suggested_fix": {
+              "type": "string",
+              "description": "Refactored code (empty if necessary)"
+            },
+            "explanation": {
+              "type": "string",
+              "description": "Why this is unnecessary/necessary"
+            },
+            "confidence": {
+              "type": "string",
+              "enum": ["high", "medium", "low"]
+            }
+          },
+          "required": ["file", "line", "verdict", "category", "current_code", "explanation", "confidence"]
+        }
+      },
+      "files_clean": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Files that were checked and have no issues"
+      },
+      "recommendations": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Project-wide recommendations"
+      }
+    },
+    "required": ["summary", "findings", "files_clean", "recommendations"]
+  }
+}

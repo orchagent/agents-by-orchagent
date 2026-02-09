@@ -46,8 +46,6 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch update` | Update installed agents | - |
 | `orch formats` | List available export formats | - |
 | `orch billing balance` | Check credit balance | - |
-| `orch seller onboard` | Start Stripe payout onboarding | - |
-| `orch pricing <agent> <price>` | Set per-call price | - |
 
 ### When to Use What
 
@@ -320,13 +318,6 @@ orch skill install yourorg/react-best-practices --format claude-code,cursor
 ~/.agent/skills/react-best-practices.md
 ```
 
-### Finding Skills
-
-```bash
-# Search for skills
-orch search react --type skills
-```
-
 ### Using Skills with Agents
 
 When running orchagent agents, you can compose skills:
@@ -341,41 +332,6 @@ orch run acme/code-reviewer code.py --skills-only yourorg/react-rules
 # Ignore all skills
 orch run acme/code-reviewer code.py --no-skills
 ```
-
----
-
-## Search
-
-### search
-
-Search for agents and skills on the platform.
-
-```bash
-# Search by keyword
-orch search invoice
-
-# Filter to agents only
-orch search invoice --type agents
-
-# Filter to skills only
-orch search react --type skills
-
-# List your own agents (including private)
-orch search --mine
-
-# Search your agents by keyword
-orch search writer --mine
-
-# Limit results (default: 20)
-orch search invoice --limit 50
-
-# JSON output for scripting
-orch search invoice --json
-```
-
-<Tip>
-Use `--mine` to see all your deployed agents, including private ones in your workspace.
-</Tip>
 
 ---
 
@@ -519,17 +475,14 @@ Publish an agent or skill from the current directory.
 # Preview what would be published
 orch publish --dry-run
 
-# Publish as public
-orch publish --public
-
-# Publish as private (requires paid plan)
+# Publish your agent
 orch publish
 
 # Publish with default skills
 orch publish --skills yourorg/style@v1,yourorg/rules@v1
 
-# Publish with local download enabled (allows orch run)
-orch publish --public --local-download
+# Publish with local download enabled (allows orch run --local)
+orch publish --local-download
 ```
 
 ### delete
@@ -549,8 +502,6 @@ orch delete yourorg/my-agent --all
 # Preview what would be deleted
 orch delete yourorg/my-agent --dry-run
 ```
-
-Agents with 10+ stars or forks require you to type the agent name to confirm.
 
 Deleted data is retained for 30 days before permanent removal.
 
@@ -730,7 +681,7 @@ orch doctor --json
 
 ## Billing & Credits
 
-Manage your prepaid credit balance for calling paid agents.
+Manage platform credits and usage.
 
 ### billing balance
 
@@ -756,94 +707,6 @@ View your credit transaction history (top-ups, charges, refunds).
 ```bash
 orch billing history
 ```
-
----
-
-## Pricing & Payouts
-
-Authors can optionally set per-call prices on their agents. Requires Stripe Connect onboarding.
-
-### seller onboard
-
-Start Stripe Connect onboarding to receive payouts for your agents.
-
-```bash
-# Opens Stripe-hosted onboarding
-orch seller onboard
-
-# Optionally specify country
-orch seller onboard --country US
-```
-
-### seller status
-
-Check your payout verification status.
-
-```bash
-orch seller status
-```
-
-### seller dashboard
-
-Open your Stripe Express Dashboard to manage bank accounts, view payout history, and handle tax forms.
-
-```bash
-orch seller dashboard
-```
-
-### seller earnings
-
-View your revenue breakdown.
-
-```bash
-orch seller earnings
-```
-
-### pricing
-
-Set or update the per-call price on an agent you own.
-
-```bash
-# Set price to $0.50 per call
-orch pricing my-agent 0.50
-
-# Remove pricing (make free)
-orch pricing my-agent 0
-
-# Enable local download
-orch pricing my-agent free --local-download
-
-# Disable local download (server-only)
-orch pricing my-agent free --no-local-download
-```
-
-Minimum price: $0.01. Paid agents become server-only for non-owners. The `--local-download` / `--no-local-download` flags control whether free agents can be downloaded with `orch run`.
-
-See [Monetization](/concepts/monetization) for full details on pricing, revenue splits, and payouts.
-
----
-
-## Social Features
-
-### star
-
-Star or unstar an agent.
-
-```bash
-orch star acme/invoice-scanner
-```
-
-### fork
-
-Fork a public agent to your account. Only available for agents with local download enabled (source-available). Paid and server-only agents cannot be forked.
-
-```bash
-orch fork acme/invoice-scanner
-```
-
-<Note>
-If the agent's author has disabled local download, forking is blocked to protect their intellectual property. You'll see a 403 error. Use `orch run` to run server-only agents on the cloud instead.
-</Note>
 
 ---
 

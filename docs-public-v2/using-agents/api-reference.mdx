@@ -261,9 +261,6 @@ The public detail endpoint (`GET /public/agents/{org}/{agent}/{version}`) also r
 | `POST /agents` | Register new agent |
 | `GET /agents/{id}` | Get agent details |
 | `PATCH /agents/{id}` | Update agent |
-| `POST /agents/{id}/star` | Star an agent |
-| `DELETE /agents/{id}/star` | Unstar an agent |
-| `POST /agents/{id}/fork` | Fork an agent |
 | `POST /agents/{id}/upload` | Upload code bundle (tool agents only) |
 | `GET /agents/{id}/logs` | Get execution logs (owner only) |
 
@@ -271,18 +268,9 @@ The public detail endpoint (`GET /public/agents/{org}/{agent}/{version}`) also r
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /billing/balance` | Get your prepaid credit balance |
+| `GET /billing/balance` | Get your credit balance |
 | `POST /billing/checkout` | Create Stripe Checkout session to add credits |
 | `GET /billing/transactions` | List credit transactions (top-ups, charges, refunds) |
-| `GET /billing/earnings` | Get author earnings breakdown |
-
-### Payouts
-
-| Endpoint | Description |
-|----------|-------------|
-| `POST /sellers/onboard` | Start Stripe Connect onboarding |
-| `GET /sellers/status` | Get payout verification status |
-| `POST /sellers/dashboard-link` | Get Stripe Express Dashboard login URL |
 
 ### Compute Usage
 

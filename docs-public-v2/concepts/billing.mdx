@@ -1,0 +1,77 @@
+---
+title: "Billing & Credits"
+description: "Platform credits for running agents"
+---
+
+orchagent uses a credit-based billing system for platform usage. Add credits to your account and they're consumed when you run agents.
+
+## How It Works
+
+```
+Sign up → Add credits → Run agents → Credits consumed per call
+```
+
+---
+
+## Adding Credits
+
+Add prepaid credits to your account.
+
+```bash
+# Add $10 in credits (minimum $5)
+orch billing add 10
+
+# Check your balance
+orch billing balance
+
+# View transaction history
+orch billing history
+```
+
+You can also add credits from the dashboard at **Settings > Billing > Add Credits**.
+
+Credits are added via Stripe Checkout. They don't expire and are refundable on request.
+
+## Running Agents
+
+When you run an agent, the platform usage cost is deducted from your credit balance automatically. If your balance is insufficient, you'll get a `402 Payment Required` error.
+
+### Checking Costs
+
+Agent pricing is shown on agent detail pages. You can also check via the public API endpoint:
+
+```http
+GET /public/agents/{org}/{agent}/{version}
+```
+
+---
+
+## Access Control
+
+| Download Enabled | `orch run` (cloud, default) | `orch run --local` / install |
+|-----------------|-------------|---------------------|
+| OFF (default) | Anyone | Blocked — cloud only |
+| ON | Anyone | Anyone |
+
+New agents default to server-only (`allow_local_download=false`). Authors opt-in to local download via `--local-download` flag or the web UI toggle.
+
+```bash
+# Non-owner trying to run a server-only agent locally:
+$ orch run --local acme/server-agent
+Error: This agent is server-only and cannot be downloaded.
+Use: orch run acme/server-agent@latest --data '{...}'
+
+# Owner downloading their own agent (always works):
+$ orch run --local acme/my-agent
+✔ Downloaded acme/my-agent@latest
+```
+
+---
+
+## CLI Commands
+
+| Command | Description |
+|---------|-------------|
+| `orch billing balance` | Check credit balance |
+| `orch billing add <amount>` | Add credits ($5 minimum) |
+| `orch billing history` | View transaction history |

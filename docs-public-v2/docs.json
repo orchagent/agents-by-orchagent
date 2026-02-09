@@ -62,7 +62,7 @@
                   "concepts/byok",
                   "concepts/local-vs-server",
                   "concepts/rate-limits",
-                  "concepts/monetization"
+                  "concepts/billing"
                 ]
               },
               {
@@ -105,8 +105,9 @@
     { "source": "/api", "destination": "/api-reference/overview" },
     { "source": "/building-agents/skills-format", "destination": "/building-agents/orchestration" },
     { "source": "/docs/:path*", "destination": "/:path*" },
-    { "source": "/pricing", "destination": "/concepts/monetization" },
-    { "source": "/monetization", "destination": "/concepts/monetization" },
-    { "source": "/billing", "destination": "/concepts/monetization" }
+    { "source": "/pricing", "destination": "/concepts/billing" },
+    { "source": "/monetization", "destination": "/concepts/billing" },
+    { "source": "/concepts/monetization", "destination": "/concepts/billing" },
+    { "source": "/billing", "destination": "/concepts/billing" }
   ]
 }

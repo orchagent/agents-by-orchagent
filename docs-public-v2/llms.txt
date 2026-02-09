@@ -14,7 +14,7 @@ orchagent is a deployment platform where developers build, deploy, and run AI ag
 - Run history, scheduling, and managed secrets
 - Free tier: 1000 calls/day
 - BYOK: Bring your own LLM API keys
-- Optional per-call pricing for authors
+- Credit-based billing for platform usage
 
 ## Agent Types
 
@@ -40,7 +40,7 @@ orchagent is a deployment platform where developers build, deploy, and run AI ag
 - [BYOK](https://docs.orchagent.io/concepts/byok): Bring Your Own Key model
 - [Local vs Server](https://docs.orchagent.io/concepts/local-vs-server): orch run (cloud vs --local)
 - [Rate Limits](https://docs.orchagent.io/concepts/rate-limits): Platform limits
-- [Monetization](https://docs.orchagent.io/concepts/monetization): Per-call pricing, credits, author payouts
+- [Billing & Credits](https://docs.orchagent.io/concepts/billing): Platform credits and usage
 
 ## API
 
@@ -57,7 +57,7 @@ orch login
 orch init my-agent --type prompt
 cd my-agent
 # Edit prompt.md and schema.json
-orch publish --public
+orch publish
 ```
 
 ### Run an agent (cloud execution, default)
@@ -91,7 +91,7 @@ curl -X POST https://api.orchagent.io/acme/summarizer/v1/analyze \
 | Workspace | Team-scoped container for agents, members, and settings |
 | BYOK | Bring Your Own Key - users provide their own LLM API keys |
 | Version | Each publish creates a new version (v1, v2, v3...) |
-| Credits | Prepaid balance used to pay for calling paid agents |
+| Credits | Prepaid balance for platform usage |
 
 ## Links
 

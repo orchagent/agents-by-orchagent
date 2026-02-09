@@ -29,11 +29,7 @@ orchagent offers three ways to use agents:
 Production apps call the HTTP API directly from code. The CLI is useful for testing.
 
 <Note>
-**Paid agents** are server-only for non-owners. If an agent has a per-call price, other users must use `orch run` (cloud) — `orch run --local` will return an error. Authors can always download and run their own paid agents locally. See [Monetization](/concepts/monetization).
-</Note>
-
-<Note>
-**Local download is opt-in.** New agents and skills default to server-only (not locally downloadable). Authors must explicitly enable local download using the `--local-download` flag at publish time or the toggle in the web UI. Existing free public agents have been backfilled with `allow_local_download` enabled.
+**Local download is opt-in.** New agents and skills default to server-only (not locally downloadable). Authors must explicitly enable local download using the `--local-download` flag at publish time or the toggle in the web UI.
 </Note>
 
 ## Cloud Execution (`orch run`)

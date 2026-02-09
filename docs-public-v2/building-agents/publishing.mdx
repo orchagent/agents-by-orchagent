@@ -18,64 +18,9 @@ Publish your agent or skill to make it available on the platform.
 # Navigate to your agent directory
 cd my-agent
 
-# Publish as public agent
-orch publish --public
-
-# Publish as private agent (default)
+# Publish your agent
 orch publish
 ```
-
-## Visibility & Pricing
-
-orchagent supports both public and private agents/skills, with optional per-call pricing:
-
-| Visibility | Plan | Who Can Access |
-|------------|------|----------------|
-| **Public** | Free | Anyone with the CLI or API |
-| **Private** | Pro | Your workspace only |
-
-### Public (Free)
-- Anyone can call your agent via CLI or API
-- Great for open-source tools, showcase agents, and team sharing
-
-### Private (Pro)
-- Only accessible within your workspace
-- Ideal for proprietary tools, internal workflows, or client-specific agents
-
-<Note>
-Private agents require a Pro subscription. [Contact us](mailto:hello@orchagent.io) for pricing.
-</Note>
-
-### Paid Agents
-
-You can set a per-call price on any agent or skill. Callers pay from their prepaid credit balance.
-
-```bash
-# Publish with a price
-orch publish --public --price 0.50    # $0.50 per call
-
-# Set pricing on an already-published agent
-orch pricing my-agent 0.50
-```
-
-Paid agents are **server-only for non-owners** — other users must use `orch run` (cloud, the default). Local execution via `orch run --local` is not available for paid agents. You can still download your own paid agents for testing.
-
-### Source Available vs Server Only
-
-Agents have two visibility modes that control what non-owners can see and do:
-
-| Mode | Prompt/code visible? | `orch run` | `orch fork` | Badge |
-|------|---------------------|------------|-------------|-------|
-| **Source Available** (`--local-download`) | Yes | Yes | Yes | "Source Available" |
-| **Server Only** (default) | No — redacted | No — cloud only (`orch run`) | No — blocked | "Server Only" |
-
-**Server-only agents** (the default) redact the prompt, manifest, and skill files from public API responses. This protects your intellectual property while still letting users run the agent via `orch run` (cloud execution).
-
-**Source-available agents** expose the full prompt and code. Users can inspect, fork, and run locally. Use this for open/community agents where transparency builds trust.
-
-Paid agents are always server-only regardless of the `--local-download` flag.
-
-See [Monetization](/concepts/monetization) for full details on pricing, credits, and payouts.
 
 ## Publishing Skills
 
@@ -101,12 +46,7 @@ Then publish:
 
 ```bash
 cd my-skill
-
-# Publish as private (default)
 orch publish
-
-# Publish as public (opt-in)
-orch publish --public
 ```
 
 The CLI auto-detects `SKILL.md` and publishes as a skill. See [Agent Types](/building-agents/agent-types#skills) for the full SKILL.md format.
@@ -164,11 +104,7 @@ orch run .
 ### Step 4: Publish
 
 ```bash
-# Publish as private (default)
 orch publish
-
-# Publish as public (accessible to anyone)
-orch publish --public
 ```
 
 ## What Happens on Publish
@@ -225,6 +161,19 @@ orch run yourorg/my-agent@v2
 ```
 
 Callers should pin to specific versions for stability in production environments.
+
+## Source Available vs Server Only
+
+Agents have two distribution modes that control what non-owners can see and do:
+
+| Mode | Prompt/code visible? | `orch run --local` | Badge |
+|------|---------------------|------------|-------|
+| **Source Available** (`--local-download`) | Yes | Yes | "Source Available" |
+| **Server Only** (default) | No — redacted | No — cloud only (`orch run`) | "Server Only" |
+
+**Server-only agents** (the default) redact the prompt, manifest, and skill files from public API responses. This protects your intellectual property while still letting users run the agent via `orch run` (cloud execution).
+
+**Source-available agents** expose the full prompt and code. Users can inspect and run locally. Use this for open/community agents where transparency builds trust.
 
 ## Tool Bundling
 
@@ -371,13 +320,10 @@ export ORCHAGENT_SERVICE_KEY="sk_agent_..."
 
 | Flag | Description |
 |------|-------------|
-| `--public` | Make agent publicly accessible |
-| `--private` | (Deprecated) Private is now the default - this flag still works but is no longer needed |
 | `--dry-run` | Validate and preview bundle without publishing |
 | `--entrypoint <file>` | Override entrypoint for tools |
 | `--skills <list>` | Default skills (comma-separated, e.g., `org/skill@v1,org/other@v1`) |
 | `--skills-locked` | Lock default skills (callers cannot override via flags) |
-| `--price <amount>` | Set per-call price in USD (e.g., `0.50` for $0.50). Requires payout onboarding. |
 | `--local-download` | Allow users to download and run locally. Without this flag, agents default to server-only. |
 
 ## Distribution
@@ -388,21 +334,11 @@ To allow users to download and run your agent locally with `orch run --local`:
 
 ```bash
 # Publish with local download enabled
-orch publish --public --local-download
-```
-
-You can also toggle this after publishing:
-
-```bash
-# Enable local download
-orch pricing my-agent free --local-download
-
-# Disable local download (back to server-only)
-orch pricing my-agent free --no-local-download
+orch publish --local-download
 ```
 
 <Note>
-Paid agents are always server-only. The `--local-download` flag is ignored when pricing is set to `per_call`. Agent owners can always download their own agents regardless of this setting.
+Agent owners can always download their own agents regardless of this setting.
 </Note>
 
 ## Troubleshooting
@@ -466,7 +402,7 @@ jobs:
       - name: Publish
         env:
           ORCHAGENT_API_KEY: ${{ secrets.ORCHAGENT_API_KEY }}
-        run: orch publish --public
+        run: orch publish
 ```
 
 ### Environment Variables
@@ -487,7 +423,7 @@ For CI/CD, use environment variables instead of config files:
   <Card title="CLI Reference" icon="terminal" href="/using-agents/cli-commands">
     All CLI commands
   </Card>
-  <Card title="Monetization" icon="dollar-sign" href="/concepts/monetization">
-    Charge per call for your agents
+  <Card title="Billing" icon="credit-card" href="/concepts/billing">
+    Platform credits and usage
   </Card>
 </CardGroup>

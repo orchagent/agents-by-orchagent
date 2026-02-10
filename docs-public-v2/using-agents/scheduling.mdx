@@ -1,0 +1,319 @@
+---
+title: "Scheduling & Webhooks"
+description: "Run agents automatically on a cron schedule or webhook trigger"
+---
+
+Automate agent execution with **cron schedules** (run at fixed times) or **webhooks** (run when triggered by external systems). Schedules execute agents in the cloud — no infrastructure to manage.
+
+## Quick Start
+
+```bash
+# Create a daily cron schedule
+orch schedule create acme/report-generator \
+  --cron "0 9 * * *" \
+  --timezone "America/New_York" \
+  --input '{"format": "pdf"}'
+
+# Create a webhook trigger
+orch schedule create acme/github-processor --webhook
+
+# List all schedules
+orch schedule list
+
+# Trigger a schedule manually (for testing)
+orch schedule trigger <schedule-id>
+```
+
+---
+
+## Cron Schedules
+
+Cron schedules run agents at fixed intervals using standard cron expressions.
+
+### Creating a Cron Schedule
+
+```bash
+orch schedule create <org/agent[@version]> \
+  --cron "<expression>" \
+  [--timezone "<tz>"] \
+  [--input '<json>'] \
+  [--provider <provider>] \
+  [--workspace <slug>]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--cron <expr>` | Cron expression (required for cron) | — |
+| `--timezone <tz>` | IANA timezone | `UTC` |
+| `--input <json>` | Agent input as JSON string | `{}` |
+| `--provider <name>` | LLM provider: `anthropic`, `openai`, `gemini` | Agent default |
+| `--workspace <slug>` | Workspace slug | Current workspace |
+
+### Cron Expression Format
+
+Standard five-field Unix cron syntax:
+
+```
+┌───────────── minute (0-59)
+│ ┌───────────── hour (0-23)
+│ │ ┌───────────── day of month (1-31)
+│ │ │ ┌───────────── month (1-12)
+│ │ │ │ ┌───────────── day of week (0-7, Sun = 0 or 7)
+│ │ │ │ │
+* * * * *
+```
+
+**Common examples:**
+
+| Expression | Runs |
+|-----------|------|
+| `0 9 * * *` | Daily at 9:00 AM |
+| `0 9 * * 1-5` | Weekdays at 9:00 AM |
+| `0 */6 * * *` | Every 6 hours |
+| `*/15 * * * *` | Every 15 minutes |
+| `0 0 1 * *` | First day of each month at midnight |
+| `0 9 * * 1` | Every Monday at 9:00 AM |
+| `30 2 * * 0` | Every Sunday at 2:30 AM |
+
+### Timezone
+
+Timezones use IANA identifiers. Some common values:
+
+| Timezone | Identifier |
+|----------|------------|
+| US Eastern | `America/New_York` |
+| US Pacific | `America/Los_Angeles` |
+| UK | `Europe/London` |
+| Central Europe | `Europe/Berlin` |
+| Japan | `Asia/Tokyo` |
+| Australia Eastern | `Australia/Sydney` |
+| UTC (default) | `UTC` |
+
+### How Cron Execution Works
+
+1. You create a schedule — orchagent registers a Cloud Scheduler job
+2. At the scheduled time, the platform triggers the agent
+3. Agent runs in a cloud sandbox with your stored LLM keys and workspace secrets
+4. Run result is logged to your workspace run history
+5. Next execution time is calculated and displayed
+
+---
+
+## Webhook Schedules
+
+Webhook schedules let external systems trigger agent execution via HTTP POST.
+
+### Creating a Webhook
+
+```bash
+orch schedule create <org/agent[@version]> --webhook \
+  [--input '<json>'] \
+  [--provider <provider>] \
+  [--workspace <slug>]
+```
+
+On creation, you'll receive a **webhook URL** containing a secret token:
+
+```
+https://api.orchagent.io/webhooks/{schedule_id}/{secret}
+```
+
+<Warning>
+The webhook secret is shown only once at creation time. Save it immediately.
+</Warning>
+
+### Calling a Webhook
+
+External systems (GitHub Actions, Zapier, Stripe, etc.) send a POST request to the webhook URL:
+
+```bash
+curl -X POST https://api.orchagent.io/webhooks/{schedule_id}/{secret} \
+  -H "Content-Type: application/json" \
+  -d '{"event": "new_issue", "repo": "acme/app"}'
+```
+
+The request body is merged with the schedule's default `input_data` and passed to the agent.
+
+### Webhook Security
+
+The URL itself contains the secret token — no separate authentication headers needed. Treat the webhook URL like an API key:
+
+- Don't commit it to source control
+- Store it in your CI/CD secrets manager
+- Regenerate by deleting and recreating the schedule if compromised
+
+---
+
+## Managing Schedules
+
+### List Schedules
+
+```bash
+# List all schedules
+orch schedule list
+
+# Filter by agent
+orch schedule list --agent report-generator
+
+# Filter by type
+orch schedule list --type cron
+
+# JSON output (for scripting)
+orch schedule list --json
+```
+
+Output shows: ID, agent, type, cron expression, enabled status, last run time, last status, and total run count.
+
+### Update a Schedule
+
+```bash
+# Change cron expression
+orch schedule update <schedule-id> --cron "0 10 * * 1"
+
+# Change timezone
+orch schedule update <schedule-id> --timezone "America/Los_Angeles"
+
+# Update input data
+orch schedule update <schedule-id> --input '{"threshold": 2000}'
+
+# Disable (pause) a schedule
+orch schedule update <schedule-id> --disable
+
+# Re-enable a schedule
+orch schedule update <schedule-id> --enable
+
+# Change LLM provider
+orch schedule update <schedule-id> --provider openai
+```
+
+<Note>
+Updating cron or timezone automatically recalculates the next execution time and updates the Cloud Scheduler job.
+</Note>
+
+### Delete a Schedule
+
+```bash
+orch schedule delete <schedule-id>
+```
+
+This permanently removes the schedule and its Cloud Scheduler job. Run history is retained.
+
+### Trigger Manually
+
+Test a schedule by triggering it immediately:
+
+```bash
+# Trigger with the schedule's default input
+orch schedule trigger <schedule-id>
+
+# Trigger with custom input (overrides default)
+orch schedule trigger <schedule-id> --input '{"test": true}'
+```
+
+The trigger runs synchronously and returns the agent output, status, and duration.
+
+---
+
+## LLM Credentials
+
+Scheduled runs use the LLM credentials stored in your workspace:
+
+1. If the schedule has a `--provider` set, that provider's key is used
+2. Otherwise, the agent's default provider is used
+3. Keys must be configured in your workspace before creating the schedule
+
+<Tip>
+Store your LLM API keys in the [dashboard](https://orchagent.io/dashboard) under your workspace settings, or use `orch llm-config` to configure them via CLI.
+</Tip>
+
+---
+
+## Examples
+
+### Daily Report
+
+```bash
+orch schedule create acme/report-generator \
+  --cron "0 9 * * 1-5" \
+  --timezone "America/New_York" \
+  --input '{"recipients": "team@acme.com", "format": "pdf"}'
+```
+
+### Hourly Monitoring
+
+```bash
+orch schedule create acme/health-checker \
+  --cron "0 * * * *" \
+  --input '{"endpoints": ["https://api.acme.com/health"]}'
+```
+
+### GitHub Webhook Integration
+
+```bash
+# 1. Create webhook schedule
+orch schedule create acme/pr-reviewer --webhook
+
+# 2. Copy the webhook URL from the output
+# 3. Add it to your GitHub repo → Settings → Webhooks
+# 4. Every PR event triggers your agent
+```
+
+### Weekly Cleanup
+
+```bash
+orch schedule create acme/data-cleanup \
+  --cron "0 3 * * 0" \
+  --input '{"max_age_days": 30, "dry_run": false}'
+```
+
+### Test Before Automating
+
+```bash
+# First, test the agent manually
+orch run acme/report-generator --data '{"format": "pdf"}'
+
+# Then create the schedule
+orch schedule create acme/report-generator \
+  --cron "0 9 * * 1-5" \
+  --timezone "America/New_York" \
+  --input '{"format": "pdf"}'
+
+# Verify with a manual trigger
+orch schedule trigger <schedule-id>
+```
+
+---
+
+## Permissions
+
+| Operation | Required Role |
+|-----------|---------------|
+| List schedules | Member |
+| Create schedule | Owner |
+| Update schedule | Owner |
+| Delete schedule | Owner |
+| Trigger schedule | Owner |
+
+---
+
+## Limits
+
+Scheduling is included on Pro, Team, and Enterprise plans. Schedule limits depend on your plan tier. Agent execution time counts toward your workspace compute usage.
+
+---
+
+## Troubleshooting
+
+**Schedule not executing?**
+- Check that the schedule is enabled: `orch schedule list`
+- Verify your LLM keys are configured in the workspace
+- Try a manual trigger to see the error: `orch schedule trigger <id>`
+
+**Webhook not receiving?**
+- Verify the URL is correct (the secret is part of the URL)
+- Check the external system is sending `Content-Type: application/json`
+- Webhook URLs are public — no firewall allowlisting needed
+
+**Wrong timezone?**
+- Use IANA identifiers (e.g., `America/New_York`), not abbreviations like `EST`
+- Update with: `orch schedule update <id> --timezone "America/New_York"`

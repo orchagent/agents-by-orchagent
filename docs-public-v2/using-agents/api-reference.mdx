@@ -264,6 +264,23 @@ The public detail endpoint (`GET /public/agents/{org}/{agent}/{version}`) also r
 | `POST /agents/{id}/upload` | Upload code bundle (tool agents only) |
 | `GET /agents/{id}/logs` | Get execution logs (owner only) |
 
+### Schedules
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /workspaces/{id}/schedules` | List schedules (filter by agent, type) |
+| `POST /workspaces/{id}/schedules` | Create cron or webhook schedule |
+| `GET /workspaces/{id}/schedules/{schedule_id}` | Get schedule details |
+| `PATCH /workspaces/{id}/schedules/{schedule_id}` | Update schedule (cron, timezone, enable/disable) |
+| `DELETE /workspaces/{id}/schedules/{schedule_id}` | Delete schedule |
+| `POST /workspaces/{id}/schedules/{schedule_id}/trigger` | Manually trigger execution |
+
+**Public webhook endpoint** (no authentication — URL contains secret):
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /webhooks/{schedule_id}/{webhook_secret}` | Trigger agent via webhook |
+
 ### Billing & Credits
 
 | Endpoint | Description |

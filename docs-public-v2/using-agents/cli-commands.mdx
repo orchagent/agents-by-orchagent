@@ -45,6 +45,9 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch test` | Run agent tests locally | Your machine |
 | `orch update` | Update installed agents | - |
 | `orch formats` | List available export formats | - |
+| `orch schedule create` | Create cron or webhook schedule | Cloud |
+| `orch schedule list` | List schedules | - |
+| `orch schedule trigger` | Manually trigger a schedule | Cloud |
 | `orch billing balance` | Check credit balance | - |
 
 ### When to Use What
@@ -676,6 +679,133 @@ orch doctor --json
 - Connectivity (gateway reachable, latency)
 - Authentication (API key valid)
 - LLM Configuration (keys configured)
+
+---
+
+## Scheduling
+
+Automate agent execution with cron schedules or webhooks. See the full [Scheduling & Webhooks](/using-agents/scheduling) guide for detailed usage and examples.
+
+### schedule list
+
+List schedules in your workspace.
+
+```bash
+# List all schedules
+orch schedule list
+
+# Filter by agent name
+orch schedule list --agent report-generator
+
+# Filter by type
+orch schedule list --type cron
+
+# JSON output
+orch schedule list --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--agent <name>` | Filter by agent name |
+| `--type <type>` | Filter by type: `cron` or `webhook` |
+| `--json` | Output as JSON |
+
+### schedule create
+
+Create a cron or webhook schedule for an agent.
+
+```bash
+# Cron schedule — daily at 9am UTC
+orch schedule create acme/report-generator --cron "0 9 * * *"
+
+# Cron schedule with timezone and input
+orch schedule create acme/report-generator \
+  --cron "0 9 * * 1-5" \
+  --timezone "America/New_York" \
+  --input '{"format": "pdf"}'
+
+# Webhook schedule
+orch schedule create acme/github-processor --webhook
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--cron <expression>` | Cron expression (required unless `--webhook`) |
+| `--webhook` | Create webhook schedule instead of cron |
+| `--timezone <tz>` | Timezone for cron (default: `UTC`) |
+| `--input <json>` | Input data as JSON string |
+| `--provider <provider>` | LLM provider: `anthropic`, `openai`, `gemini` |
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+
+<Note>
+Webhook URLs contain a secret token and are shown only once at creation time. Save the URL immediately.
+</Note>
+
+### schedule update
+
+Update an existing schedule.
+
+```bash
+# Change cron expression
+orch schedule update <schedule-id> --cron "0 10 * * 1"
+
+# Disable a schedule
+orch schedule update <schedule-id> --disable
+
+# Re-enable
+orch schedule update <schedule-id> --enable
+
+# Update timezone and input
+orch schedule update <schedule-id> \
+  --timezone "America/Los_Angeles" \
+  --input '{"threshold": 2000}'
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--cron <expression>` | New cron expression |
+| `--timezone <tz>` | New timezone |
+| `--input <json>` | New input data as JSON |
+| `--provider <provider>` | New LLM provider |
+| `--enable` | Enable the schedule |
+| `--disable` | Disable the schedule |
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+
+### schedule delete
+
+Delete a schedule permanently.
+
+```bash
+orch schedule delete <schedule-id>
+```
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+
+### schedule trigger
+
+Manually trigger a schedule execution (useful for testing).
+
+```bash
+# Trigger with default input
+orch schedule trigger <schedule-id>
+
+# Trigger with input override
+orch schedule trigger <schedule-id> --input '{"test": true}'
+```
+
+| Flag | Description |
+|------|-------------|
+| `--input <json>` | Override input data for this execution |
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
 
 ---
 

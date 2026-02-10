@@ -42,6 +42,7 @@
                 "pages": [
                   "using-agents/api-reference",
                   "using-agents/cli-commands",
+                  "using-agents/scheduling",
                   "using-agents/code-snippets"
                 ]
               },
@@ -108,6 +109,9 @@
     { "source": "/pricing", "destination": "/concepts/billing" },
     { "source": "/monetization", "destination": "/concepts/billing" },
     { "source": "/concepts/monetization", "destination": "/concepts/billing" },
-    { "source": "/billing", "destination": "/concepts/billing" }
+    { "source": "/billing", "destination": "/concepts/billing" },
+    { "source": "/scheduling", "destination": "/using-agents/scheduling" },
+    { "source": "/schedules", "destination": "/using-agents/scheduling" },
+    { "source": "/webhooks", "destination": "/using-agents/scheduling" }
   ]
 }

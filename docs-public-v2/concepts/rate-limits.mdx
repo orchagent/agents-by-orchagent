@@ -229,6 +229,20 @@ async function callWithRetry(url, data, maxRetries = 3) {
 
 Contact [sales@orchagent.io](mailto:sales@orchagent.io) for enterprise pricing.
 
+## Service Limits
+
+[Always-on services](/using-agents/services) have separate limits from on-demand agent runs:
+
+| Tier | Concurrent Services | Max Instances per Service |
+|------|--------------------|-----------------------|
+| **Pro** | 5 | 3 |
+| **Team** | 20 | 10 |
+| **Enterprise** | Custom | Custom |
+
+Service compute time is metered by runtime minutes and counts toward your workspace usage. See [Billing](/concepts/billing#service-usage) for details.
+
+---
+
 ## Best Practices
 
 1. **Check remaining calls** before batch operations

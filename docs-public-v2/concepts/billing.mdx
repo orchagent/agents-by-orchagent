@@ -68,6 +68,19 @@ $ orch run --local acme/my-agent
 
 ---
 
+## Service Usage
+
+[Always-on services](/using-agents/services) consume compute time continuously while running. Service compute is metered separately from on-demand agent runs.
+
+- Service instances are billed by runtime minutes
+- Compute time counts toward your workspace usage
+- Instance counts and concurrent service limits depend on your plan tier
+- Paused or deleted services stop accruing compute time
+
+Check service compute usage in the [dashboard](https://orchagent.io/dashboard) under your workspace usage page.
+
+---
+
 ## CLI Commands
 
 | Command | Description |

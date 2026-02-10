@@ -1,0 +1,404 @@
+---
+title: "Always-On Services"
+description: "Deploy agents as persistent, always-running services with automatic restarts and crash loop detection"
+---
+
+Deploy agents as **always-on services** that run continuously in the cloud. Services are ideal for Discord bots, webhook listeners, background workers, and any long-running process that needs to stay alive 24/7.
+
+## Quick Start
+
+```bash
+# Deploy a service
+orch service deploy acme/discord-bot --secret DISCORD_BOT_TOKEN
+
+# Check status
+orch service list
+
+# View logs
+orch service logs <service-id>
+
+# Restart a service
+orch service restart <service-id>
+
+# Delete a service
+orch service delete <service-id>
+```
+
+---
+
+## Deploying a Service
+
+```bash
+orch service deploy <org/agent[@version]> \
+  [--name <service-name>] \
+  [--min-instances <n>] \
+  [--max-instances <n>] \
+  [--env KEY=VALUE] \
+  [--secret <NAME>] \
+  [--command <cmd>] \
+  [--arg <value>] \
+  [--workspace <slug>] \
+  [--json]
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--name <name>` | Service name | Agent name |
+| `--min-instances <n>` | Minimum running instances | `1` |
+| `--max-instances <n>` | Maximum running instances | `1` |
+| `--env KEY=VALUE` | Environment variable (repeatable) | — |
+| `--secret <NAME>` | Workspace secret name (repeatable) | — |
+| `--command <cmd>` | Override entrypoint command | Auto-detected |
+| `--arg <value>` | Command argument (repeatable) | — |
+| `--workspace <slug>` | Workspace slug | Current workspace |
+| `--json` | Output as JSON | — |
+
+<Note>
+Only **tool** and **agent** type agents with a published code bundle are eligible for service deployment. Prompt-only agents cannot be deployed as services.
+</Note>
+
+### Example
+
+```bash
+orch service deploy acme/discord-bot \
+  --name "prod-discord-bot" \
+  --secret DISCORD_BOT_TOKEN \
+  --secret DATABASE_URL \
+  --env LOG_LEVEL=info
+```
+
+On success, the CLI returns the service ID, name, state, and a logs command:
+
+```
+✓ Service deployed successfully
+
+  ID:       svc_abc123
+  Name:     prod-discord-bot
+  Agent:    acme/discord-bot
+  State:    provisioning
+
+View logs: orch service logs svc_abc123
+```
+
+### How Deployment Works
+
+1. You publish a tool or agent type agent with code (`orch publish`)
+2. You run `orch service deploy org/agent`
+3. The platform creates a Cloud Run service with your configured instance count
+4. A service runner container downloads your agent bundle, installs dependencies (pip or npm), detects the entrypoint, and starts the process
+5. A health endpoint at `/health` returns `200` when the service is ready
+6. If the process crashes, Cloud Run automatically restarts it
+7. Workspace secrets are injected as environment variables into the container
+
+---
+
+## Managing Services
+
+### List Services
+
+```bash
+# List all services
+orch service list
+
+# Filter by state
+orch service list --status running
+
+# JSON output (for scripting)
+orch service list --json
+```
+
+Output shows: Name, Agent, State (color-coded), Health, Restarts (with failure count), and Deployed timestamp.
+
+Services that have been auto-paused due to crash loops display a `CRASH-LOOP` badge.
+
+### Service Info
+
+```bash
+orch service info <service-id>
+```
+
+Shows detailed information including:
+- Service ID, name, agent, and version
+- Current state and health status
+- Restart count and consecutive failure count
+- Instance configuration (min/max)
+- Cloud Run service name
+- Deploy and last restart timestamps
+- Last error message (if any)
+- Alert webhook URL (if configured)
+- Recent events timeline
+
+### View Logs
+
+```bash
+# Fetch recent logs (default: 100 lines)
+orch service logs <service-id>
+
+# Fetch more lines
+orch service logs <service-id> --limit 500
+
+# Fetch logs since a specific time
+orch service logs <service-id> --since "2026-02-10T00:00:00Z"
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--limit <n>` | Number of log lines | `100` (max `500`) |
+| `--since <timestamp>` | ISO 8601 timestamp filter | — |
+| `--workspace <slug>` | Workspace slug | Current workspace |
+| `--json` | Output as JSON | — |
+
+Logs include timestamps and severity levels. Sensitive values (API keys, tokens, passwords) are automatically redacted.
+
+### Restart a Service
+
+```bash
+orch service restart <service-id>
+```
+
+Restarts the service by deploying a fresh Cloud Run revision. The platform automatically refreshes the signed bundle URL before restarting, which prevents issues with expired download links.
+
+### Delete a Service
+
+```bash
+orch service delete <service-id>
+```
+
+Permanently removes the service and its Cloud Run deployment.
+
+---
+
+## Workspace Secrets
+
+Use the `--secret` flag to inject workspace secrets as environment variables. Secrets are resolved by name at deploy time and injected securely into the container.
+
+```bash
+orch service deploy acme/my-bot \
+  --secret DISCORD_BOT_TOKEN \
+  --secret DATABASE_URL \
+  --secret OPENAI_API_KEY
+```
+
+<Tip>
+Configure workspace secrets in the [dashboard](https://orchagent.io/dashboard) under your workspace settings before deploying a service that depends on them.
+</Tip>
+
+---
+
+## Environment Variables
+
+Pass non-sensitive configuration using the `--env` flag:
+
+```bash
+orch service deploy acme/my-worker \
+  --env LOG_LEVEL=debug \
+  --env REGION=us-east-1 \
+  --env BATCH_SIZE=50
+```
+
+<Warning>
+Environment variables matching sensitive patterns (`secret`, `token`, `password`, `api_key`, `credential`, `private_key`) are **rejected** when passed via `--env`. Use `--secret` instead to reference workspace secrets securely.
+</Warning>
+
+---
+
+## Crash Loop Detection & Alerts
+
+The platform monitors your service for repeated restart failures and automatically intervenes to prevent runaway restarts.
+
+### How It Works
+
+1. Each time a service restarts and fails again, the `consecutive_restart_failures` counter increments
+2. When the counter reaches the **halfway point** of your threshold, a proactive warning alert fires
+3. When the counter reaches the `max_restart_failures` threshold, the service is **auto-paused** and a crash loop alert fires
+4. Auto-paused services show a `CRASH-LOOP` badge in `orch service list` and `orch service info`
+
+### Configuring Alerts
+
+Set an alert webhook URL and customize the failure threshold via the API:
+
+```bash
+curl -X PATCH https://api.orchagent.io/workspaces/{workspace_id}/services/{service_id} \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "alert_webhook_url": "https://hooks.slack.com/services/T00/B00/xxx",
+    "max_restart_failures": 3
+  }'
+```
+
+| Field | Description | Default | Range |
+|-------|-------------|---------|-------|
+| `alert_webhook_url` | HTTPS URL to receive alert payloads | — | Must be HTTPS |
+| `max_restart_failures` | Consecutive failures before auto-pause | `5` | `1`–`50` |
+
+<Note>
+Alerts fire at two points: a proactive warning at the halfway mark (e.g., 3 out of 5 failures) and a critical alert when the threshold is reached and the service is auto-paused.
+</Note>
+
+### Alert Payload
+
+```json
+{
+  "event": "service.crash_loop",
+  "service_id": "...",
+  "workspace_id": "...",
+  "service_name": "...",
+  "restart_count": 10,
+  "consecutive_restart_failures": 5,
+  "threshold": 5,
+  "auto_paused": true,
+  "last_error": "connection timeout"
+}
+```
+
+### Recovering from a Crash Loop
+
+1. Check the logs: `orch service logs <service-id>`
+2. Check the events timeline: `orch service info <service-id>`
+3. Fix the underlying issue (code bug, missing secret, dependency failure)
+4. Restart the service: `orch service restart <service-id>`
+
+Restarting a service resets the consecutive failure counter.
+
+---
+
+## Entrypoint Detection
+
+When you deploy a service without a `--command` flag, the runner automatically detects your entrypoint using the following priority:
+
+1. **`--command` flag** — explicit command override
+2. **`run_command` in orchagent.json** — define a `run_command` field in your manifest
+3. **Auto-scan** — the runner checks for common filenames in order:
+
+**Python** (checked first):
+
+| File | Command |
+|------|---------|
+| `main.py` | `python main.py` |
+| `app.py` | `python app.py` |
+| `bot.py` | `python bot.py` |
+| `server.py` | `python server.py` |
+| `index.py` | `python index.py` |
+
+**Node.js** (checked second):
+
+| File | Command |
+|------|---------|
+| `index.js` | `node index.js` |
+| `main.js` | `node main.js` |
+| `app.js` | `node app.js` |
+| `bot.js` | `node bot.js` |
+| `server.js` | `node server.js` |
+
+<Tip>
+If your entrypoint doesn't match any of these names, use the `--command` flag or add a `run_command` field to your `orchagent.json` manifest:
+
+```json
+{
+  "name": "my-agent",
+  "type": "tool",
+  "run_command": "python src/start.py"
+}
+```
+</Tip>
+
+---
+
+## Permissions
+
+| Operation | Required Role |
+|-----------|---------------|
+| List services | Member |
+| Get service info | Member |
+| View logs | Member |
+| Deploy service | Owner |
+| Restart service | Owner |
+| Update config (alerts) | Owner |
+| Delete service | Owner |
+
+---
+
+## Examples
+
+### Discord Bot
+
+```bash
+# Publish the agent
+cd my-discord-bot
+orch publish
+
+# Deploy as a service with the bot token
+orch service deploy acme/my-discord-bot \
+  --secret DISCORD_BOT_TOKEN \
+  --env BOT_PREFIX="!"
+```
+
+### Webhook Listener
+
+```bash
+# Deploy a webhook listener that processes incoming events
+orch service deploy acme/webhook-processor \
+  --secret WEBHOOK_SECRET \
+  --secret DATABASE_URL
+```
+
+### Background Worker
+
+```bash
+# Deploy a worker that polls a queue
+orch service deploy acme/queue-worker \
+  --command "python worker.py" \
+  --secret REDIS_URL \
+  --env QUEUE_NAME=tasks \
+  --env CONCURRENCY=4
+```
+
+### Custom Entrypoint with Arguments
+
+```bash
+orch service deploy acme/my-agent \
+  --command "python" \
+  --arg "src/main.py" \
+  --arg "--verbose" \
+  --arg "--port=3000"
+```
+
+---
+
+## Troubleshooting
+
+**Service stuck in provisioning?**
+- Check the events timeline: `orch service info <service-id>`
+- Verify your agent has a published code bundle (prompt-only agents cannot be deployed as services)
+- Check the logs for dependency installation failures: `orch service logs <service-id>`
+
+**Service keeps restarting?**
+- Check the logs for crash output: `orch service logs <service-id>`
+- Look at the last error: `orch service info <service-id>`
+- Ensure all required secrets are configured in your workspace
+- Verify your entrypoint process doesn't exit immediately
+- Your code must NOT bind to port 8080 — the health server uses it
+
+**CRASH-LOOP badge showing?**
+- The service has been auto-paused after exceeding the failure threshold
+- Fix the root cause, then restart: `orch service restart <service-id>`
+- Check the events timeline for the failure pattern
+
+**"No entrypoint found" error?**
+- Add a `main.py` or `index.js` to your project root
+- Or set a `run_command` in your `orchagent.json`
+- Or use `--command` when deploying
+
+**Sensitive env var rejected?**
+- Variables with names matching `secret`, `token`, `password`, `api_key`, `credential`, or `private_key` must use `--secret` instead of `--env`
+- Store the value as a workspace secret first, then reference it by name
+
+**Bundle URL expired after a long-running service?**
+- Use `orch service restart <service-id>` — this automatically refreshes the signed bundle URL
+
+---
+
+## Limits
+
+Always-on services are available on Pro, Team, and Enterprise plans. Service compute time counts toward your workspace usage. Instance counts and concurrent service limits depend on your plan tier.

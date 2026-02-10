@@ -35,7 +35,11 @@
             "groups": [
               {
                 "group": "Get Started",
-                "pages": ["index", "quickstart", "troubleshooting"]
+                "pages": [
+                  "index",
+                  "quickstart",
+                  "troubleshooting"
+                ]
               },
               {
                 "group": "Using Agents",
@@ -43,6 +47,7 @@
                   "using-agents/api-reference",
                   "using-agents/cli-commands",
                   "using-agents/scheduling",
+                  "using-agents/services",
                   "using-agents/code-snippets"
                 ]
               },
@@ -68,7 +73,9 @@
               },
               {
                 "group": "API Reference",
-                "pages": ["api-reference/overview"]
+                "pages": [
+                  "api-reference/overview"
+                ]
               }
             ]
           }
@@ -91,27 +98,88 @@
       "cursor"
     ]
   },
-  "openapi": ["/api-reference/openapi.json"],
+  "openapi": [
+    "/api-reference/openapi.json"
+  ],
   "api": {
     "baseUrl": "https://api.orchagent.io"
   },
   "redirects": [
-    { "source": "/getting-started", "destination": "/quickstart" },
-    { "source": "/docs/cli", "destination": "/using-agents/cli-commands" },
-    { "source": "/docs/agents", "destination": "/building-agents/agent-types" },
-    { "source": "/cli", "destination": "/using-agents/cli-commands" },
-    { "source": "/agents", "destination": "/building-agents/agent-types" },
-    { "source": "/skills", "destination": "/building-agents/orchestration" },
-    { "source": "/sdk", "destination": "/building-agents/sdk" },
-    { "source": "/api", "destination": "/api-reference/overview" },
-    { "source": "/building-agents/skills-format", "destination": "/building-agents/orchestration" },
-    { "source": "/docs/:path*", "destination": "/:path*" },
-    { "source": "/pricing", "destination": "/concepts/billing" },
-    { "source": "/monetization", "destination": "/concepts/billing" },
-    { "source": "/concepts/monetization", "destination": "/concepts/billing" },
-    { "source": "/billing", "destination": "/concepts/billing" },
-    { "source": "/scheduling", "destination": "/using-agents/scheduling" },
-    { "source": "/schedules", "destination": "/using-agents/scheduling" },
-    { "source": "/webhooks", "destination": "/using-agents/scheduling" }
+    {
+      "source": "/getting-started",
+      "destination": "/quickstart"
+    },
+    {
+      "source": "/docs/cli",
+      "destination": "/using-agents/cli-commands"
+    },
+    {
+      "source": "/docs/agents",
+      "destination": "/building-agents/agent-types"
+    },
+    {
+      "source": "/cli",
+      "destination": "/using-agents/cli-commands"
+    },
+    {
+      "source": "/agents",
+      "destination": "/building-agents/agent-types"
+    },
+    {
+      "source": "/skills",
+      "destination": "/building-agents/orchestration"
+    },
+    {
+      "source": "/sdk",
+      "destination": "/building-agents/sdk"
+    },
+    {
+      "source": "/api",
+      "destination": "/api-reference/overview"
+    },
+    {
+      "source": "/building-agents/skills-format",
+      "destination": "/building-agents/orchestration"
+    },
+    {
+      "source": "/docs/:path*",
+      "destination": "/:path*"
+    },
+    {
+      "source": "/pricing",
+      "destination": "/concepts/billing"
+    },
+    {
+      "source": "/monetization",
+      "destination": "/concepts/billing"
+    },
+    {
+      "source": "/concepts/monetization",
+      "destination": "/concepts/billing"
+    },
+    {
+      "source": "/billing",
+      "destination": "/concepts/billing"
+    },
+    {
+      "source": "/scheduling",
+      "destination": "/using-agents/scheduling"
+    },
+    {
+      "source": "/schedules",
+      "destination": "/using-agents/scheduling"
+    },
+    {
+      "source": "/webhooks",
+      "destination": "/using-agents/scheduling"
+    },
+    {
+      "source": "/services",
+      "destination": "/using-agents/services"
+    },
+    {
+      "source": "/always-on",
+      "destination": "/using-agents/services"
+    }
   ]
 }

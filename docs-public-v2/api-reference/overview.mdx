@@ -79,6 +79,30 @@ You can import this into tools like Postman, Insomnia, or use it to generate cli
 
 The delete endpoint accepts an optional `mode=all_versions` query parameter to soft-delete every version of an agent at once. Without it, only the specified version is deleted.
 
+### Schedules (Auth Required)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /workspaces/{id}/schedules` | List schedules |
+| `POST /workspaces/{id}/schedules` | Create cron or webhook schedule |
+| `GET /workspaces/{id}/schedules/{schedule_id}` | Get schedule details |
+| `PATCH /workspaces/{id}/schedules/{schedule_id}` | Update schedule |
+| `DELETE /workspaces/{id}/schedules/{schedule_id}` | Delete schedule |
+| `POST /workspaces/{id}/schedules/{schedule_id}/trigger` | Manually trigger execution |
+| `POST /webhooks/{schedule_id}/{secret}` | Webhook trigger (no auth, URL contains secret) |
+
+### Services (Auth Required)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /workspaces/{id}/services` | List services |
+| `POST /workspaces/{id}/services` | Deploy a new service |
+| `GET /workspaces/{id}/services/{service_id}` | Get service details |
+| `PATCH /workspaces/{id}/services/{service_id}` | Update service config |
+| `POST /workspaces/{id}/services/{service_id}/restart` | Restart a service |
+| `DELETE /workspaces/{id}/services/{service_id}` | Delete a service |
+| `GET /workspaces/{id}/services/{service_id}/logs` | Get service logs |
+
 ### API Keys (Auth Required)
 
 | Endpoint | Description |

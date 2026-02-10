@@ -48,6 +48,14 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch schedule create` | Create cron or webhook schedule | Cloud |
 | `orch schedule list` | List schedules | - |
 | `orch schedule trigger` | Manually trigger a schedule | Cloud |
+| `orch schedule info` | View schedule details and events | - |
+| `orch schedule runs` | View schedule run history | - |
+| `orch service deploy` | Deploy agent as always-on service | Cloud (Cloud Run) |
+| `orch service list` | List running services | - |
+| `orch service logs` | View service logs | - |
+| `orch service info` | Get service details | - |
+| `orch service restart` | Restart a service | Cloud |
+| `orch service delete` | Delete a service | Cloud |
 | `orch billing balance` | Check credit balance | - |
 
 ### When to Use What
@@ -806,6 +814,213 @@ orch schedule trigger <schedule-id> --input '{"test": true}'
 |------|-------------|
 | `--input <json>` | Override input data for this execution |
 | `--workspace <slug>` | Workspace slug (default: current workspace) |
+
+### schedule info
+
+View schedule details and recent events.
+
+```bash
+# View schedule details
+orch schedule info <schedule-id>
+
+# JSON output
+orch schedule info <schedule-id> --json
+```
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--json` | Output as JSON |
+
+Shows schedule configuration, recent run history, and event timeline.
+
+### schedule runs
+
+View run history for a schedule.
+
+```bash
+# List recent runs
+orch schedule runs <schedule-id>
+
+# Filter by status
+orch schedule runs <schedule-id> --status failed
+
+# Limit results
+orch schedule runs <schedule-id> --limit 50
+```
+
+| Flag | Description |
+|------|-------------|
+| `--status <status>` | Filter by status: `completed`, `failed`, `running`, `timeout` |
+| `--limit <n>` | Number of runs to show (default: 20) |
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--json` | Output as JSON |
+
+---
+
+## Services
+
+Deploy agents as always-on services for long-running workloads like Discord bots, webhook listeners, or background workers. See the full [Services](/using-agents/services) guide for detailed usage and examples.
+
+### service deploy
+
+Deploy an agent as an always-on service.
+
+```bash
+# Deploy an agent as a service
+orch service deploy acme/discord-bot
+
+# Deploy with a custom service name
+orch service deploy acme/discord-bot --name my-discord-bot
+
+# Deploy with instance scaling
+orch service deploy acme/discord-bot --min-instances 1 --max-instances 3
+
+# Deploy with environment variables
+orch service deploy acme/discord-bot \
+  --env BOT_PREFIX="!" \
+  --env LOG_LEVEL=debug
+
+# Deploy with workspace secrets (for sensitive values)
+orch service deploy acme/discord-bot \
+  --secret DISCORD_TOKEN \
+  --secret DATABASE_URL
+
+# Deploy with a custom command and arguments
+orch service deploy acme/worker --command python --arg worker.py --arg --verbose
+
+# JSON output
+orch service deploy acme/discord-bot --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--name <name>` | Custom service name (default: agent name) |
+| `--min-instances <n>` | Minimum number of instances |
+| `--max-instances <n>` | Maximum number of instances |
+| `--env <KEY=value>` | Environment variable (repeatable) |
+| `--secret <NAME>` | Workspace secret name (repeatable) |
+| `--command <cmd>` | Override the default entrypoint command |
+| `--arg <arg>` | Argument to pass to the command (repeatable) |
+| `--json` | Output as JSON |
+
+<Note>
+Only `tool` and `agent` type agents are eligible for service deployment. Sensitive environment variables (e.g., API keys, tokens) are rejected by `--env` and must be passed using `--secret` instead.
+</Note>
+
+### service list
+
+List services in your workspace.
+
+```bash
+# List all services
+orch service list
+
+# Filter by status
+orch service list --status running
+
+# JSON output
+orch service list --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--status <status>` | Filter by service status |
+| `--json` | Output as JSON |
+
+### service info
+
+Get service details and events.
+
+```bash
+# View service details
+orch service info <service-id>
+
+# JSON output
+orch service info <service-id> --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--json` | Output as JSON |
+
+### service logs
+
+View service logs.
+
+```bash
+# View recent logs
+orch service logs <service-id>
+
+# Limit number of log lines
+orch service logs <service-id> --limit 200
+
+# View logs since a specific time
+orch service logs <service-id> --since 2026-02-10T00:00:00Z
+
+# JSON output
+orch service logs <service-id> --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--limit <n>` | Number of log lines to return (default: 100, max: 500) |
+| `--since <timestamp>` | Show logs since this time (ISO 8601 format) |
+| `--json` | Output as JSON |
+
+<Note>
+Sensitive values in log output are automatically redacted.
+</Note>
+
+### service restart
+
+Restart a service.
+
+```bash
+# Restart a service
+orch service restart <service-id>
+
+# JSON output
+orch service restart <service-id> --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--json` | Output as JSON |
+
+### service delete
+
+Delete a service.
+
+```bash
+# Delete a service
+orch service delete <service-id>
+
+# JSON output
+orch service delete <service-id> --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--json` | Output as JSON |
 
 ---
 

@@ -123,3 +123,23 @@ When running an agent in a sandbox:
 <Note>
 **Dynamic workspace defaults:** Changing your workspace default immediately affects all agents that don't have their own Dockerfile. Existing agents without agent-specific environments will use the new default on their next run.
 </Note>
+
+---
+
+## Service Environments
+
+[Always-on services](/using-agents/services) use a different runtime from on-demand runs:
+
+| | On-demand (`orch run`) | Always-on (`orch service deploy`) |
+|-|------------------------|----------------------------------|
+| **Runtime** | E2B sandbox | Cloud Run container |
+| **Base image** | `e2bdev/code-interpreter` | Service runner (Python 3.11 + Node.js 20) |
+| **Dependencies** | Installed per run | Installed once at deploy time |
+| **Custom Dockerfile** | Yes (`orch publish --docker`) | Not yet supported |
+| **Entrypoint** | Platform-managed | Auto-detected or `--command` flag |
+
+Service dependencies are installed from your `requirements.txt` or `package.json` during deployment. The service runner pre-installs common tools (pip, npm, git).
+
+<Note>
+Custom Dockerfiles are not yet supported for services. If your service needs system packages beyond the defaults, use a `run_command` in your manifest that installs them at startup.
+</Note>

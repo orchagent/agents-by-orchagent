@@ -212,6 +212,27 @@ orch schedule trigger <schedule-id> --input '{"test": true}'
 
 The trigger runs synchronously and returns the agent output, status, and duration.
 
+### View Schedule Details
+
+```bash
+orch schedule info <schedule-id>
+```
+
+Shows schedule configuration, recent runs, and event timeline. Use `--json` for machine-readable output.
+
+### View Run History
+
+```bash
+# List recent runs
+orch schedule runs <schedule-id>
+
+# Filter by status
+orch schedule runs <schedule-id> --status failed
+
+# Limit results
+orch schedule runs <schedule-id> --limit 50
+```
+
 ---
 
 ## LLM Credentials
@@ -225,6 +246,90 @@ Scheduled runs use the LLM credentials stored in your workspace:
 <Tip>
 Store your LLM API keys in the [dashboard](https://orchagent.io/dashboard) under your workspace settings, or use `orch llm-config` to configure them via CLI.
 </Tip>
+
+---
+
+## Failure Handling
+
+orchagent tracks consecutive schedule failures and can automatically disable schedules that fail repeatedly.
+
+### Failure Streaks
+
+Each schedule tracks its consecutive failure count. When a schedule fails, the counter increments. When it succeeds, the counter resets to zero.
+
+If the failure count reaches the threshold (default: 10, configurable 1-100), the schedule is **automatically disabled** to prevent runaway failures.
+
+```bash
+# Check failure status
+orch schedule list
+# Shows: Fails column with consecutive_failures / max_consecutive_failures
+# Shows: AUTO-DISABLED badge for auto-disabled schedules
+
+# View failure details
+orch schedule info <schedule-id>
+```
+
+### Re-enabling a Disabled Schedule
+
+When you re-enable an auto-disabled schedule, the failure counter resets to zero:
+
+```bash
+orch schedule update <schedule-id> --enable
+```
+
+<Note>
+Fix the underlying issue before re-enabling. The schedule will auto-disable again if failures continue.
+</Note>
+
+### Alert Webhooks
+
+Get notified when schedules fail repeatedly. Configure an alert webhook URL via the API:
+
+```bash
+curl -X PATCH https://api.orchagent.io/workspaces/{workspace_id}/schedules/{schedule_id} \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"alert_webhook_url": "https://your-webhook.example.com/alerts", "alert_on_failure_count": 3}'
+```
+
+Alerts fire at two points:
+1. **Warning** — when `consecutive_failures` reaches `alert_on_failure_count` (default: 3)
+2. **Auto-disable** — when the schedule is automatically disabled
+
+Alert payload:
+
+```json
+{
+  "event": "schedule.failure_streak",
+  "schedule_id": "...",
+  "workspace_id": "...",
+  "agent_name": "...",
+  "consecutive_failures": 3,
+  "threshold": 10,
+  "auto_disabled": false,
+  "last_error": "timeout"
+}
+```
+
+Test your alert webhook:
+
+```bash
+curl -X POST https://api.orchagent.io/workspaces/{workspace_id}/schedules/{schedule_id}/test-alert \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY"
+```
+
+### Webhook Idempotency
+
+Webhook triggers support idempotency to prevent duplicate executions. Pass an `idempotency-key` header:
+
+```bash
+curl -X POST https://api.orchagent.io/webhooks/{schedule_id}/{secret} \
+  -H "Content-Type: application/json" \
+  -H "idempotency-key: unique-event-id-123" \
+  -d '{"event": "new_issue"}'
+```
+
+If the same idempotency key is sent within the deduplication window, the platform returns the existing run result instead of executing again. This makes webhook retries safe.
 
 ---
 
@@ -293,6 +398,8 @@ orch schedule trigger <schedule-id>
 | Update schedule | Owner |
 | Delete schedule | Owner |
 | Trigger schedule | Owner |
+| View schedule details | Member |
+| View run history | Member |
 
 ---
 
@@ -313,6 +420,11 @@ Scheduling is included on Pro, Team, and Enterprise plans. Schedule limits depen
 - Verify the URL is correct (the secret is part of the URL)
 - Check the external system is sending `Content-Type: application/json`
 - Webhook URLs are public — no firewall allowlisting needed
+
+**Schedule auto-disabled?**
+- The schedule hit its consecutive failure threshold and was automatically paused
+- Check recent failures: `orch schedule info <id>`
+- Fix the root cause, then re-enable: `orch schedule update <id> --enable`
 
 **Wrong timezone?**
 - Use IANA identifiers (e.g., `America/New_York`), not abbreviations like `EST`

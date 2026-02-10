@@ -12,6 +12,7 @@ orchagent is a deployment platform where developers build, deploy, and run AI ag
 - Run via CLI, HTTP API, or web UI
 - Team workspaces with access control
 - Run history, scheduling, and managed secrets
+- Always-on services for long-running agents (Discord bots, workers)
 - Free tier: 1000 calls/day
 - BYOK: Bring your own LLM API keys
 - Credit-based billing for platform usage
@@ -38,6 +39,8 @@ orchagent is a deployment platform where developers build, deploy, and run AI ag
 - [Publishing](https://docs.orchagent.io/building-agents/publishing): Deploy your agent
 - [Orchestration](https://docs.orchagent.io/building-agents/orchestration): Agent-to-agent calls
 - [BYOK](https://docs.orchagent.io/concepts/byok): Bring Your Own Key model
+- [Scheduling](https://docs.orchagent.io/using-agents/scheduling): Cron schedules and webhooks
+- [Services](https://docs.orchagent.io/using-agents/services): Always-on service deployment
 - [Local vs Server](https://docs.orchagent.io/concepts/local-vs-server): orch run (cloud vs --local)
 - [Rate Limits](https://docs.orchagent.io/concepts/rate-limits): Platform limits
 - [Billing & Credits](https://docs.orchagent.io/concepts/billing): Platform credits and usage
@@ -91,6 +94,8 @@ curl -X POST https://api.orchagent.io/acme/summarizer/v1/analyze \
 | Workspace | Team-scoped container for agents, members, and settings |
 | BYOK | Bring Your Own Key - users provide their own LLM API keys |
 | Version | Each publish creates a new version (v1, v2, v3...) |
+| Schedule | Cron or webhook trigger that runs an agent automatically |
+| Service | Always-on deployment of an agent (Discord bot, worker, listener) |
 | Credits | Prepaid balance for platform usage |
 
 ## Links

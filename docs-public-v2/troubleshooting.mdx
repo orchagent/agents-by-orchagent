@@ -98,6 +98,68 @@ You've exceeded the API rate limit.
 
 ---
 
+## Service Errors
+
+### Service stuck in provisioning
+
+The Cloud Run service hasn't become healthy yet.
+
+**Solutions:**
+1. Check the events timeline: `orch service info <service-id>`
+2. Verify your agent has a published code bundle (prompt-only agents cannot be deployed as services)
+3. Check logs for dependency installation failures: `orch service logs <service-id>`
+
+### Service keeps restarting
+
+The agent process is crashing repeatedly.
+
+**Solutions:**
+1. Check the logs for crash output: `orch service logs <service-id>`
+2. Look at the last error: `orch service info <service-id>`
+3. Ensure all required secrets are configured in your workspace
+4. Verify your entrypoint process doesn't exit immediately
+5. Your code must **not** bind to port 8080 — the health server uses it
+
+### CRASH-LOOP badge showing
+
+The service was auto-paused after exceeding the consecutive failure threshold.
+
+**Solutions:**
+1. Fix the root cause (code bug, missing secret, dependency issue)
+2. Restart the service: `orch service restart <service-id>`
+3. Check the events timeline: `orch service info <service-id>`
+
+### "No entrypoint found" error
+
+The service runner couldn't detect which file to run.
+
+**Solutions:**
+- Add a `main.py` or `index.js` to your project root
+- Or set a `run_command` in your `orchagent.json`
+- Or use `--command` when deploying
+
+---
+
+## Schedule Errors
+
+### Schedule not executing
+
+**Solutions:**
+- Check that the schedule is enabled: `orch schedule list`
+- Verify your LLM keys are configured in the workspace
+- Try a manual trigger to see the error: `orch schedule trigger <id>`
+
+### Schedule auto-disabled
+
+The schedule hit its consecutive failure threshold and was automatically paused.
+
+**Solutions:**
+1. Check recent failures: `orch schedule info <id>`
+2. Fix the root cause
+3. Re-enable: `orch schedule update <id> --enable`
+
+---
+
 ## Dashboard Errors
 
 If you see an error toast in the dashboard:

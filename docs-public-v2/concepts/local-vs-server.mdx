@@ -10,6 +10,7 @@ orchagent offers three ways to use agents:
 | `orch run` | Execute agent now | Cloud (E2B sandbox) by default |
 | `orch run --local` | Execute agent now | Your machine |
 | `orch install` | Export for AI tools | Creates local files |
+| `orch service deploy` | Deploy always-on service | Cloud (Cloud Run) |
 
 ## Quick Comparison: Cloud vs Local
 
@@ -191,6 +192,30 @@ orch install joe/code-reviewer --scope project
 
 See [CLI Commands](/using-agents/cli-commands#install) for full details.
 
+## Service Deployment (`orch service deploy`)
+
+A fourth mode: deploy agents as **always-on services** that run continuously on Cloud Run.
+
+```bash
+orch service deploy acme/discord-bot \
+  --secret DISCORD_BOT_TOKEN \
+  --env BOT_PREFIX="!"
+```
+
+### How It Differs
+
+| | On-demand (`orch run`) | Always-on (`orch service deploy`) |
+|-|------------------------|----------------------------------|
+| **Runtime** | Ephemeral E2B sandbox | Persistent Cloud Run container |
+| **Lifetime** | Seconds to minutes | Runs indefinitely |
+| **Use case** | Request/response tasks | Bots, listeners, workers |
+| **Restart on crash** | No (single execution) | Yes (automatic) |
+| **State** | Stateless | Can maintain in-memory state |
+
+See [Always-On Services](/using-agents/services) for full documentation.
+
+---
+
 ## CLI Commands Summary
 
 | Command | Mode | Description |
@@ -200,6 +225,7 @@ See [CLI Commands](/using-agents/cli-commands#install) for full details.
 | `npx orchagent run --local` | Local | Run without installing CLI |
 | `orch run --local --download-only` | Local | Just download, don't execute |
 | `orch run --local --with-deps` | Local | Auto-download dependencies |
+| `orch service deploy` | Service | Deploy as always-on service |
 | `orch install` | Export | Create sub-agent files for AI tools |
 | `orch update` | Export | Update installed sub-agents |
 | `orch formats` | Export | List available export formats |

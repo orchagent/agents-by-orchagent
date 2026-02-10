@@ -52,7 +52,7 @@ orchagent hosts two types of things:
 
 Agents are:
 
-- **Stateless** - each call is independent
+- **On-demand or always-on** - each call is independent, or [deploy as a service](/using-agents/services)
 - **Specific** - one task, done well
 - **Callable** - simple API or CLI call
 
@@ -68,9 +68,9 @@ Skills use the industry-standard Agent Skills format (adopted by Anthropic, Goog
 | **Team workspaces** | Organize agents by team, control access |
 | **Run history** | Every execution is logged with inputs, outputs, duration |
 | **[Scheduled runs](/using-agents/scheduling)** | Run agents on a cron schedule or webhook trigger |
+| **[Always-on services](/using-agents/services)** | Deploy agents as persistent services (Discord bots, workers) |
 | **BYOK model** | Bring your own LLM API keys |
 | **Secrets vault** | Store API keys securely in your workspace |
-| **Per-call pricing** | Authors can optionally charge per execution |
 
 ## BYOK: Bring Your Own Key
 
@@ -103,5 +103,8 @@ API keys are separate from subscriptions (Claude Pro/Max, ChatGPT Plus). You'll 
   </Card>
   <Card title="Scheduling" icon="clock" href="/using-agents/scheduling">
     Cron schedules and webhooks
+  </Card>
+  <Card title="Services" icon="server" href="/using-agents/services">
+    Always-on agents (bots, workers)
   </Card>
 </CardGroup>

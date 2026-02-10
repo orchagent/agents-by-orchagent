@@ -107,6 +107,18 @@ orch run .
 orch publish
 ```
 
+### Step 5: Deploy as a Service (Optional)
+
+For tool or agent type agents that need to run continuously (Discord bots, webhook listeners, background workers), deploy as an always-on service:
+
+```bash
+orch service deploy yourorg/my-agent \
+  --secret API_TOKEN \
+  --env LOG_LEVEL=info
+```
+
+See [Always-On Services](/using-agents/services) for full documentation.
+
 ## What Happens on Publish
 
 The platform runs several checks:

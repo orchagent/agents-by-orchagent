@@ -271,15 +271,30 @@ The public detail endpoint (`GET /public/agents/{org}/{agent}/{version}`) also r
 | `GET /workspaces/{id}/schedules` | List schedules (filter by agent, type) |
 | `POST /workspaces/{id}/schedules` | Create cron or webhook schedule |
 | `GET /workspaces/{id}/schedules/{schedule_id}` | Get schedule details |
-| `PATCH /workspaces/{id}/schedules/{schedule_id}` | Update schedule (cron, timezone, enable/disable) |
+| `PATCH /workspaces/{id}/schedules/{schedule_id}` | Update schedule (cron, timezone, enable/disable, alerts) |
 | `DELETE /workspaces/{id}/schedules/{schedule_id}` | Delete schedule |
 | `POST /workspaces/{id}/schedules/{schedule_id}/trigger` | Manually trigger execution |
+| `GET /workspaces/{id}/schedules/{schedule_id}/events` | Get schedule events timeline |
+| `GET /workspaces/{id}/schedules/{schedule_id}/runs` | Get schedule run history |
+| `POST /workspaces/{id}/schedules/{schedule_id}/test-alert` | Send test alert to configured webhook |
 
 **Public webhook endpoint** (no authentication — URL contains secret):
 
 | Endpoint | Description |
 |----------|-------------|
-| `POST /webhooks/{schedule_id}/{webhook_secret}` | Trigger agent via webhook |
+| `POST /webhooks/{schedule_id}/{webhook_secret}` | Trigger agent via webhook (supports `idempotency-key` header) |
+
+### Services
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /workspaces/{id}/services` | List services |
+| `POST /workspaces/{id}/services` | Deploy a new service |
+| `GET /workspaces/{id}/services/{service_id}` | Get service details and events |
+| `PATCH /workspaces/{id}/services/{service_id}` | Update service config (alerts, thresholds) |
+| `POST /workspaces/{id}/services/{service_id}/restart` | Restart a service |
+| `DELETE /workspaces/{id}/services/{service_id}` | Delete a service |
+| `GET /workspaces/{id}/services/{service_id}/logs` | Get service logs |
 
 ### Billing & Credits
 

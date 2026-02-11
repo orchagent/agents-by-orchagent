@@ -10,11 +10,12 @@ orchagent is an **AI agent deployment platform**. Build agents in Python, JavaSc
 ### For Developers (Building & Deploying)
 
 ```
-1. Create agent (prompt + schema, or code)
-2. Publish via CLI: orch publish
-3. Agent is live — callable via CLI, API, or web UI
-4. Team members run it from their workspace
-5. See usage, run history, and logs in dashboard
+1. Create agent: orch init my-agent
+2. Define behavior (prompt + schema, code, or LLM loop)
+3. Publish via CLI: orch publish
+4. Agent is live — callable via CLI, API, or web UI
+5. Team members run it from their workspace
+6. See usage, run history, and logs in dashboard
 ```
 
 ### For Teams (Running Agents)
@@ -41,20 +42,21 @@ orchagent hosts two types of things:
 - Want AI to **KNOW** something? Use a **skill** (`orch skill install`)
 - Want to **DELEGATE** to sub-agents? Export agents (`orch install`)
 
-### Agent Types
+### Agent Behavior
 
-| Type | What You Provide | Best For |
-|------|------------------|----------|
-| **Prompt** | Prompt template + input/output schema | Simple tasks (extraction, summarization, classification) |
-| **Tool** | Python/JS code | Complex logic (multi-step, tools, external APIs) |
-| **Agent** | Prompt + custom tools | Multi-step tool-use workflows in a sandbox |
-| **Skill** | SKILL.md file | Coding standards, style guides, domain rules |
+The platform infers how to run your agent from what you declare:
+
+| You Declare | What Happens | Best For |
+|-------------|-------------|----------|
+| Prompt + schema (nothing else) | Single LLM call | Extraction, summarization, classification |
+| `loop` config + custom tools | LLM tool-use loop in a sandbox | Multi-step workflows, code fixing, iteration |
+| `runtime.command` | Your code runs in a sandbox | Full control, non-LLM tasks, multi-model orchestration |
 
 Agents are:
 
-- **On-demand or always-on** - each call is independent, or [deploy as a service](/using-agents/services)
+- **On-demand or always-on** (`run_mode`) — each call is independent, or [deploy as a service](/using-agents/services)
 - **Specific** - one task, done well
-- **Callable** - simple API or CLI call
+- **Callable** - simple API or CLI call; optionally callable by other agents
 
 Skills use the industry-standard Agent Skills format (adopted by Anthropic, Google, Microsoft, OpenAI, Cursor) and can be installed locally or composed with agents.
 
@@ -99,7 +101,7 @@ API keys are separate from subscriptions (Claude Pro/Max, ChatGPT Plus). You'll 
     orch login, run, publish
   </Card>
   <Card title="Build" icon="hammer" href="/building-agents/agent-types">
-    Create an agent or skill
+    Create an agent or skill — learn the model
   </Card>
   <Card title="Scheduling" icon="clock" href="/using-agents/scheduling">
     Cron schedules and webhooks

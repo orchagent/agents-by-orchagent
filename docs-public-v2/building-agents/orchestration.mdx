@@ -7,10 +7,10 @@ orchagent supports two types of composition: **skill composition** (inject knowl
 
 ## Skill Composition
 
-Skills are passive knowledge that can be injected into agents. Skills work for both prompt and tool agents:
+Skills are passive knowledge that can be injected into agents. Skills work for all agent execution patterns:
 
-- **For prompt agents:** skill content is prepended to the agent's prompt before the LLM call
-- **For tool agents:** skills are mounted as files at `$ORCHAGENT_SKILLS_DIR` (see [Agent Types](/building-agents/agent-types#skills-in-tools))
+- **For direct LLM and managed loop agents:** skill content is prepended to the agent's prompt before the LLM call
+- **For code runtime agents:** skills are mounted as files at `$ORCHAGENT_SKILLS_DIR` (see [Agents & Skills](/building-agents/agent-types#skills-in-code-runtime-agents))
 
 ### Using default_skills
 
@@ -19,7 +19,7 @@ Agents can declare skills they always use:
 ```json
 {
   "name": "code-reviewer",
-  "type": "prompt",
+  "type": "agent",
   "default_skills": [
     "yourorg/react-best-practices",
     "yourorg/writing-style"
@@ -52,7 +52,7 @@ Authors can lock skills to prevent caller overrides. This is useful for agents w
 ```json
 {
   "name": "secure-reviewer",
-  "type": "prompt",
+  "type": "agent",
   "default_skills": ["yourorg/owasp-rules", "yourorg/security-guidelines"],
   "skills_locked": true
 }
@@ -127,8 +127,11 @@ Add a `manifest` section to your `orchagent.json`:
 ```json
 {
   "name": "security-review",
-  "type": "tool",
+  "type": "agent",
   "description": "Comprehensive security review combining multiple scanners",
+  "runtime": {
+    "command": "python main.py"
+  },
   "manifest": {
     "manifest_version": 1,
     "dependencies": [

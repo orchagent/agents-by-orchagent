@@ -60,19 +60,23 @@ The CLI auto-detects `SKILL.md` and publishes as a skill. See [Agent Types](/bui
 Create a new agent project:
 
 ```bash
-# Create prompt-based agent
-orch init my-agent --type prompt
+# Create an agent (default: direct LLM, on-demand)
+orch init my-agent
 
-# Create agent (LLM with tools in sandbox)
-orch init my-agent --type agent
+# Create an agent for always-on deployment
+orch init my-agent --run-mode always_on
 
-# Create tool (your code, full control)
-orch init my-tool --type tool
+# Create a skill
+orch init my-skill --type skill
 
 cd my-agent
 ```
 
-This creates a directory with the basic structure. Prompt and agent types get `orchagent.json`, `prompt.md`, and `schema.json`. Tools get `orchagent.json` and a `main.py` template.
+This creates a directory with the basic structure: `orchagent.json`, `prompt.md`, and `schema.json`. The manifest uses `"type": "agent"` with canonical fields.
+
+<Tip>
+The execution engine is inferred from your manifest at publish time. Add `runtime.command` for code execution, `loop` for a managed LLM loop, or leave both out for a direct LLM call. See [Manifest Format](/building-agents/manifest-format#behavior-fields) for details.
+</Tip>
 
 ### Step 2: Configure Your Manifest
 
@@ -81,7 +85,7 @@ Edit `orchagent.json` with your agent's configuration:
 ```json
 {
   "name": "my-agent",
-  "type": "prompt",
+  "type": "agent",
   "description": "What my agent does",
   "supported_providers": ["openai", "anthropic"]
 }
@@ -94,10 +98,10 @@ See [Manifest Format](/building-agents/manifest-format) for all options.
 Before publishing, test your agent locally:
 
 ```bash
-# For prompt-based agents
+# For direct LLM agents
 orch run . --input '{"text": "test input"}'
 
-# For tools
+# For code runtime agents
 orch run .
 ```
 
@@ -109,7 +113,7 @@ orch publish
 
 ### Step 5: Deploy as a Service (Optional)
 
-For tool or agent type agents that need to run continuously (Discord bots, webhook listeners, background workers), deploy as an always-on service:
+For agents with `runtime.command` or `loop` config that need to run continuously (Discord bots, webhook listeners, background workers), deploy as an always-on service:
 
 ```bash
 orch service deploy yourorg/my-agent \
@@ -128,20 +132,20 @@ The platform runs several checks:
 3. **Dependency check** - Verifies all dependencies exist (for orchestrators)
 4. **Cycle detection** - Ensures no circular dependencies
 
-For **agents** (type `"agent"`), the platform also:
+For **managed loop** agents (with `loop` config), the platform also:
 
 1. Stores your `prompt.md` as the agent's system prompt
-2. Stores `custom_tools` and `max_turns` from your manifest
+2. Stores `custom_tools` and `loop.max_turns` from your manifest
 3. On each call, spins up an E2B sandbox with an agent runner
 4. The runner gives the LLM your prompt, built-in tools, and custom tools
 5. The LLM iterates until it calls `submit_result` or hits `max_turns`
 
-For **tools** (type `"tool"`), the platform also:
+For **code runtime** agents (with `runtime.command`), the platform also:
 
 1. Creates a ZIP bundle of your code
 2. Stores the bundle securely
 3. On each call, spins up an E2B sandbox
-4. Runs your entrypoint with input via stdin
+4. Runs your command with input via stdin
 5. Returns stdout as the response
 
 ## Versioning
@@ -187,13 +191,13 @@ Agents have two distribution modes that control what non-owners can see and do:
 
 **Source-available agents** expose the full prompt and code. Users can inspect and run locally. Use this for open/community agents where transparency builds trust.
 
-## Tool Bundling
+## Code Bundling
 
-For tools, the CLI automatically creates a ZIP bundle of your project.
+For code runtime agents (those with `runtime.command`), the CLI automatically creates a ZIP bundle of your project.
 
 ### Auto-Detection
 
-The CLI detects tool projects by looking for:
+The CLI detects code runtime projects by looking for:
 - Python files (`.py`) with `requirements.txt`
 - JavaScript files (`.js`) with `package.json`
 
@@ -270,7 +274,7 @@ For custom exclusions, add a `bundle` section to your manifest:
 
 ### Dry Run
 
-Preview your bundle without publishing:
+Preview your bundle and canonical fields without publishing:
 
 ```bash
 orch publish --dry-run
@@ -283,7 +287,7 @@ This shows:
 
 ## Web UI Upload
 
-You can also upload tool bundles through the web dashboard as an alternative to the CLI.
+You can also upload code bundles through the web dashboard as an alternative to the CLI.
 
 ### Upload via Dashboard
 

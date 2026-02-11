@@ -6,7 +6,7 @@ description: "The orchagent.json configuration schema"
 Every agent needs an `orchagent.json` file that defines its configuration, dependencies, and runtime limits.
 
 <Note>
-**Skills use a different format.** Skills use a `SKILL.md` file with YAML frontmatter instead of `orchagent.json`. See [Agent Types](/building-agents/agent-types#skills) for the SKILL.md format.
+**Skills use a different format.** Skills use a `SKILL.md` file with YAML frontmatter instead of `orchagent.json`. See [Agents & Skills](/building-agents/agent-types#skills) for the SKILL.md format.
 </Note>
 
 ## Basic Structure
@@ -14,7 +14,7 @@ Every agent needs an `orchagent.json` file that defines its configuration, depen
 ```json
 {
   "name": "my-agent",
-  "type": "tool",
+  "type": "agent",
   "description": "What my agent does",
   "supported_providers": ["openai", "anthropic"],
   "default_endpoint": "analyze",
@@ -31,9 +31,56 @@ Every agent needs an `orchagent.json` file that defines its configuration, depen
 | Field | Type | Description |
 |-------|------|-------------|
 | `name` | string | Agent name (lowercase, hyphens allowed) |
-| `type` | string | `"prompt"`, `"agent"`, `"tool"`, or `"skill"` |
+| `type` | string | `"agent"` (default) or `"skill"` |
 | `description` | string | Short description of what the agent does |
-| `supported_providers` | array | LLM providers: `["openai", "anthropic", "gemini", "any"]`. Agents (type `"agent"`) must use `["anthropic"]`. |
+| `supported_providers` | array | LLM providers: `["openai", "anthropic", "gemini", "any"]`. Managed loop agents must use `["anthropic"]`. |
+
+## Behavior Fields
+
+These fields control **how** and **when** the agent runs. The platform infers the execution engine automatically from what you declare.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `run_mode` | string | `"on_demand"` | `"on_demand"` or `"always_on"`. Always-on agents can be deployed as [services](/using-agents/services). |
+| `runtime` | object | — | Declares code execution. Sets `execution_engine` to `code_runtime`. |
+| `loop` | object | — | Declares managed LLM loop. Sets `execution_engine` to `managed_loop`. |
+| `callable` | boolean | `false` | When `true`, other agents can call this agent as a dependency. |
+
+<Warning>
+`runtime` and `loop` are mutually exclusive — you cannot declare both. If neither is declared, the platform infers `direct_llm` (single LLM call with your prompt).
+</Warning>
+
+### runtime
+
+Declares that the agent runs custom code:
+
+```json
+{
+  "runtime": {
+    "command": "python main.py"
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `runtime.command` | string | Shell command to execute in the sandbox |
+
+### loop
+
+Declares that the agent uses a managed LLM tool-use loop:
+
+```json
+{
+  "loop": {
+    "max_turns": 25
+  }
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `loop.max_turns` | number | `25` | Maximum loop iterations (platform max: 50) |
 
 ## Optional Fields
 
@@ -46,21 +93,20 @@ Every agent needs an `orchagent.json` file that defines its configuration, depen
 | `default_skills` | array | `[]` | Skills to inject into agent prompts (e.g., `["yourorg/writing-style"]`) |
 | `skills_locked` | boolean | `false` | When true, callers cannot override default_skills via flags (immutable after publish) |
 
-## Tool Fields
+## Code Runtime Fields
 
-Additional fields for tools:
+Additional fields for agents with `runtime.command`:
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `entrypoint` | string | Entry file to execute (e.g., `sandbox_main.py`) |
-| `url` | string | Deployed service URL (legacy) |
 | `source_url` | string | Git URL for local execution |
 | `run_command` | string | Command to run locally |
 | `bundle` | object | Bundle configuration (see below) |
 
 ### Bundle Configuration
 
-Control what files are included in your tool bundle:
+Control what files are included in your code bundle:
 
 ```json
 {
@@ -81,9 +127,12 @@ Control what files are included in your tool bundle:
 ```json
 {
   "name": "leak-finder",
-  "type": "tool",
+  "type": "agent",
   "description": "Finds leaked secrets in codebases",
   "supported_providers": ["gemini"],
+  "runtime": {
+    "command": "python sandbox_main.py"
+  },
   "entrypoint": "sandbox_main.py",
   "tags": ["security", "scanning"],
   "is_public": true
@@ -91,12 +140,12 @@ Control what files are included in your tool bundle:
 ```
 
 <Note>
-For E2B sandbox execution (recommended), only `entrypoint` is needed. The `url`, `source_url`, and `run_command` fields are for legacy self-hosted agents.
+For E2B sandbox execution (recommended), only `runtime.command` (or `entrypoint`) is needed. The `source_url` and `run_command` fields are for local execution support.
 </Note>
 
-## Prompt-Based Agent Fields
+## Direct LLM Fields
 
-Additional fields for prompt agents:
+Additional fields for agents without `runtime` or `loop` (direct LLM agents):
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -109,7 +158,7 @@ Additional fields for prompt agents:
 ```json
 {
   "name": "summarizer",
-  "type": "prompt",
+  "type": "agent",
   "description": "Summarizes text content",
   "supported_providers": ["openai", "anthropic"],
   "prompt_template": "Summarize the following text in {{style}} style:\n\n{{text}}",
@@ -131,14 +180,13 @@ Additional fields for prompt agents:
 }
 ```
 
-## Agent Fields
+## Managed Loop Fields
 
-Additional fields for agents (type `"agent"`):
+Additional fields for agents with a `loop` config:
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `custom_tools` | array | `[]` | Command-wrapper tools available to the LLM |
-| `max_turns` | number | `25` | Maximum agent loop iterations (platform max: 50) |
 | `timeout_seconds` | number | `300` | Overall execution timeout |
 
 ### Custom Tools Format
@@ -160,7 +208,9 @@ Each custom tool has:
   "type": "agent",
   "description": "Fixes Cairo code until tests pass",
   "supported_providers": ["anthropic"],
-  "max_turns": 30,
+  "loop": {
+    "max_turns": 30
+  },
   "timeout_seconds": 300,
   "custom_tools": [
     {
@@ -185,7 +235,7 @@ Each custom tool has:
 ```
 
 <Note>
-Agents also get built-in tools automatically: `bash`, `read_file`, `write_file`, `list_files`, and `submit_result`. You don't need to define these. See [Agent Types](/building-agents/agent-types#built-in-tools) for details.
+Managed loop agents also get built-in tools automatically: `bash`, `read_file`, `write_file`, `list_files`, and `submit_result`. You don't need to define these. See [Agents & Skills](/building-agents/agent-types#built-in-tools) for details.
 </Note>
 
 ## Skill Composition
@@ -195,7 +245,7 @@ Agents can include skills by default using the `default_skills` field. Skills ar
 ```json
 {
   "name": "code-reviewer",
-  "type": "prompt",
+  "type": "agent",
   "description": "Reviews code with best practices",
   "supported_providers": ["anthropic", "openai"],
   "default_skills": [
@@ -233,8 +283,12 @@ Agents that call other agents need a `manifest` section:
 ```json
 {
   "name": "security-review",
-  "type": "tool",
+  "type": "agent",
   "description": "Comprehensive security review",
+  "runtime": {
+    "command": "python main.py"
+  },
+  "callable": true,
   "manifest": {
     "manifest_version": 1,
     "dependencies": [
@@ -279,22 +333,80 @@ The platform validates manifests on publish:
 2. **No cycles** - Dependency graph must be acyclic
 3. **max_hops >= 1** - Required when dependencies are declared
 4. **Version pins** - Dependencies must specify exact versions
+5. **No conflicts** - `runtime` and `loop` cannot both be declared
+6. **Run mode compatibility** - `always_on` requires `runtime.command` or `loop` (cannot be used with `direct_llm`)
 
-## Complete Example
+## Complete Examples
+
+### Always-On Code Runtime Agent
+
+```json
+{
+  "name": "discord-bot",
+  "type": "agent",
+  "description": "Discord moderation bot",
+  "supported_providers": ["any"],
+  "run_mode": "always_on",
+  "runtime": {
+    "command": "python bot.py"
+  },
+  "callable": false,
+  "timeout_seconds": 0,
+  "tags": ["discord", "moderation"]
+}
+```
+
+### On-Demand Managed Loop Agent
+
+```json
+{
+  "name": "code-fixer",
+  "type": "agent",
+  "description": "Fixes code until tests pass",
+  "supported_providers": ["anthropic"],
+  "run_mode": "on_demand",
+  "loop": {
+    "max_turns": 30
+  },
+  "callable": true,
+  "timeout_seconds": 300,
+  "custom_tools": [
+    {
+      "name": "run_tests",
+      "description": "Run the test suite",
+      "command": "pytest"
+    }
+  ]
+}
+```
+
+### On-Demand Direct LLM Agent
+
+```json
+{
+  "name": "summarizer",
+  "type": "agent",
+  "description": "Summarizes documents",
+  "supported_providers": ["openai", "anthropic", "gemini"],
+  "run_mode": "on_demand",
+  "callable": false
+}
+```
+
+### Orchestrator Agent
 
 ```json
 {
   "name": "security-review",
-  "type": "tool",
+  "type": "agent",
   "description": "Comprehensive security review combining multiple scanners",
   "supported_providers": ["any"],
-  "default_endpoint": "review",
+  "runtime": {
+    "command": "python main.py"
+  },
+  "callable": true,
   "timeout_seconds": 180,
-  "url": "https://security-review-xyz.run.app",
-  "source_url": "git+https://github.com/user/security-review.git",
-  "run_command": "python3 -m security_review.cli",
   "tags": ["security", "scanning", "orchestrator"],
-  "is_public": true,
   "manifest": {
     "manifest_version": 1,
     "dependencies": [

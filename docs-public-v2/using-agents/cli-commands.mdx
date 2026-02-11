@@ -269,19 +269,19 @@ orch formats --json
 Available export formats:
 
   claude-code    Claude Code Sub-Agent
-                 Supports: prompt, skill agents
+                 Supports: agent, skill
                  Format version: 2026-01
                  user: ~/.claude/agents/
                  project: ./.claude/agents/
 
   cursor         Cursor Rules
-                 Supports: prompt, skill agents
+                 Supports: agent, skill
                  Format version: 2026-01
                  user: ~/.cursor/rules/
                  project: ./.cursor/rules/
 
   agents-md      AGENTS.md (Universal)
-                 Supports: prompt, skill agents
+                 Supports: agent, skill
                  Format version: 1.0
                  project: ./AGENTS.md
 
@@ -463,20 +463,29 @@ orch workspace leave
 Initialize a new agent or skill project.
 
 ```bash
-# Create a prompt-based agent in a new directory
-orch init my-agent --type prompt
+# Create an agent (default: direct LLM, on-demand)
+orch init my-agent
 
-# Create a tool agent in a new directory
-orch init my-agent --type tool
+# Create an agent with a specific run mode
+orch init my-agent --run-mode always_on
 
-# Create a skill in a new directory
+# Create a skill
 orch init my-skill --type skill
 
 # Initialize in the current directory (no subdirectory created)
-orch init --type prompt
+orch init
 ```
 
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--type <type>` | `agent` (default) or `skill`. Legacy values `prompt`, `tool`, `agentic` are accepted for compatibility. |
+| `--run-mode <mode>` | `on_demand` (default) or `always_on` |
+
 When a name is provided, `init` creates a subdirectory with that name and writes all files there. Without a name, files are written to the current directory.
+
+The generated `orchagent.json` always uses `"type": "agent"` with the canonical `run_mode` field.
 
 ### publish
 
@@ -495,6 +504,8 @@ orch publish --skills yourorg/style@v1,yourorg/rules@v1
 # Publish with local download enabled (allows orch run --local)
 orch publish --local-download
 ```
+
+The publish command canonicalizes the manifest type, infers the `execution_engine` from your `runtime`/`loop` declarations, and validates all fields. The dry-run output shows: Type, Run mode, Execution engine, Callable, Providers, and Visibility.
 
 ### delete
 
@@ -518,7 +529,7 @@ Deleted data is retained for 30 days before permanent removal.
 
 ### test
 
-Run tests for your agent locally. Supports Python (pytest), JavaScript/TypeScript (vitest/npm test), and fixture-based testing for prompt agents.
+Run tests for your agent locally. Supports Python (pytest), JavaScript/TypeScript (vitest/npm test), and fixture-based testing for direct LLM agents.
 
 ```bash
 # Run tests in current directory
@@ -549,11 +560,11 @@ The CLI automatically discovers tests based on file patterns:
 |------|----------|
 | Python | `test_*.py`, `*_test.py` |
 | JavaScript/TypeScript | `*.test.ts`, `*.test.js`, `*.spec.ts`, `*.spec.js` |
-| Fixtures | `tests/fixture-*.json` (for prompt agents) |
+| Fixtures | `tests/fixture-*.json` (for direct LLM agents) |
 
 **Fixture Format:**
 
-For prompt agents, create fixture files in `tests/` to test your prompts against an LLM:
+For direct LLM agents, create fixture files in `tests/` to test your prompts against an LLM:
 
 ```json
 {
@@ -908,7 +919,7 @@ orch service deploy acme/discord-bot --json
 | `--json` | Output as JSON |
 
 <Note>
-Only `tool` and `agent` type agents are eligible for service deployment. Sensitive environment variables (e.g., API keys, tokens) are rejected by `--env` and must be passed using `--secret` instead.
+Only agents with a `runtime.command` or `loop` config (i.e., code runtime or managed loop agents) are eligible for service deployment. Direct LLM agents cannot be deployed as services. Sensitive environment variables (e.g., API keys, tokens) are rejected by `--env` and must be passed using `--secret` instead.
 </Note>
 
 ### service list

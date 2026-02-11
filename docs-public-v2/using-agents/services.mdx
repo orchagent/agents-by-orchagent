@@ -54,7 +54,7 @@ orch service deploy <org/agent[@version]> \
 | `--json` | Output as JSON | — |
 
 <Note>
-Only **tool** and **agent** type agents with a published code bundle are eligible for service deployment. Prompt-only agents cannot be deployed as services.
+Only agents with a `runtime.command` (code runtime) or `loop` config (managed loop) and a published code bundle are eligible for service deployment. Direct LLM agents (prompt + schema only) cannot be deployed as services.
 </Note>
 
 ### Example
@@ -82,7 +82,7 @@ View logs: orch service logs svc_abc123
 
 ### How Deployment Works
 
-1. You publish a tool or agent type agent with code (`orch publish`)
+1. You publish an agent with `runtime.command` or `loop` config (`orch publish`)
 2. You run `orch service deploy org/agent`
 3. The platform creates a Cloud Run service with your configured instance count
 4. A service runner container downloads your agent bundle, installs dependencies (pip or npm), detects the entrypoint, and starts the process
@@ -297,8 +297,10 @@ If your entrypoint doesn't match any of these names, use the `--command` flag or
 ```json
 {
   "name": "my-agent",
-  "type": "tool",
-  "run_command": "python src/start.py"
+  "type": "agent",
+  "runtime": {
+    "command": "python src/start.py"
+  }
 }
 ```
 </Tip>
@@ -370,7 +372,7 @@ orch service deploy acme/my-agent \
 
 **Service stuck in provisioning?**
 - Check the events timeline: `orch service info <service-id>`
-- Verify your agent has a published code bundle (prompt-only agents cannot be deployed as services)
+- Verify your agent has a `runtime.command` or `loop` config and a published code bundle (direct LLM agents cannot be deployed as services)
 - Check the logs for dependency installation failures: `orch service logs <service-id>`
 
 **Service keeps restarting?**

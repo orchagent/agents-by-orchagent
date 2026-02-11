@@ -194,7 +194,7 @@ See [CLI Commands](/using-agents/cli-commands#install) for full details.
 
 ## Service Deployment (`orch service deploy`)
 
-A fourth mode: deploy agents as **always-on services** that run continuously on Cloud Run.
+A fourth mode: deploy agents as **always-on services** (`run_mode: "always_on"`) that run continuously on Cloud Run.
 
 ```bash
 orch service deploy acme/discord-bot \
@@ -204,13 +204,14 @@ orch service deploy acme/discord-bot \
 
 ### How It Differs
 
-| | On-demand (`orch run`) | Always-on (`orch service deploy`) |
+| | On-demand (`run_mode: "on_demand"`) | Always-on (`run_mode: "always_on"`) |
 |-|------------------------|----------------------------------|
 | **Runtime** | Ephemeral E2B sandbox | Persistent Cloud Run container |
 | **Lifetime** | Seconds to minutes | Runs indefinitely |
 | **Use case** | Request/response tasks | Bots, listeners, workers |
 | **Restart on crash** | No (single execution) | Yes (automatic) |
 | **State** | Stateless | Can maintain in-memory state |
+| **Requires** | Any agent | `runtime.command` or `loop` config |
 
 See [Always-On Services](/using-agents/services) for full documentation.
 

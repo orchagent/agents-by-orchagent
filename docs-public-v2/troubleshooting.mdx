@@ -106,7 +106,7 @@ The Cloud Run service hasn't become healthy yet.
 
 **Solutions:**
 1. Check the events timeline: `orch service info <service-id>`
-2. Verify your agent has a published code bundle (prompt-only agents cannot be deployed as services)
+2. Verify your agent has a `runtime.command` or `loop` config with a published code bundle (direct LLM agents cannot be deployed as services)
 3. Check logs for dependency installation failures: `orch service logs <service-id>`
 
 ### Service keeps restarting

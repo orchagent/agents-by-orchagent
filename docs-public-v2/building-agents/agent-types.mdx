@@ -1,9 +1,9 @@
 ---
-title: "Agent Types"
-description: "Understanding agents and skills on orchagent"
+title: "Agents & Skills"
+description: "Understanding the two object types on orchagent"
 ---
 
-orchagent hosts two types of content: **agents** that execute tasks, and **skills** that provide reusable knowledge.
+orchagent hosts two object types: **agents** that execute tasks, and **skills** that provide reusable knowledge.
 
 ## Agents vs Skills: The Simple Rule
 
@@ -18,55 +18,65 @@ orchagent hosts two types of content: **agents** that execute tasks, and **skill
 **Quick distinction:** Agents *do* things. Skills *inform* agents how to do things better.
 </Info>
 
-## At a Glance
+## The Agent Model
 
-orchagent supports three agent types, each designed for different levels of complexity:
+Every agent on orchagent is `type: "agent"`. What varies is **how** the agent executes — and the platform figures that out automatically from your manifest declarations.
 
-| | Prompt | Agent | Tool | Skill |
-|-|--------|-------|------|-------|
-| **Purpose** | Single LLM call | LLM with tools in a sandbox | Full custom code | Provide knowledge |
-| **You provide** | Prompt + schemas | Prompt + custom tools | Python/JS code | SKILL.md file |
-| **Code required** | None | None | Yes (all of it) | None |
-| **Sandbox** | No | Yes (E2B) | Yes (E2B) | No |
-| **LLM handling** | Platform handles | Platform handles | You handle | N/A |
-| **Best for** | Extraction, summarization | Multi-step tool-use workflows | Full control, non-LLM tasks | Standards, guidelines |
-| **Service deploy** | No | Yes | Yes | No |
+| You declare... | Platform infers | What happens |
+|----------------|-----------------|-------------|
+| Nothing (just prompt + schema) | `direct_llm` | Single LLM call with your prompt |
+| `loop` config | `managed_loop` | LLM tool-use loop in a sandbox |
+| `runtime.command` | `code_runtime` | Your code runs in a sandbox |
+
+You also control **when** the agent runs:
+
+| `run_mode` | Behavior |
+|------------|----------|
+| `on_demand` (default) | Each call is independent — run via CLI, API, or schedule |
+| `always_on` | Persistent service — Discord bots, webhook listeners, workers |
+
+And whether the agent is **callable** by other agents:
+
+| `callable` | Behavior |
+|------------|----------|
+| `false` (default) | Only users can call this agent |
+| `true` | Other agents can call this agent as a dependency |
 
 <Tip>
-**Tool** and **agent** type agents can be deployed as [always-on services](/using-agents/services) for long-running workloads like Discord bots, webhook listeners, and background workers.
+You don't choose an execution engine — the platform infers it from what you declare in your manifest. Just describe what your agent needs, and orchagent handles the rest.
 </Tip>
 
-## Which Type Should I Use?
+## Which Pattern Should I Use?
 
 ```
 I want to build something on orchagent
-  │
-  ├─ Does it need an LLM to think and decide?
-  │   │
-  │   ├─ Yes
-  │   │   │
-  │   │   ├─ Simple (one call, no tools) → Prompt
-  │   │   │   "Just an LLM call with your prompt and schema"
-  │   │   │
-  │   │   └─ Complex (tools, iteration, sandbox) → Agent
-  │   │       "Give it a prompt + tools, platform runs the loop"
-  │   │
-  │   └─ No → Tool
-  │       "Your code, our sandbox. Deterministic, fast, cheap."
-  │
-  └─ I want to share knowledge → Skill
+  |
+  |-- Does it need an LLM to think and decide?
+  |   |
+  |   |-- Yes
+  |   |   |
+  |   |   |-- Simple (one call, no tools) --> prompt + schema (direct_llm)
+  |   |   |   "Just an LLM call with your prompt and schema"
+  |   |   |
+  |   |   \-- Complex (tools, iteration, sandbox) --> loop config (managed_loop)
+  |   |       "Give it a prompt + tools, platform runs the loop"
+  |   |
+  |   \-- No --> runtime.command (code_runtime)
+  |       "Your code, our sandbox. Deterministic, fast, cheap."
+  |
+  \-- I want to share knowledge --> Skill
       "Markdown instructions that enhance any agent"
 ```
 
 <Tip>
-**Start with the simplest type that works.** Most use cases should be prompt agents. If you need tools, try agent. Only reach for tool when you need full programmatic control or don't need an LLM.
+**Start with the simplest pattern that works.** Most use cases need only a prompt and schema. If you need tools, add a `loop` config. Only reach for `runtime.command` when you need full programmatic control or don't need an LLM.
 </Tip>
 
 ---
 
-## Prompt Agents
+## Direct LLM Agents (Prompt + Schema)
 
-The simplest agent type. You provide a prompt template with variable placeholders, and orchagent handles the LLM call.
+The simplest pattern. You provide a prompt template with variable placeholders, and orchagent handles the LLM call.
 
 **When to use:**
 - Single LLM call is sufficient
@@ -75,11 +85,11 @@ The simplest agent type. You provide a prompt template with variable placeholder
 
 **What you provide:**
 ```
-my-prompt-agent/
-├── orchagent.json      # Agent manifest (type: "prompt")
-├── prompt.md           # Your prompt template
-├── schema.json         # Input/output schemas (optional)
-└── README.md           # Documentation (optional)
+my-agent/
++-- orchagent.json      # Manifest (type: "agent")
++-- prompt.md           # Your prompt template
++-- schema.json         # Input/output schemas (optional)
+\-- README.md           # Documentation (optional)
 ```
 
 ### Example
@@ -88,7 +98,7 @@ my-prompt-agent/
 ```json
 {
   "name": "sentiment-analyzer",
-  "type": "prompt",
+  "type": "agent",
   "description": "Analyze sentiment of text",
   "supported_providers": ["openai", "anthropic"]
 }
@@ -138,43 +148,36 @@ Variables are replaced with input values at runtime. All template variables must
 
 ---
 
-## Agents
+## Managed Loop Agents (LLM + Tools)
 
-Agents give the LLM a **tool-use loop inside a sandbox**. Think of it as "Claude Code in a container, configured by you." The platform provides built-in tools (bash, file read/write, list files) and you can define custom command-wrapper tools. The LLM iterates autonomously until it solves the task and submits a result.
+Managed loop agents give the LLM a **tool-use loop inside a sandbox**. Think of it as "Claude Code in a container, configured by you." The platform provides built-in tools (bash, file read/write, list files) and you can define custom command-wrapper tools. The LLM iterates autonomously until it solves the task and submits a result.
 
 **When to use:**
 - The task requires running commands, reading/writing files, or iterating
 - You want the LLM to figure out the steps, not hard-code them
-- You'd otherwise write a tool just to orchestrate LLM + subprocess calls
+- You'd otherwise write code just to orchestrate LLM + subprocess calls
 
 **What you provide:**
 ```
 my-agent/
-├── orchagent.json      # Agent manifest (type: "agent", custom_tools)
-├── prompt.md           # Agent instructions (system prompt)
-├── schema.json         # Input/output schemas (optional)
-├── Dockerfile          # Custom environment (optional)
-└── requirements.txt    # Extra sandbox deps (optional)
++-- orchagent.json      # Manifest (type: "agent", loop + custom_tools)
++-- prompt.md           # Agent instructions (system prompt)
++-- schema.json         # Input/output schemas (optional)
++-- Dockerfile          # Custom environment (optional)
+\-- requirements.txt    # Extra sandbox deps (optional)
 ```
 
-**What the platform provides:**
-1. E2B sandbox with your custom environment (if Dockerfile provided)
-2. Built-in tools: `bash`, `read_file`, `write_file`, `list_files`, `submit_result`
-3. Your custom tools converted to named tool definitions
-4. An agentic loop that runs until the LLM calls `submit_result` or hits `max_turns`
+**What you declare in the manifest:**
 
-### Example: Cairo Test Engineer
-
-This agent fixes Cairo code until tests pass — with **zero lines of orchestration code**.
-
-**`orchagent.json`:**
 ```json
 {
   "name": "cairo-test-engineer",
   "type": "agent",
   "description": "Fixes Cairo code until tests pass",
   "supported_providers": ["anthropic"],
-  "max_turns": 30,
+  "loop": {
+    "max_turns": 30
+  },
   "timeout_seconds": 300,
   "custom_tools": [
     {
@@ -186,34 +189,16 @@ This agent fixes Cairo code until tests pass — with **zero lines of orchestrat
       "name": "build_project",
       "description": "Build the scarb project",
       "command": "scarb build"
-    },
-    {
-      "name": "format_code",
-      "description": "Format Cairo source files",
-      "command": "scarb fmt"
     }
   ]
 }
 ```
 
-**`prompt.md`:**
-```markdown
-You are a Cairo test engineer. You have scarb and snforge installed.
-
-Given source files and test files in the input:
-1. Create a scarb project directory structure
-2. Write the source and test files
-3. Run tests using the run_tests tool
-4. If tests pass, submit the result with the passing output
-5. If tests fail, analyze the errors, fix the code, and try again
-6. Keep iterating until tests pass or you've tried 5 times
-
-Submit your final result with test output and any fixes applied.
-```
-
-### Before vs After
-
-Without the agent type, this same workflow required **200+ lines of Python** handling the Claude API calls, retry loops, file scaffolding, error analysis, and file merging. With agents, it's just a prompt and a few tool definitions.
+**What the platform provides:**
+1. E2B sandbox with your custom environment (if Dockerfile provided)
+2. Built-in tools: `bash`, `read_file`, `write_file`, `list_files`, `submit_result`
+3. Your custom tools converted to named tool definitions
+4. A managed loop that runs until the LLM calls `submit_result` or hits `max_turns`
 
 ### Custom Tools
 
@@ -248,7 +233,7 @@ The LLM sees named tools like `run_tests` and `deploy` instead of guessing raw b
 
 ### Built-in Tools
 
-Every agent automatically gets these tools:
+Every managed loop agent automatically gets these tools:
 
 | Tool | Description |
 |------|-------------|
@@ -262,26 +247,40 @@ Every agent automatically gets these tools:
 
 | Limit | Default | Configurable |
 |-------|---------|-------------|
-| `max_turns` | 25 | Yes, in orchagent.json (platform max: 50) |
+| `loop.max_turns` | 25 | Yes, in orchagent.json (platform max: 50) |
 | Per-command timeout | 120 seconds | No |
 | Overall timeout | Agent's `timeout_seconds` | Yes |
 
 ### Provider Support
 
-Agents currently support **Anthropic only** (Claude). This is because Anthropic has the best tool-use support. More providers will be added in the future.
+Managed loop agents currently support **Anthropic only** (Claude). This is because Anthropic has the best tool-use support. More providers will be added in the future.
 
 ---
 
-## Tools
+## Code Runtime Agents (Your Code)
 
-Tools run your Python or JavaScript in **E2B sandboxes** — secure, isolated environments. Each call spins up a fresh sandbox, runs your script, and returns the result. You have full control over everything.
+Code runtime agents run your Python or JavaScript in **E2B sandboxes** — secure, isolated environments. Each call spins up a fresh sandbox, runs your script, and returns the result. You have full control over everything.
 
 **When to use:**
 - You need full programmatic control over the execution flow
 - Your use case doesn't need an LLM at all (pure data processing, file conversion, etc.)
 - You need multi-model orchestration (calling different LLMs for different steps)
-- You have an existing codebase you want to wrap as a tool
-- Agents don't give you enough control
+- You have an existing codebase you want to wrap as an agent
+- Managed loop agents don't give you enough control
+
+**What you declare in the manifest:**
+
+```json
+{
+  "name": "leak-finder",
+  "type": "agent",
+  "description": "Finds leaked secrets in codebases",
+  "supported_providers": ["gemini"],
+  "runtime": {
+    "command": "python main.py"
+  }
+}
+```
 
 ### Example
 
@@ -310,7 +309,7 @@ if __name__ == "__main__":
 
 ### Input/Output Contract
 
-Tools communicate via stdin/stdout as JSON.
+Code runtime agents communicate via stdin/stdout as JSON.
 
 **Standard input:**
 ```json
@@ -339,11 +338,11 @@ Tools communicate via stdin/stdout as JSON.
 ### Directory Structure
 
 ```
-my-tool/
-├── orchagent.json      # Agent configuration
-├── main.py             # Entry point
-├── requirements.txt    # Dependencies
-└── README.md           # Documentation (optional)
+my-agent/
++-- orchagent.json      # Agent manifest
++-- main.py             # Entry point
++-- requirements.txt    # Dependencies
+\-- README.md           # Documentation (optional)
 ```
 
 The CLI auto-detects entrypoints: `main.py`, `app.py`, `index.py`, `main.js`, `index.js`. Override with:
@@ -352,9 +351,9 @@ The CLI auto-detects entrypoints: `main.py`, `app.py`, `index.py`, `main.js`, `i
 {"entrypoint": "run.py"}
 ```
 
-### Skills in Tools
+### Skills in Code Runtime Agents
 
-Tools can access skills at runtime. When skills are passed via the `--skills` flag or `X-Orchagent-Skills` header, they are mounted as files in your sandbox:
+Code runtime agents can access skills at runtime. When skills are passed via the `--skills` flag or `X-Orchagent-Skills` header, they are mounted as files in your sandbox:
 
 ```python
 import os
@@ -479,19 +478,35 @@ Use `"any"` if your agent works with any provider:
 ```
 
 <Note>
-Agents (type `"agent"`) currently only support `"anthropic"`. This will be expanded in the future.
+Managed loop agents (those with a `loop` config) currently only support `"anthropic"`. This will be expanded in the future.
 </Note>
 
 ---
 
-## Choosing the Right Type
+## Choosing the Right Pattern
 
-| Create a **Skill** when... | Create a **Prompt** when... | Create an **Agent** when... | Create a **Tool** when... |
+| Create a **Skill** when... | Create a **direct LLM** agent when... | Create a **managed loop** agent when... | Create a **code runtime** agent when... |
 |---------------------------|----------------------------------|------------------------------------|---------------------------------|
 | You have knowledge to share | A single LLM call is enough | The LLM needs to use tools and iterate | You need full programmatic control |
 | Content is reusable across contexts | No sandbox or file access needed | You'd otherwise write boilerplate orchestration | Your use case doesn't need an LLM |
 | No structured I/O needed | Input/output is straightforward | The task involves running commands or editing files | You need multi-model orchestration |
 | Instructions could help any agent | No retry logic needed | You want the LLM to figure out the steps | You have existing code to wrap |
+
+---
+
+## Migration Note
+
+<Info>
+**February 11, 2026:** The agent model has been simplified. Legacy type values (`prompt`, `tool`, `code`, `agentic`) are still accepted by the API and CLI for backward compatibility, but canonical values (`agent`, `skill`) are required for all new documentation and recommended for new projects.
+
+Legacy types map as follows:
+- `prompt` → `agent` (execution engine: `direct_llm`)
+- `tool` / `code` → `agent` (execution engine: `code_runtime`)
+- `agentic` → `agent` (execution engine: `managed_loop`)
+- `skill` → `skill`
+
+The `execution_engine` field (`direct_llm`, `managed_loop`, `code_runtime`) is an internal implementation detail inferred at publish time from your manifest declarations. You do not need to set it manually.
+</Info>
 
 ## Next Steps
 

@@ -145,9 +145,9 @@ Content-Type: application/json
 ------Boundary--
 ```
 
-## Tool Agent Input Contract
+## Code Runtime Agent Input Contract
 
-When files are uploaded to a tool agent, the agent receives a JSON manifest via stdin:
+When files are uploaded to a code runtime agent, the agent receives a JSON manifest via stdin:
 
 ```json
 {
@@ -177,7 +177,7 @@ When files are uploaded to a tool agent, the agent receives a JSON manifest via 
 | `files[].size_bytes` | File size in bytes |
 | `metadata` | Optional JSON metadata from the request |
 
-Your tool agent reads the files from their `path` locations and processes them.
+Your code runtime agent reads the files from their `path` locations and processes them.
 
 ## Rate Limit Headers
 
@@ -221,12 +221,17 @@ Response (source-available agent):
 
 ```json
 {
-  "type": "tool",
+  "type": "agent",
   "name": "leak-finder",
   "version": "v1",
   "description": "Finds leaked secrets in your codebase",
+  "run_mode": "on_demand",
+  "execution_engine": "code_runtime",
+  "callable": false,
   "source_url": "git+https://github.com/user/repo.git#subdirectory=leak-finder",
-  "run_command": "python3 -m leak_finder.cli"
+  "runtime": {
+    "command": "python3 -m leak_finder.cli"
+  }
 }
 ```
 
@@ -261,7 +266,7 @@ The public detail endpoint (`GET /public/agents/{org}/{agent}/{version}`) also r
 | `POST /agents` | Register new agent |
 | `GET /agents/{id}` | Get agent details |
 | `PATCH /agents/{id}` | Update agent |
-| `POST /agents/{id}/upload` | Upload code bundle (tool agents only) |
+| `POST /agents/{id}/upload` | Upload code bundle (code runtime agents only) |
 | `GET /agents/{id}/logs` | Get execution logs (owner only) |
 
 ### Schedules

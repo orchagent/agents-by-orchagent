@@ -17,15 +17,20 @@ orchagent is a deployment platform where developers build, deploy, and run AI ag
 - BYOK: Bring your own LLM API keys
 - Credit-based billing for platform usage
 
-## Agent Types
+## Object Types
 
-**Prompt agents:** Provide a prompt template + input/output schema. orchagent handles the LLM call.
+orchagent has two object types: **agents** (deployable executors) and **skills** (passive knowledge).
 
-**Tool agents:** Provide Python/JS code that runs in E2B sandboxes. Full control over logic, external APIs, multi-step workflows.
+**Agents** (`type: "agent"`) are the primary deployable artifact. The platform infers execution behavior from what you declare:
+- **Direct LLM**: prompt + schema only → single LLM call (execution engine: `direct_llm`)
+- **Managed Loop**: `loop` config + custom tools → LLM tool-use loop in a sandbox (execution engine: `managed_loop`)
+- **Code Runtime**: `runtime.command` → your code runs in a sandbox (execution engine: `code_runtime`)
 
-**Agent type:** Provide a prompt + custom tools. The platform runs an agentic loop in a sandbox.
+Additional agent fields:
+- `run_mode`: `on_demand` (default) or `always_on` (for services)
+- `callable`: `true` to expose as a dependency for other agents
 
-**Skills:** Passive knowledge (markdown) that enhances agents.
+**Skills** (`type: "skill"`) are passive knowledge (markdown) that enhances agents.
 
 ## Docs
 
@@ -34,7 +39,7 @@ orchagent is a deployment platform where developers build, deploy, and run AI ag
 - [API Reference](https://docs.orchagent.io/using-agents/api-reference): Authentication, endpoints, errors
 - [CLI Commands](https://docs.orchagent.io/using-agents/cli-commands): orch login, run, publish
 - [Code Snippets](https://docs.orchagent.io/using-agents/code-snippets): curl, Python, JavaScript, TypeScript examples
-- [Agent Types](https://docs.orchagent.io/building-agents/agent-types): Prompt, tool, agent, skill
+- [Agents & Skills](https://docs.orchagent.io/building-agents/agent-types): Agent model (type, run_mode, execution engine)
 - [Manifest Format](https://docs.orchagent.io/building-agents/manifest-format): orchagent.json schema
 - [Publishing](https://docs.orchagent.io/building-agents/publishing): Deploy your agent
 - [Orchestration](https://docs.orchagent.io/building-agents/orchestration): Agent-to-agent calls
@@ -57,7 +62,7 @@ orchagent is a deployment platform where developers build, deploy, and run AI ag
 ```bash
 npm install -g @orchagent/cli
 orch login
-orch init my-agent --type prompt
+orch init my-agent
 cd my-agent
 # Edit prompt.md and schema.json
 orch publish
@@ -85,11 +90,13 @@ curl -X POST https://api.orchagent.io/acme/summarizer/v1/analyze \
 
 | Term | Definition |
 |------|------------|
-| Agent | A deployed unit that performs a task using AI |
-| Prompt agent | Author provides prompt + schema. orchagent handles LLM call. |
-| Tool agent | Author provides code that runs in E2B sandbox. |
-| Agent type | Author provides prompt + tools. Platform runs agentic loop. |
-| Skill | Passive knowledge (markdown) that enhances agents. |
+| Agent | A deployed unit that performs a task (`type: "agent"`) |
+| Skill | Passive knowledge (markdown) that enhances agents (`type: "skill"`) |
+| Direct LLM | Agent with just prompt + schema; single LLM call (`execution_engine: direct_llm`) |
+| Managed Loop | Agent with `loop` config; LLM tool-use loop in sandbox (`execution_engine: managed_loop`) |
+| Code Runtime | Agent with `runtime.command`; your code runs in sandbox (`execution_engine: code_runtime`) |
+| run_mode | `on_demand` (default) or `always_on` (for persistent services) |
+| callable | When `true`, other agents can call this agent as a dependency |
 | Orchestrator | An agent that calls other agents |
 | Workspace | Team-scoped container for agents, members, and settings |
 | BYOK | Bring Your Own Key - users provide their own LLM API keys |

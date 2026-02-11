@@ -71,9 +71,9 @@ You can import this into tools like Postman, Insomnia, or use it to generate cli
 | Endpoint | Description |
 |----------|-------------|
 | `GET /agents` | List your agents |
-| `POST /agents` | Register new agent |
-| `GET /agents/{id}` | Get agent details |
-| `PATCH /agents/{id}` | Update agent |
+| `POST /agents` | Register new agent (accepts `type`, `run_mode`, `runtime`, `loop`, `callable`) |
+| `GET /agents/{id}` | Get agent details (includes canonical `type`, `run_mode`, `execution_engine`, `callable`) |
+| `PATCH /agents/{id}` | Update agent (note: `run_mode`, `runtime`, `loop`, `callable` are immutable — publish new version to change) |
 | `GET /agents/{id}/delete-check` | Check what confirmation is needed before deletion |
 | `DELETE /agents/{id}` | Delete an agent (soft delete, 30-day retention) |
 

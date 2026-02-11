@@ -559,14 +559,15 @@
           "name": { "type": "string" },
           "org": { "type": "string" },
           "version": { "type": "string" },
-          "type": { "type": "string", "enum": ["code", "prompt"] },
+          "type": { "type": "string", "enum": ["agent", "skill"] },
+          "run_mode": { "type": "string", "enum": ["on_demand", "always_on"], "nullable": true },
+          "execution_engine": { "type": "string", "enum": ["direct_llm", "managed_loop", "code_runtime"], "nullable": true },
+          "callable": { "type": "boolean" },
           "description": { "type": "string" },
           "supported_providers": { "type": "array", "items": { "type": "string" } },
           "default_endpoint": { "type": "string" },
           "timeout_seconds": { "type": "integer" },
-          "tags": { "type": "array", "items": { "type": "string" } },
-          "stars": { "type": "integer" },
-          "forks": { "type": "integer" }
+          "tags": { "type": "array", "items": { "type": "string" } }
         }
       },
       "Agent": {
@@ -575,9 +576,11 @@
           "id": { "type": "string" },
           "name": { "type": "string" },
           "version": { "type": "string" },
-          "type": { "type": "string" },
+          "type": { "type": "string", "enum": ["agent", "skill"] },
+          "run_mode": { "type": "string", "enum": ["on_demand", "always_on"], "nullable": true },
+          "execution_engine": { "type": "string", "enum": ["direct_llm", "managed_loop", "code_runtime"], "nullable": true },
+          "callable": { "type": "boolean" },
           "description": { "type": "string" },
-          "url": { "type": "string" },
           "is_public": { "type": "boolean" },
           "created_at": { "type": "string", "format": "date-time" },
           "updated_at": { "type": "string", "format": "date-time" }
@@ -622,16 +625,18 @@
         "properties": {
           "name": { "type": "string" },
           "version": { "type": "string" },
-          "type": { "type": "string", "enum": ["code", "prompt"] },
-          "url": { "type": "string" },
+          "type": { "type": "string", "enum": ["agent", "skill"], "default": "agent" },
+          "run_mode": { "type": "string", "enum": ["on_demand", "always_on"], "default": "on_demand" },
+          "runtime": { "type": "object", "properties": { "command": { "type": "string" } } },
+          "loop": { "type": "object", "properties": { "max_turns": { "type": "integer" } } },
+          "callable": { "type": "boolean", "default": false },
           "is_public": { "type": "boolean" },
           "description": { "type": "string" },
           "tags": { "type": "array", "items": { "type": "string" } },
           "supported_providers": { "type": "array", "items": { "type": "string" } },
           "default_endpoint": { "type": "string" },
           "timeout_seconds": { "type": "integer" },
-          "source_url": { "type": "string" },
-          "run_command": { "type": "string" }
+          "source_url": { "type": "string" }
         },
         "required": ["name", "version", "type"]
       },

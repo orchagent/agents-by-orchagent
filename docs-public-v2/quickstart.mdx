@@ -6,7 +6,7 @@ description: "Deploy your first agent in minutes"
 Build an agent, deploy it, and run it — all from your terminal.
 
 <Tip>
-orchagent hosts both **agents** (active executors) and **skills** (passive knowledge). The commands below work for both. See [Agent Types](/building-agents/agent-types) for the difference.
+orchagent hosts both **agents** (active executors) and **skills** (passive knowledge). The commands below work for both. See [Agents & Skills](/building-agents/agent-types) for the difference.
 </Tip>
 
 ## Prerequisites
@@ -50,16 +50,20 @@ This checks your environment, config, and connectivity. If everything shows gree
 Initialize a new agent project:
 
 ```bash
-orch init my-agent --type prompt
+orch init my-agent
 cd my-agent
 ```
 
 This creates:
-- `orchagent.json` — agent manifest
+- `orchagent.json` — agent manifest (type: `"agent"`)
 - `prompt.md` — your prompt template
 - `schema.json` — input/output schemas
 
 Edit `prompt.md` with your prompt and `schema.json` with your input/output definitions.
+
+<Tip>
+By default, `orch init` creates a direct LLM agent (prompt + schema). Use `orch init my-agent --type agent` with `--run-mode` to customize behavior. See [CLI Commands](/using-agents/cli-commands#init) for all options.
+</Tip>
 
 ## Step 3: Test Locally
 
@@ -140,10 +144,10 @@ Want to DELEGATE to sub-agents?
 Many agents process files. Pass a file as an argument or use the `--file` flag:
 
 ```bash
-# Tools: pass file as argument (uploaded to sandbox)
+# Code runtime agents: pass file as argument (uploaded to sandbox)
 orchagent run acme/invoice-scanner invoice.pdf
 
-# Prompt agents: use --file (content is read and mapped to input schema)
+# Direct LLM agents: use --file (content is read and mapped to input schema)
 orchagent run acme/useeffect-checker --file src/App.tsx
 
 # Pipe file to stdin
@@ -152,7 +156,7 @@ cat document.pdf | orchagent run acme/pdf-parser
 
 ## Running with JSON
 
-For prompt-based agents that accept JSON input:
+For direct LLM agents that accept JSON input:
 
 ```bash
 # Inline JSON
@@ -172,7 +176,7 @@ orchagent run acme/text-extractor --data @input.json
     All CLI commands explained
   </Card>
   <Card title="Build" icon="hammer" href="/building-agents/agent-types">
-    Create an agent or skill (prompt, agent, or tool)
+    Create an agent or skill
   </Card>
   <Card title="Code Examples" icon="brackets-curly" href="/using-agents/code-snippets">
     Python, JavaScript, curl examples

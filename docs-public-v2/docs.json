@@ -54,7 +54,10 @@
               {
                 "group": "Building Agents",
                 "pages": [
-                  "building-agents/agent-types",
+                  {
+                  "page": "building-agents/agent-types",
+                  "title": "Agents & Skills"
+                },
                   "building-agents/manifest-format",
                   "building-agents/environments",
                   "building-agents/publishing",

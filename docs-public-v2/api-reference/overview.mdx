@@ -76,8 +76,11 @@ You can import this into tools like Postman, Insomnia, or use it to generate cli
 | `PATCH /agents/{id}` | Update agent (note: `run_mode`, `runtime`, `loop`, `callable` are immutable — publish new version to change) |
 | `GET /agents/{id}/delete-check` | Check what confirmation is needed before deletion |
 | `DELETE /agents/{id}` | Delete an agent (soft delete, 30-day retention) |
+| `POST /agents/{id}/fork` | Fork a public agent into your workspace |
 
 The delete endpoint accepts an optional `mode=all_versions` query parameter to soft-delete every version of an agent at once. Without it, only the specified version is deleted.
+
+The fork endpoint accepts an optional JSON body with `workspace_id` (target workspace) and `new_name` (rename the copy). Source must be public and source-available.
 
 ### Schedules (Auth Required)
 

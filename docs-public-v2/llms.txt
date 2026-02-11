@@ -73,6 +73,11 @@ orch publish
 orch run yourorg/my-agent --data '{"text": "Your text here"}'
 ```
 
+### Fork a public agent into your workspace
+```bash
+orch fork orchagent/my-discord-agent --workspace acme-corp
+```
+
 ### Run locally (no account needed, --local flag)
 ```bash
 npx @orchagent/cli run orchagent/summarizer --input '{"text": "Your text here"}'

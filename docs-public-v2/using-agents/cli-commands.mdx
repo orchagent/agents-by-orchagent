@@ -56,6 +56,7 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch service info` | Get service details | - |
 | `orch service restart` | Restart a service | Cloud |
 | `orch service delete` | Delete a service | Cloud |
+| `orch fork <agent>` | Fork a public agent into your workspace | - |
 | `orch billing balance` | Check credit balance | - |
 
 ### When to Use What
@@ -70,6 +71,9 @@ Want AI to KNOW something?
 
 Want to DELEGATE to sub-agents?
   \-- Export for AI tools    --> orch install
+
+Want to CUSTOMIZE an existing agent?
+  \-- Copy into your workspace --> orch fork
 ```
 
 ---
@@ -526,6 +530,61 @@ orch delete yourorg/my-agent --dry-run
 ```
 
 Deleted data is retained for 30 days before permanent removal.
+
+### fork
+
+Fork a public, source-available agent into your workspace. This creates a private copy you can customize and deploy independently.
+
+```bash
+# Fork latest version into your current workspace
+orch fork orchagent/my-discord-agent
+
+# Fork a specific version into a target workspace
+orch fork orchagent/my-discord-agent@v2 --workspace acme-corp
+
+# Fork with a custom name
+orch fork orchagent/my-discord-agent --name customer-support-bot
+
+# JSON output for scripting
+orch fork orchagent/my-discord-agent --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--name <new-name>` | Rename the forked agent |
+| `-w, --workspace <slug>` | Target workspace slug (default: current workspace) |
+| `--json` | Raw JSON output |
+
+**What happens:**
+
+1. CLI resolves the source agent from the public registry
+2. If `--workspace` is specified, resolves and verifies workspace membership
+3. Creates a private copy in the target workspace via `POST /agents/{id}/fork`
+4. Returns the new agent reference and a service key (if the agent has dependencies)
+
+**What gets copied:**
+
+The fork copies everything needed to customize and deploy: name, description, tags, type, prompt, schemas, manifest, code bundle, default skills, supported providers, default models, timeout, and execution config. The forked agent resets to **private** (`is_public = false`) and records a `forked_from` link to the source.
+
+**Not copied:** run history, deploy state, schedules, stats, or services.
+
+**When to use:**
+
+- Start from a template instead of building from scratch
+- Customize an existing public agent for your team
+- Copy an agent into a different workspace
+
+**Requirements:**
+
+- Must be logged in (`orch login`)
+- Source agent must be public and source-available (`allow_local_download = true`)
+- `--workspace` requires browser-auth login (`orch login` without `--key`) so workspace membership can be verified
+
+<Note>
+If a name collision occurs in the target workspace, the server auto-increments the version number.
+</Note>
 
 ### test
 

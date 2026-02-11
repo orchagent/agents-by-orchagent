@@ -452,6 +452,50 @@
         }
       }
     },
+    "/agents/{id}/fork": {
+      "post": {
+        "summary": "Fork an agent",
+        "description": "Create a private copy of a public, source-available agent in your workspace. The forked agent copies all configuration, prompts, schemas, code bundles, and skills from the source. Stats, run history, schedules, and services are not copied. The forked agent is always created as private.",
+        "operationId": "forkAgent",
+        "tags": ["Agent Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Source agent ID"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForkAgentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Agent forked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForkAgentResponse"
+                }
+              }
+            }
+          },
+          "400": { "description": "Agent is not public or not source-available" },
+          "401": { "description": "Unauthorized" },
+          "403": { "description": "Not a member of the target workspace" },
+          "404": { "description": "Agent not found" }
+        }
+      }
+    },
     "/usage/compute": {
       "get": {
         "summary": "Get compute usage",
@@ -711,6 +755,21 @@
           "agent_id": { "type": "string" },
           "agent_name": { "type": "string" },
           "version_count": { "type": "integer", "description": "Number of versions deleted (only present when mode=all_versions)" }
+        }
+      },
+      "ForkAgentRequest": {
+        "type": "object",
+        "properties": {
+          "workspace_id": { "type": "string", "description": "Target workspace ID. If omitted, forks into the caller's current workspace." },
+          "new_name": { "type": "string", "description": "Custom name for the forked agent. If omitted, uses the source agent's name." }
+        }
+      },
+      "ForkAgentResponse": {
+        "type": "object",
+        "properties": {
+          "agent": { "$ref": "#/components/schemas/Agent" },
+          "service_key": { "type": "string", "description": "Service API key for the forked agent (shown only once)" },
+          "service_key_prefix": { "type": "string", "description": "Key prefix for identification" }
         }
       },
       "ComputeUsageStats": {

@@ -118,6 +118,7 @@ orchagent run orchagent/secrets-scanner https://github.com/your/repo
 | `orch run --local <agent>` | Download and execute agent locally | Your machine |
 | `orch install <agent>` | Export agent as sub-agent for AI tools | Local files |
 | `orch skill install <skill>` | Download skill files for AI tools | Local files |
+| `orch pull <agent>` | Reconstruct a local project from a published agent | - |
 | `orch fork <agent>` | Fork a public agent into your workspace | - |
 | `orch update` | Update installed agents to latest | - |
 | `orch formats` | List available export formats | - |
@@ -138,6 +139,9 @@ Want AI to KNOW something?
 
 Want to DELEGATE to sub-agents?
   \-- Export for AI tools    --> orch install
+
+Want to RECONSTRUCT a local project?
+  \-- Pull published source  --> orch pull
 ```
 
 ## Running with Files

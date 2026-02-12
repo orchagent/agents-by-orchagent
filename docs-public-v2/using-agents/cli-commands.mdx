@@ -56,6 +56,7 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch service info` | Get service details | - |
 | `orch service restart` | Restart a service | Cloud |
 | `orch service delete` | Delete a service | Cloud |
+| `orch pull <agent>` | Reconstruct a local project from a published agent | - |
 | `orch fork <agent>` | Fork a public agent into your workspace | - |
 | `orch billing balance` | Check credit balance | - |
 
@@ -71,6 +72,9 @@ Want AI to KNOW something?
 
 Want to DELEGATE to sub-agents?
   \-- Export for AI tools    --> orch install
+
+Want to RECONSTRUCT a local project?
+  \-- Pull published source    --> orch pull
 
 Want to CUSTOMIZE an existing agent?
   \-- Copy into your workspace --> orch fork
@@ -510,6 +514,70 @@ orch publish --local-download
 ```
 
 The publish command canonicalizes the manifest type, infers the `execution_engine` from your `runtime`/`loop` declarations, and validates all fields. The dry-run output shows: Type, Run mode, Execution engine, Callable, Providers, and Visibility.
+
+### pull
+
+Reconstruct a local agent project from a published version. This is the reverse of `orch publish` — it downloads agent metadata and reconstructs `orchagent.json`, `prompt.md`, `schema.json`, and code bundle files into a local directory.
+
+```bash
+# Pull an agent into a local directory
+orch pull acme/my-agent
+
+# Pull a specific version
+orch pull acme/my-agent@v2
+
+# Pull using short ref (uses workspace/default-org)
+orch pull my-agent
+
+# Pull into a custom directory
+orch pull acme/my-agent --output ./custom-dir
+
+# Overwrite an existing directory
+orch pull acme/my-agent --overwrite
+
+# Machine-readable output (still writes files)
+orch pull acme/my-agent --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `-o, --output <path>` | Output directory (default: `./<agent-name>/`) |
+| `--overwrite` | Replace existing output directory contents |
+| `--json` | Print machine-readable result summary (files are still written) |
+
+**What happens:**
+
+1. CLI resolves the agent from the public registry (or falls back to authenticated owner/private lookup)
+2. Reconstructs `orchagent.json` manifest with canonical fields
+3. Writes `prompt.md` if the agent has a prompt (direct LLM and managed loop engines)
+4. Writes `schema.json` if input or output schemas exist
+5. For code runtime agents, downloads and extracts the code bundle
+6. Prints a summary of written files
+
+**Agent resolution:**
+
+The CLI resolves agent refs using the same fallback logic as `run`:
+
+1. Tries the public download endpoint first
+2. If the agent is server-only (403) and you're the owner, falls back to authenticated access
+3. If the agent is private (404) and you're authenticated, resolves from your own agents
+
+**When to use:**
+
+- Reconstruct a local project from a published agent (e.g., lost source, new machine)
+- Review the contents of a published agent version
+- Set up a local development environment from a deployed agent
+
+**Requirements:**
+
+- No login required for public, source-available agents
+- Login required for private agents or server-only agents you own
+
+<Note>
+`pull` is for agents only. If the target is a skill, you'll be directed to use `orch skill install` instead.
+</Note>
 
 ### delete
 

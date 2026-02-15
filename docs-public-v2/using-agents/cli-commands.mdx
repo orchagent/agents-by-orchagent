@@ -56,6 +56,11 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch service info` | Get service details | - |
 | `orch service restart` | Restart a service | Cloud |
 | `orch service delete` | Delete a service | Cloud |
+| `orch service env set` | Set env vars on a running service | Cloud |
+| `orch service env unset` | Remove env vars from a service | Cloud |
+| `orch service env list` | List env vars on a service | - |
+| `orch service secret add` | Attach workspace secrets | Cloud |
+| `orch service secret remove` | Detach workspace secrets | Cloud |
 | `orch pull <agent>` | Reconstruct a local project from a published agent | - |
 | `orch fork <agent>` | Fork a public agent into your workspace | - |
 | `orch billing balance` | Check credit balance | - |
@@ -1159,6 +1164,98 @@ orch service delete <service-id> --json
 |------|-------------|
 | `--workspace <slug>` | Workspace slug (default: current workspace) |
 | `--json` | Output as JSON |
+
+### service env set
+
+Set or update environment variables on a deployed service. Merges with existing variables. Triggers a restart if the service is running.
+
+```bash
+# Set one variable
+orch service env set my-bot DEPLOY_ENV=production
+
+# Set multiple variables
+orch service env set my-bot LOG_LEVEL=debug BATCH_SIZE=100
+
+# With workspace
+orch service env set my-bot FOO=bar --workspace acme-team
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+
+### service env unset
+
+Remove environment variables from a service. Triggers a restart if the service is running.
+
+```bash
+# Remove one variable
+orch service env unset my-bot DEBUG_MODE
+
+# Remove multiple
+orch service env unset my-bot DEBUG_MODE VERBOSE
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+
+### service env list
+
+List current environment variables on a service.
+
+```bash
+orch service env list my-bot
+```
+
+Output:
+
+```
+DEPLOY_ENV=production
+LOG_LEVEL=warn
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+
+### service secret add
+
+Attach workspace secrets to a service. Secrets are injected as environment variables at runtime. Triggers a restart if the service is running.
+
+```bash
+# Attach one secret
+orch service secret add my-bot DISCORD_BOT_TOKEN
+
+# Attach multiple
+orch service secret add my-bot DISCORD_BOT_TOKEN DATABASE_URL
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+
+### service secret remove
+
+Detach workspace secrets from a service. Triggers a restart if the service is running.
+
+```bash
+orch service secret remove my-bot OLD_API_KEY
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
 
 ---
 

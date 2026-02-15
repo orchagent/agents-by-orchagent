@@ -14,6 +14,9 @@ orch service deploy acme/discord-bot --secret DISCORD_BOT_TOKEN
 # Check status
 orch service list
 
+# Update env vars on a running service
+orch service env set <service> KEY=VALUE
+
 # View logs
 orch service logs <service-id>
 
@@ -202,6 +205,73 @@ Environment variables matching sensitive patterns (`secret`, `token`, `password`
 
 ---
 
+## Updating Environment & Secrets
+
+Update environment variables and secrets on a running service without redeploying. Changes trigger an automatic restart to apply the new values.
+
+### Environment Variables
+
+```bash
+# Set or update variables (merges with existing)
+orch service env set <service> KEY=VALUE [KEY2=VALUE2 ...]
+
+# Remove variables
+orch service env unset <service> KEY [KEY2 ...]
+
+# List current variables
+orch service env list <service>
+```
+
+**Example:**
+
+```bash
+# Switch from staging to production config
+orch service env set my-bot DEPLOY_ENV=production LOG_LEVEL=warn
+
+# Remove a debug variable
+orch service env unset my-bot DEBUG_MODE
+
+# Check current values
+orch service env list my-bot
+```
+
+### Secrets
+
+```bash
+# Attach workspace secrets (injected as env vars at runtime)
+orch service secret add <service> SECRET_NAME [SECRET_NAME2 ...]
+
+# Detach secrets
+orch service secret remove <service> SECRET_NAME [SECRET_NAME2 ...]
+```
+
+Secret names must match existing workspace secrets. The secret values are never exposed — only the name is stored on the service.
+
+### API
+
+You can also update env/secrets via the PATCH endpoint:
+
+```bash
+curl -X PATCH https://api.orchagent.io/workspaces/{workspace_id}/services/{service_id} \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "env": {"DEPLOY_ENV": "production", "LOG_LEVEL": "warn"},
+    "secret_names": ["DISCORD_BOT_TOKEN", "DATABASE_URL"]
+  }'
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `env` | `object` | Full replacement of all env vars. Pass `{}` to clear all. |
+| `secret_names` | `string[]` | Full replacement of attached secrets. Pass `[]` to detach all. |
+
+<Note>
+The API uses **full replacement** semantics — whatever you send replaces the entire set. The CLI commands handle merge/unset logic for you. If the service is running, changes trigger an automatic restart (2-5 seconds of downtime). If the service is paused, changes are saved and apply on the next resume.
+</Note>
+
+---
+
 ## Crash Loop Detection & Alerts
 
 The platform monitors your service for repeated restart failures and automatically intervenes to prevent runaway restarts.
@@ -317,6 +387,7 @@ If your entrypoint doesn't match any of these names, use the `--command` flag or
 | Deploy service | Owner |
 | Restart service | Owner |
 | Update config (alerts) | Owner |
+| Update env/secrets | Owner |
 | Delete service | Owner |
 
 ---

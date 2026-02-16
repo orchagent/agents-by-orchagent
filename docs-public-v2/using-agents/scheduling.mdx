@@ -48,6 +48,7 @@ orch schedule create <org/agent[@version]> \
 | `--input <json>` | Agent input as JSON string | `{}` |
 | `--provider <name>` | LLM provider: `anthropic`, `openai`, `gemini` | Agent default |
 | `--workspace <slug>` | Workspace slug | Current workspace |
+| `--pin-version` | Pin to this exact version (disable auto-update) | Auto-update enabled |
 
 ### Cron Expression Format
 
@@ -184,6 +185,12 @@ orch schedule update <schedule-id> --enable
 
 # Change LLM provider
 orch schedule update <schedule-id> --provider openai
+
+# Pin to current version (stop auto-updating)
+orch schedule update <schedule-id> --pin-version
+
+# Re-enable auto-update
+orch schedule update <schedule-id> --auto-update
 ```
 
 <Note>
@@ -232,6 +239,71 @@ orch schedule runs <schedule-id> --status failed
 # Limit results
 orch schedule runs <schedule-id> --limit 50
 ```
+
+---
+
+## Version Management
+
+By default, schedules **auto-update** when you publish a new version of the agent. This means your cron jobs and webhooks always run the latest code without manual intervention.
+
+### Auto-Update (Default)
+
+When you run `orch publish`, all enabled schedules for that agent in the same workspace are automatically updated to the new version. You'll see this in the schedule events:
+
+```bash
+orch schedule info <schedule-id>
+# Events: "version_updated" — Agent updated from v3 to v4
+```
+
+### Pinning a Version
+
+If you need a schedule to stay on a specific version (e.g., for stability or testing), pin it at creation time:
+
+```bash
+orch schedule create acme/data-processor@v2 \
+  --cron "0 * * * *" \
+  --pin-version
+```
+
+Or pin an existing schedule:
+
+```bash
+orch schedule update <schedule-id> --pin-version
+```
+
+To re-enable auto-update later:
+
+```bash
+orch schedule update <schedule-id> --auto-update
+```
+
+<Tip>
+Pinned schedules show a `[pinned]` badge in `orch schedule list`. Use pinning when you want to test a new version on one schedule before rolling it out to all of them.
+</Tip>
+
+---
+
+## Workspace Secrets
+
+If your agent needs external API keys or credentials at runtime (e.g., a database connection string, a third-party API key), you must:
+
+1. Add the secrets to your workspace in the [dashboard](https://orchagent.io/dashboard)
+2. Declare them in your agent's `orchagent.json`:
+
+```json
+{
+  "name": "my-agent",
+  "required_secrets": ["EXTERNAL_API_KEY", "DATABASE_URL"]
+}
+```
+
+Secrets listed in `required_secrets` are injected as environment variables into the sandbox at runtime. **Secrets not listed will not be available**, even if they exist in your workspace.
+
+<Warning>
+This is the most common cause of scheduled agent failures. If your agent uses `os.environ["SOME_KEY"]` and you haven't added it to `required_secrets`, the run will fail with a cryptic error. Always declare every secret your code needs.
+</Warning>
+
+For more details, see the [manifest reference](/building-agents/manifest-format) and [workspace secrets guide](/building-agents/building-orchestrators#workspace-secrets).
 
 ---
 
@@ -425,6 +497,11 @@ Scheduling is included on Pro, Team, and Enterprise plans. Schedule limits depen
 - The schedule hit its consecutive failure threshold and was automatically paused
 - Check recent failures: `orch schedule info <id>`
 - Fix the root cause, then re-enable: `orch schedule update <id> --enable`
+
+**Agent fails with empty env vars or 500 error?**
+- Your agent probably uses workspace secrets but doesn't declare them in `orchagent.json`
+- Add `"required_secrets": ["SECRET_NAME"]` to your `orchagent.json` and republish
+- See [Workspace Secrets](#workspace-secrets) above
 
 **Wrong timezone?**
 - Use IANA identifiers (e.g., `America/New_York`), not abbreviations like `EST`

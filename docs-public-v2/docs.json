@@ -59,6 +59,7 @@
                   "building-agents/environments",
                   "building-agents/publishing",
                   "building-agents/orchestration",
+                  "building-agents/building-orchestrators",
                   "building-agents/sdk"
                 ]
               },

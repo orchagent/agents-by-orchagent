@@ -1,0 +1,473 @@
+---
+title: "Building an Orchestrator"
+description: "Step-by-step guide to building agents that call other agents"
+---
+
+This guide walks you through building an orchestrator agent — an agent that calls other agents to complete complex workflows. By the end, you'll have a working orchestrator that coordinates multiple leaf agents.
+
+<Tip>
+This is a hands-on tutorial. For reference documentation on orchestration concepts, see [Orchestration](/building-agents/orchestration). For SDK details, see [SDK Reference](/building-agents/sdk).
+</Tip>
+
+## Prerequisites
+
+- orchagent CLI installed and authenticated (`orch login`)
+- At least one published agent to use as a dependency (or follow along to create both)
+- An LLM API key configured (Anthropic recommended for managed loop agents)
+
+## Choose Your Approach
+
+orchagent supports two orchestration patterns. Choose based on how much control you need:
+
+| | Managed Loop | Code Runtime |
+|---|---|---|
+| **How it works** | LLM decides when to call dependencies via tool use | Your Python code calls dependencies directly |
+| **You write** | `orchagent.json` + `prompt.md` (no code) | `orchagent.json` + Python code |
+| **Best for** | LLM-driven decisions, flexible workflows | Deterministic pipelines, custom logic |
+| **Manifest field** | `loop` + `custom_tools` | `runtime.command` |
+
+Both approaches use the same dependency system, publishing flow, and security model.
+
+---
+
+## Part 1: Build a Leaf Agent
+
+Before building the orchestrator, you need at least one agent to call. If you already have published agents, skip to [Part 2](#part-2-build-the-orchestrator).
+
+Here's a minimal tool agent that scans code for leaked secrets:
+
+### leak-finder/orchagent.json
+
+```json
+{
+  "name": "leak-finder",
+  "type": "agent",
+  "description": "Scans code for leaked secrets and API keys",
+  "supported_providers": ["any"],
+  "runtime": {
+    "command": "python main.py"
+  },
+  "callable": true
+}
+```
+
+<Note>
+`"callable": true` is required — without it, other agents cannot call this agent as a dependency.
+</Note>
+
+### leak-finder/main.py
+
+```python
+import json
+import sys
+import re
+
+def scan_for_secrets(code: str) -> list:
+    patterns = {
+        "AWS Key": r"AKIA[0-9A-Z]{16}",
+        "GitHub Token": r"ghp_[a-zA-Z0-9]{36}",
+        "Generic API Key": r"(?i)(api[_-]?key|secret[_-]?key)\s*[:=]\s*['\"][a-zA-Z0-9]{20,}['\"]",
+    }
+    findings = []
+    for name, pattern in patterns.items():
+        for match in re.finditer(pattern, code):
+            findings.append({"type": name, "match": match.group()[:20] + "..."})
+    return findings
+
+input_data = json.loads(sys.stdin.read())
+findings = scan_for_secrets(input_data.get("code", ""))
+print(json.dumps({"findings": findings, "count": len(findings)}))
+```
+
+Publish it:
+
+```bash
+cd leak-finder
+orch publish
+```
+
+---
+
+## Part 2: Build the Orchestrator
+
+### Option A: Managed Loop (Recommended)
+
+A managed loop orchestrator uses an LLM tool-use loop. The LLM reads your prompt, sees the available tools, and decides which dependencies to call and in what order. You don't write code — just the prompt and tool definitions.
+
+Create a directory with three files:
+
+#### security-review/orchagent.json
+
+```json
+{
+  "name": "security-review",
+  "type": "agent",
+  "description": "Comprehensive security review combining secret scanning and dependency auditing",
+  "supported_providers": ["anthropic"],
+  "loop": {
+    "max_turns": 25
+  },
+  "timeout_seconds": 300,
+  "callable": true,
+  "manifest": {
+    "manifest_version": 1,
+    "dependencies": [
+      { "id": "yourorg/leak-finder", "version": "v1" },
+      { "id": "yourorg/dep-scanner", "version": "v1" }
+    ],
+    "max_hops": 2,
+    "timeout_ms": 300000,
+    "per_call_downstream_cap": 100
+  },
+  "custom_tools": [
+    {
+      "name": "scan_secrets",
+      "description": "Scan code for leaked secrets, API keys, and credentials",
+      "command": "python3 /home/user/helpers/orch_call.py yourorg/leak-finder@v1",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "description": "Code to scan" }
+        },
+        "required": ["code"]
+      }
+    },
+    {
+      "name": "scan_dependencies",
+      "description": "Audit package dependencies for known vulnerabilities",
+      "command": "python3 /home/user/helpers/orch_call.py yourorg/dep-scanner@v1",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "description": "Project root to scan" }
+        },
+        "required": ["path"]
+      }
+    }
+  ]
+}
+```
+
+**Key fields explained:**
+
+| Field | Purpose |
+|-------|---------|
+| `loop.max_turns` | Maximum LLM iterations before forcing a result (25 is generous for most tasks) |
+| `manifest.dependencies` | Agents this orchestrator is allowed to call — anything not listed is blocked |
+| `manifest.max_hops` | Maximum call chain depth (2 = this agent can call agents that don't call other agents) |
+| `manifest.timeout_ms` | Total timeout for the entire execution including all dependency calls |
+| `manifest.per_call_downstream_cap` | Cost cap per downstream dependency call |
+| `custom_tools` | Tool definitions presented to the LLM — each `command` calls a dependency via the built-in `orch_call.py` helper |
+
+<Warning>
+The `command` field must use the exact format: `python3 /home/user/helpers/orch_call.py org/agent@version`. This helper script is pre-installed in every managed loop sandbox. It reads the tool input, calls the dependency through the gateway, and returns the result.
+</Warning>
+
+#### security-review/prompt.md
+
+```markdown
+You are a security review agent. When given code or a repository, perform a thorough security audit.
+
+## Process
+1. Use scan_secrets to find any leaked credentials or API keys
+2. Use scan_dependencies to check for vulnerable dependencies
+3. Analyze the combined findings and assess overall risk
+
+## Output
+Return a JSON object with:
+- severity: "low", "medium", "high", or "critical"
+- findings: array of individual findings from both scans
+- summary: one-paragraph risk assessment
+- recommendations: array of specific actions to fix issues
+```
+
+#### security-review/schema.json
+
+```json
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "code": { "type": "string", "description": "Code to review" },
+      "repo_url": { "type": "string", "description": "Repository URL to scan" }
+    }
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "severity": { "type": "string" },
+      "findings": { "type": "array" },
+      "summary": { "type": "string" },
+      "recommendations": { "type": "array" }
+    }
+  }
+}
+```
+
+### Option B: Code Runtime
+
+A code runtime orchestrator runs your Python code directly. You control the execution flow — which agents to call, in what order, and how to process results. Use this when you need deterministic logic, custom data transformation, or parallel fan-out.
+
+#### security-review/orchagent.json
+
+```json
+{
+  "name": "security-review",
+  "type": "agent",
+  "description": "Comprehensive security review combining secret scanning and dependency auditing",
+  "supported_providers": ["any"],
+  "runtime": {
+    "command": "python main.py"
+  },
+  "callable": true,
+  "timeout_seconds": 180,
+  "manifest": {
+    "manifest_version": 1,
+    "dependencies": [
+      { "id": "yourorg/leak-finder", "version": "v1" },
+      { "id": "yourorg/dep-scanner", "version": "v1" }
+    ],
+    "max_hops": 2,
+    "timeout_ms": 180000,
+    "per_call_downstream_cap": 100
+  }
+}
+```
+
+#### security-review/main.py
+
+```python
+import asyncio
+import json
+import sys
+
+from orchagent import AgentClient, DependencyCallError
+
+async def main():
+    input_data = json.loads(sys.stdin.read())
+    client = AgentClient()
+
+    # Fan-out: call both scanners in parallel
+    secrets_result, deps_result = await asyncio.gather(
+        client.call("yourorg/leak-finder@v1", {"code": input_data.get("code", "")}),
+        client.call("yourorg/dep-scanner@v1", {"path": input_data.get("path", ".")}),
+        return_exceptions=True,
+    )
+
+    # Handle partial failures gracefully
+    findings = []
+    if isinstance(secrets_result, Exception):
+        findings.append({"source": "leak-finder", "error": str(secrets_result)})
+    else:
+        findings.extend(secrets_result.get("findings", []))
+
+    if isinstance(deps_result, Exception):
+        findings.append({"source": "dep-scanner", "error": str(deps_result)})
+    else:
+        findings.extend(deps_result.get("vulnerabilities", []))
+
+    severity = "critical" if len(findings) > 5 else "high" if findings else "low"
+
+    print(json.dumps({
+        "severity": severity,
+        "findings": findings,
+        "total_issues": len(findings),
+    }))
+
+asyncio.run(main())
+```
+
+#### security-review/requirements.txt
+
+```
+orchagent-sdk
+```
+
+<Warning>
+`orchagent-sdk` must be in your `requirements.txt`. It is installed automatically inside the sandbox at runtime, but the install takes approximately 55 seconds — factor this into your timeout budget (see [Timeout Budgeting](#timeout-budgeting)).
+</Warning>
+
+---
+
+## Part 3: Workspace Secrets
+
+If your agent (or any agent in the chain) needs external API keys or credentials at runtime, use **workspace secrets** combined with the `required_secrets` field.
+
+### Adding Secrets
+
+1. Go to your [orchagent Dashboard](https://orchagent.io/dashboard) → **Settings** → **Secrets**
+2. Add each secret (e.g., `EXTERNAL_API_KEY`, `DATABASE_URL`)
+
+### Declaring Required Secrets
+
+In your `orchagent.json`, list which secrets your agent needs:
+
+```json
+{
+  "name": "my-agent",
+  "required_secrets": ["EXTERNAL_API_KEY", "DATABASE_URL"]
+}
+```
+
+At runtime, these secrets are injected as environment variables into your agent's sandbox. **Secrets not listed in `required_secrets` will not be available**, even if they exist in your workspace.
+
+```python
+import os
+api_key = os.environ["EXTERNAL_API_KEY"]  # Available because it's in required_secrets
+```
+
+<Warning>
+**Do not add `ORCHAGENT_SERVICE_KEY` to `required_secrets`.** The gateway automatically injects a temporary service key for agents that have manifest dependencies. Adding your own workspace secret named `ORCHAGENT_SERVICE_KEY` will override the auto-injected key and break orchestration with confusing billing errors.
+</Warning>
+
+---
+
+## Part 4: Publish and Run
+
+### Publishing Order
+
+Always publish **bottom-up** — leaf agents before orchestrators. The gateway validates that all declared dependencies exist at publish time.
+
+```bash
+# 1. Publish leaf agents first
+cd leak-finder && orch publish
+cd ../dep-scanner && orch publish
+
+# 2. Then publish the orchestrator
+cd ../security-review && orch publish
+```
+
+If you try to publish the orchestrator before its dependencies, you'll get a "Dependency not found" error.
+
+### Running Your Orchestrator
+
+```bash
+# Run on the cloud (default)
+orch run yourorg/security-review --data '{"code": "api_key = \"sk-abc123\""}'
+
+# Run with JSON output
+orch run yourorg/security-review --json --data '{"code": "api_key = \"sk-abc123\""}'
+```
+
+---
+
+## Timeout Budgeting
+
+Sandboxes need time to start up and install dependencies. Plan your timeouts accordingly:
+
+| Phase | Approximate Time |
+|-------|-----------------|
+| Sandbox startup | ~5s |
+| SDK installation (if `orchagent-sdk` in requirements.txt) | ~55s |
+| Your agent's execution | varies |
+| Each dependency call (includes its own startup + install) | ~60-70s overhead + execution |
+
+**Rules of thumb:**
+
+- **Managed loop orchestrators:** Set `timeout_seconds` to at least `300` (5 minutes). The LLM loop, sandbox setup, and dependency calls all share this budget.
+- **Code runtime orchestrators:** Set `timeout_seconds` to at least `180` (3 minutes) to account for SDK installation + dependency call overhead.
+- **`manifest.timeout_ms`** should match or exceed `timeout_seconds × 1000`.
+- **Leaf agents** with no SDK dependency are fast (~5s startup). Set their timeouts lower.
+
+<Note>
+The platform adds a 120-second buffer to your timeout for sandbox lifecycle management. A `timeout_seconds: 300` agent gets a sandbox that lives for 420 seconds. You don't need to account for this buffer yourself.
+</Note>
+
+---
+
+## Multi-Level Orchestration
+
+Orchestrators can call other orchestrators, creating multi-level chains. Each level runs in its own isolated sandbox.
+
+```
+User → security-suite (orchestrator, max_hops: 3)
+         ├→ code-reviewer (orchestrator, calls linter + formatter)
+         └→ vuln-scanner (leaf agent)
+```
+
+For multi-level chains:
+
+- The top-level agent's `max_hops` must be at least equal to the deepest chain depth
+- Each level decrements the hop count by 1
+- Timeouts propagate down — ensure the top-level timeout is large enough for the entire chain
+- Publishing order is strictly bottom-up: deepest leaf agents first, then mid-level orchestrators, then the top-level agent
+
+---
+
+## Troubleshooting
+
+### "Dependency not found" on publish
+
+All dependencies must be published before the orchestrator. Publish leaf agents first.
+
+### Agent runs but dependency calls return empty results
+
+Check that the dependency agent has `"callable": true` in its manifest. Without this, the gateway blocks agent-to-agent calls.
+
+### "MISSING_BILLING_ORG" error
+
+This usually means `ORCHAGENT_SERVICE_KEY` was overridden by a workspace secret. Remove `ORCHAGENT_SERVICE_KEY` from your `required_secrets` — the gateway injects it automatically.
+
+### Secrets are empty inside the sandbox
+
+Your agent must declare `required_secrets` in `orchagent.json`. Secrets added to the dashboard are only injected into sandboxes that explicitly request them.
+
+### Timeout / "peer closed connection"
+
+The SDK install (~55s) plus sandbox startup (~5s) consumes budget before your code runs. Increase `timeout_seconds` to give your agent more time. For orchestrators, 300s is a safe starting point.
+
+### Dependency returns error but no details
+
+Wrap SDK calls in try/except and log the error:
+
+```python
+from orchagent import DependencyCallError
+
+try:
+    result = await client.call("org/agent@v1", data)
+except DependencyCallError as e:
+    print(f"Dependency failed: status={e.status_code} body={e.response_body}", file=sys.stderr)
+```
+
+---
+
+## Complete File Checklist
+
+### Managed Loop Orchestrator
+
+```
+my-orchestrator/
+  orchagent.json    # manifest + loop + custom_tools + manifest.dependencies
+  prompt.md         # LLM system prompt
+  schema.json       # input/output schemas
+```
+
+### Code Runtime Orchestrator
+
+```
+my-orchestrator/
+  orchagent.json    # manifest + runtime.command + manifest.dependencies
+  main.py           # your Python code using orchagent-sdk
+  requirements.txt  # must include orchagent-sdk
+  prompt.md         # prompt (optional, used if agent also has direct LLM features)
+  schema.json       # input/output schemas
+```
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Orchestration Reference" icon="diagram-project" href="/building-agents/orchestration">
+    Concepts, patterns, rate limits, and troubleshooting reference
+  </Card>
+  <Card title="SDK Reference" icon="code" href="/building-agents/sdk">
+    Complete API reference for the orchagent-sdk package
+  </Card>
+  <Card title="Manifest Format" icon="file-code" href="/building-agents/manifest-format">
+    All orchagent.json fields and validation rules
+  </Card>
+  <Card title="Agent Types" icon="shapes" href="/building-agents/agent-types">
+    Understand execution engines and when to use each
+  </Card>
+</CardGroup>

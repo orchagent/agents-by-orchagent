@@ -92,6 +92,7 @@ Declares that the agent uses a managed LLM tool-use loop:
 | `is_public` | boolean | `true` | Public (free) or private (Pro plan required) |
 | `default_skills` | array | `[]` | Skills to inject into agent prompts (e.g., `["yourorg/writing-style"]`) |
 | `skills_locked` | boolean | `false` | When true, callers cannot override default_skills via flags (immutable after publish) |
+| `required_secrets` | array | `[]` | Workspace secret names to inject as env vars in the sandbox (e.g., `["EXTERNAL_API_KEY"]`). See [Building an Orchestrator](/building-agents/building-orchestrators#workspace-secrets). |
 
 ## Code Runtime Fields
 

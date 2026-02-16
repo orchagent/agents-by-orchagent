@@ -5,6 +5,16 @@ description: "Understanding the two object types on orchagent"
 
 orchagent hosts two object types: **agents** that execute tasks, and **skills** that provide reusable knowledge.
 
+<Tip>
+**Building with an AI coding assistant?** Install the agent-builder skill to give your AI the complete platform reference — sandbox contracts, boilerplate code, environment details, and debugging patterns:
+
+```bash
+orch skill install orchagent/agent-builder
+```
+
+This works with Claude Code, Cursor, Amp, and other AI tools. Your AI will have everything it needs to build agents on orchagent without trial and error.
+</Tip>
+
 ## Agents vs Skills: The Simple Rule
 
 | | Agents | Skills |
@@ -519,5 +529,8 @@ The `execution_engine` field (`direct_llm`, `managed_loop`, `code_runtime`) is a
   </Card>
   <Card title="Orchestration" icon="diagram-project" href="/building-agents/orchestration">
     Compose agents and skills
+  </Card>
+  <Card title="Agent Builder Skill" icon="wand-magic-sparkles">
+    Run `orch skill install orchagent/agent-builder` to give your AI coding tool the complete platform reference for building agents.
   </Card>
 </CardGroup>

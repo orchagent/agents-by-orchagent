@@ -149,28 +149,61 @@ Add a `manifest` section to your `orchagent.json`:
 }
 ```
 
-### Step 2: Use the Python SDK
+### Step 2: Use the SDK
 
-```python
-from fastapi import Request
-from orchagent import AgentClient
+The orchagent SDK is available for both **Python** and **JavaScript/TypeScript**. Use whichever matches your agent's language.
 
-@app.post("/review")
-async def review(request: Request, input: ReviewInput):
-    # Create client from request (inherits call chain, deadline, etc.)
-    client = AgentClient.from_request(request)
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from fastapi import Request
+    from orchagent import AgentClient
 
-    # Call dependencies
-    secrets = await client.call("joe/leak-finder@v1", {"url": input.repo_url})
-    vulns = await client.call("joe/vuln-scanner@v1", {"url": input.repo_url})
+    @app.post("/review")
+    async def review(request: Request, input: ReviewInput):
+        # Create client from request (inherits call chain, deadline, etc.)
+        client = AgentClient.from_request(request)
 
-    # Combine results
-    return {
-        "secrets": secrets,
-        "vulnerabilities": vulns,
-        "summary": f"Found {len(secrets)} secrets, {len(vulns)} vulnerabilities"
+        # Call dependencies
+        secrets = await client.call("joe/leak-finder@v1", {"url": input.repo_url})
+        vulns = await client.call("joe/vuln-scanner@v1", {"url": input.repo_url})
+
+        # Combine results
+        return {
+            "secrets": secrets,
+            "vulnerabilities": vulns,
+            "summary": f"Found {len(secrets)} secrets, {len(vulns)} vulnerabilities"
+        }
+    ```
+
+    Install: `pip install orchagent-sdk`
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    const { AgentClient } = require('orchagent-sdk');
+    const fs = require('fs');
+
+    async function main() {
+      const input = JSON.parse(fs.readFileSync('/dev/stdin', 'utf-8'));
+      const client = new AgentClient();
+
+      // Call dependencies
+      const secrets = await client.call('joe/leak-finder@v1', { url: input.repo_url });
+      const vulns = await client.call('joe/vuln-scanner@v1', { url: input.repo_url });
+
+      console.log(JSON.stringify({
+        secrets,
+        vulnerabilities: vulns,
+        summary: `Found ${secrets.length} secrets, ${vulns.length} vulnerabilities`,
+      }));
     }
-```
+
+    main();
+    ```
+
+    Install: `npm install orchagent-sdk`
+  </Tab>
+</Tabs>
 
 **The SDK handles automatically:**
 

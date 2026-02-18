@@ -3,7 +3,16 @@ title: "Custom Environments"
 description: "Add dependencies to your agents with Docker environments"
 ---
 
-Agents with `runtime.command` (code runtime) or `loop` config (managed loop) run in E2B sandboxes with a base Python image. Custom environments let you add dependencies beyond the defaults.
+Agents with `runtime.command` (code runtime) or `loop` config (managed loop) run in E2B sandboxes. The platform automatically selects the right base image based on your agent's entrypoint:
+
+| Entrypoint | Base Image | Includes |
+|------------|-----------|----------|
+| `.py` files | Python base | Python 3.11, pip |
+| `.js` files | Node.js base | Node.js 20, npm, Python 3 |
+
+JavaScript agents get a dedicated Node.js sandbox template with both Node.js and Python pre-installed. Dependencies from `package.json` are installed automatically via `npm ci` (when a lockfile is present) or `npm install`.
+
+Custom environments let you add dependencies beyond the defaults.
 
 ## Predefined Environments
 

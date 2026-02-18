@@ -21,8 +21,8 @@ orchagent supports two orchestration patterns. Choose based on how much control 
 
 | | Managed Loop | Code Runtime |
 |---|---|---|
-| **How it works** | LLM decides when to call dependencies via tool use | Your Python code calls dependencies directly |
-| **You write** | `orchagent.json` + `prompt.md` (no code) | `orchagent.json` + Python code |
+| **How it works** | LLM decides when to call dependencies via tool use | Your Python or JavaScript code calls dependencies directly |
+| **You write** | `orchagent.json` + `prompt.md` (no code) | `orchagent.json` + code using the orchagent SDK |
 | **Best for** | LLM-driven decisions, flexible workflows | Deterministic pipelines, custom logic |
 | **Manifest field** | `loop` + `custom_tools` | `runtime.command` |
 
@@ -206,86 +206,174 @@ Return a JSON object with:
 
 ### Option B: Code Runtime
 
-A code runtime orchestrator runs your Python code directly. You control the execution flow — which agents to call, in what order, and how to process results. Use this when you need deterministic logic, custom data transformation, or parallel fan-out.
+A code runtime orchestrator runs your code directly. You control the execution flow — which agents to call, in what order, and how to process results. Use this when you need deterministic logic, custom data transformation, or parallel fan-out. Code runtime orchestrators can be written in **Python or JavaScript**.
 
-#### security-review/orchagent.json
+<Tabs>
+  <Tab title="Python">
+    #### security-review/orchagent.json
 
-```json
-{
-  "name": "security-review",
-  "type": "agent",
-  "description": "Comprehensive security review combining secret scanning and dependency auditing",
-  "supported_providers": ["any"],
-  "runtime": {
-    "command": "python main.py"
-  },
-  "callable": true,
-  "timeout_seconds": 180,
-  "manifest": {
-    "manifest_version": 1,
-    "dependencies": [
-      { "id": "yourorg/leak-finder", "version": "v1" },
-      { "id": "yourorg/dep-scanner", "version": "v1" }
-    ],
-    "max_hops": 2,
-    "timeout_ms": 180000,
-    "per_call_downstream_cap": 100
-  }
-}
-```
+    ```json
+    {
+      "name": "security-review",
+      "type": "agent",
+      "description": "Comprehensive security review combining secret scanning and dependency auditing",
+      "supported_providers": ["any"],
+      "runtime": {
+        "command": "python main.py"
+      },
+      "callable": true,
+      "timeout_seconds": 180,
+      "manifest": {
+        "manifest_version": 1,
+        "dependencies": [
+          { "id": "yourorg/leak-finder", "version": "v1" },
+          { "id": "yourorg/dep-scanner", "version": "v1" }
+        ],
+        "max_hops": 2,
+        "timeout_ms": 180000,
+        "per_call_downstream_cap": 100
+      }
+    }
+    ```
 
-#### security-review/main.py
+    #### security-review/main.py
 
-```python
-import asyncio
-import json
-import sys
+    ```python
+    import asyncio
+    import json
+    import sys
 
-from orchagent import AgentClient, DependencyCallError
+    from orchagent import AgentClient, DependencyCallError
 
-async def main():
-    input_data = json.loads(sys.stdin.read())
-    client = AgentClient()
+    async def main():
+        input_data = json.loads(sys.stdin.read())
+        client = AgentClient()
 
-    # Fan-out: call both scanners in parallel
-    secrets_result, deps_result = await asyncio.gather(
-        client.call("yourorg/leak-finder@v1", {"code": input_data.get("code", "")}),
-        client.call("yourorg/dep-scanner@v1", {"path": input_data.get("path", ".")}),
-        return_exceptions=True,
-    )
+        # Fan-out: call both scanners in parallel
+        secrets_result, deps_result = await asyncio.gather(
+            client.call("yourorg/leak-finder@v1", {"code": input_data.get("code", "")}),
+            client.call("yourorg/dep-scanner@v1", {"path": input_data.get("path", ".")}),
+            return_exceptions=True,
+        )
 
-    # Handle partial failures gracefully
-    findings = []
-    if isinstance(secrets_result, Exception):
-        findings.append({"source": "leak-finder", "error": str(secrets_result)})
-    else:
-        findings.extend(secrets_result.get("findings", []))
+        # Handle partial failures gracefully
+        findings = []
+        if isinstance(secrets_result, Exception):
+            findings.append({"source": "leak-finder", "error": str(secrets_result)})
+        else:
+            findings.extend(secrets_result.get("findings", []))
 
-    if isinstance(deps_result, Exception):
-        findings.append({"source": "dep-scanner", "error": str(deps_result)})
-    else:
-        findings.extend(deps_result.get("vulnerabilities", []))
+        if isinstance(deps_result, Exception):
+            findings.append({"source": "dep-scanner", "error": str(deps_result)})
+        else:
+            findings.extend(deps_result.get("vulnerabilities", []))
 
-    severity = "critical" if len(findings) > 5 else "high" if findings else "low"
+        severity = "critical" if len(findings) > 5 else "high" if findings else "low"
 
-    print(json.dumps({
-        "severity": severity,
-        "findings": findings,
-        "total_issues": len(findings),
-    }))
+        print(json.dumps({
+            "severity": severity,
+            "findings": findings,
+            "total_issues": len(findings),
+        }))
 
-asyncio.run(main())
-```
+    asyncio.run(main())
+    ```
 
-#### security-review/requirements.txt
+    #### security-review/requirements.txt
 
-```
-orchagent-sdk
-```
+    ```
+    orchagent-sdk
+    ```
 
-<Warning>
-`orchagent-sdk` must be in your `requirements.txt`. It is installed automatically inside the sandbox at runtime, but the install takes approximately 55 seconds — factor this into your timeout budget (see [Timeout Budgeting](#timeout-budgeting)).
-</Warning>
+    <Warning>
+    `orchagent-sdk` must be in your `requirements.txt`. It is installed automatically inside the sandbox at runtime, but the install takes approximately 55 seconds — factor this into your timeout budget (see [Timeout Budgeting](#timeout-budgeting)).
+    </Warning>
+  </Tab>
+  <Tab title="JavaScript">
+    #### security-review/orchagent.json
+
+    ```json
+    {
+      "name": "security-review",
+      "type": "agent",
+      "description": "Comprehensive security review combining secret scanning and dependency auditing",
+      "supported_providers": ["any"],
+      "runtime": {
+        "command": "node main.js"
+      },
+      "callable": true,
+      "timeout_seconds": 180,
+      "manifest": {
+        "manifest_version": 1,
+        "dependencies": [
+          { "id": "yourorg/leak-finder", "version": "v1" },
+          { "id": "yourorg/dep-scanner", "version": "v1" }
+        ],
+        "max_hops": 2,
+        "timeout_ms": 180000,
+        "per_call_downstream_cap": 100
+      }
+    }
+    ```
+
+    #### security-review/main.js
+
+    ```javascript
+    const { AgentClient } = require('orchagent-sdk');
+    const fs = require('fs');
+
+    async function main() {
+      const inputData = JSON.parse(fs.readFileSync('/dev/stdin', 'utf-8'));
+      const client = new AgentClient();
+
+      // Fan-out: call both scanners in parallel
+      const [secretsResult, depsResult] = await Promise.allSettled([
+        client.call('yourorg/leak-finder@v1', { code: inputData.code || '' }),
+        client.call('yourorg/dep-scanner@v1', { path: inputData.path || '.' }),
+      ]);
+
+      // Handle partial failures gracefully
+      const findings = [];
+      if (secretsResult.status === 'fulfilled') {
+        findings.push(...(secretsResult.value.findings || []));
+      } else {
+        findings.push({ source: 'leak-finder', error: secretsResult.reason.message });
+      }
+
+      if (depsResult.status === 'fulfilled') {
+        findings.push(...(depsResult.value.vulnerabilities || []));
+      } else {
+        findings.push({ source: 'dep-scanner', error: depsResult.reason.message });
+      }
+
+      const severity = findings.length > 5 ? 'critical' : findings.length > 0 ? 'high' : 'low';
+
+      console.log(JSON.stringify({
+        severity,
+        findings,
+        total_issues: findings.length,
+      }));
+    }
+
+    main();
+    ```
+
+    #### security-review/package.json
+
+    ```json
+    {
+      "private": true,
+      "dependencies": {
+        "orchagent-sdk": "^0.1.0"
+      }
+    }
+    ```
+
+    <Note>
+    `orchagent-sdk` must be in your `package.json` dependencies. It is installed via `npm install` inside the sandbox at runtime. The JS sandbox uses a dedicated Node.js template with npm pre-installed.
+    </Note>
+  </Tab>
+</Tabs>
 
 ---
 
@@ -311,10 +399,19 @@ In your `orchagent.json`, list which secrets your agent needs:
 
 At runtime, these secrets are injected as environment variables into your agent's sandbox. **Secrets not listed in `required_secrets` will not be available**, even if they exist in your workspace.
 
-```python
-import os
-api_key = os.environ["EXTERNAL_API_KEY"]  # Available because it's in required_secrets
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import os
+    api_key = os.environ["EXTERNAL_API_KEY"]  # Available because it's in required_secrets
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    const apiKey = process.env.EXTERNAL_API_KEY;  // Available because it's in required_secrets
+    ```
+  </Tab>
+</Tabs>
 
 <Warning>
 **Do not add `ORCHAGENT_SERVICE_KEY` to `required_secrets`.** The gateway automatically injects a temporary service key for agents that have manifest dependencies. Adding your own workspace secret named `ORCHAGENT_SERVICE_KEY` will override the auto-injected key and break orchestration with confusing billing errors.
@@ -358,7 +455,8 @@ Sandboxes need time to start up and install dependencies. Plan your timeouts acc
 | Phase | Approximate Time |
 |-------|-----------------|
 | Sandbox startup | ~5s |
-| SDK installation (if `orchagent-sdk` in requirements.txt) | ~55s |
+| SDK installation (Python `orchagent-sdk` in requirements.txt) | ~55s |
+| npm install (JavaScript `orchagent-sdk` in package.json) | ~15-30s |
 | Your agent's execution | varies |
 | Each dependency call (includes its own startup + install) | ~60-70s overhead + execution |
 
@@ -418,16 +516,33 @@ The SDK install (~55s) plus sandbox startup (~5s) consumes budget before your co
 
 ### Dependency returns error but no details
 
-Wrap SDK calls in try/except and log the error:
+Wrap SDK calls in try/catch and log the error:
 
-```python
-from orchagent import DependencyCallError
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from orchagent import DependencyCallError
 
-try:
-    result = await client.call("org/agent@v1", data)
-except DependencyCallError as e:
-    print(f"Dependency failed: status={e.status_code} body={e.response_body}", file=sys.stderr)
-```
+    try:
+        result = await client.call("org/agent@v1", data)
+    except DependencyCallError as e:
+        print(f"Dependency failed: status={e.status_code} body={e.response_body}", file=sys.stderr)
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    const { DependencyCallError } = require('orchagent-sdk');
+
+    try {
+      const result = await client.call('org/agent@v1', data);
+    } catch (err) {
+      if (err instanceof DependencyCallError) {
+        console.error(`Dependency failed: status=${err.statusCode} body=${JSON.stringify(err.responseBody)}`);
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
 
 ---
 
@@ -442,7 +557,7 @@ my-orchestrator/
   schema.json       # input/output schemas
 ```
 
-### Code Runtime Orchestrator
+### Code Runtime Orchestrator (Python)
 
 ```
 my-orchestrator/
@@ -450,6 +565,17 @@ my-orchestrator/
   main.py           # your Python code using orchagent-sdk
   requirements.txt  # must include orchagent-sdk
   prompt.md         # prompt (optional, used if agent also has direct LLM features)
+  schema.json       # input/output schemas
+```
+
+### Code Runtime Orchestrator (JavaScript)
+
+```
+my-orchestrator/
+  orchagent.json    # manifest + runtime.command + manifest.dependencies
+  main.js           # your JavaScript code using orchagent-sdk
+  package.json      # must include orchagent-sdk in dependencies
+  prompt.md         # prompt (optional)
   schema.json       # input/output schemas
 ```
 

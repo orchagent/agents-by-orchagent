@@ -63,8 +63,14 @@ Create a new agent project:
 # Create an agent (default: direct LLM, on-demand)
 orch init my-agent
 
+# Create a JavaScript agent
+orch init my-agent --language javascript
+
 # Create an agent for always-on deployment
 orch init my-agent --run-mode always_on
+
+# Create a JavaScript Discord bot from template
+orch init my-bot --template discord-js
 
 # Create a skill
 orch init my-skill --type skill
@@ -72,7 +78,7 @@ orch init my-skill --type skill
 cd my-agent
 ```
 
-This creates a directory with the basic structure: `orchagent.json`, `prompt.md`, and `schema.json`. The manifest uses `"type": "agent"` with canonical fields.
+This creates a directory with the basic structure: `orchagent.json`, `prompt.md`, and `schema.json`. For code runtime agents with `--language javascript`, it creates `main.js` and `package.json` instead. The manifest uses `"type": "agent"` with canonical fields.
 
 <Tip>
 The execution engine is inferred from your manifest at publish time. Add `runtime.command` for code execution, `loop` for a managed LLM loop, or leave both out for a direct LLM call. See [Manifest Format](/building-agents/manifest-format#behavior-fields) for details.
@@ -101,9 +107,11 @@ Before publishing, test your agent locally:
 # For direct LLM agents
 orch run . --input '{"text": "test input"}'
 
-# For code runtime agents
+# For code runtime agents (Python or JavaScript)
 orch run .
 ```
+
+The CLI automatically detects `.py` or `.js` entrypoints and runs them with the correct interpreter (`python3` or `node`).
 
 ### Step 4: Publish
 
@@ -230,8 +238,12 @@ These files/directories are automatically excluded:
 
 **Node.js:**
 - `node_modules/`
-- `package.json`, `package-lock.json`, `yarn.lock`, `bun.lockb`
+- `yarn.lock`, `bun.lockb`
 - `tsconfig.json`
+
+<Note>
+`package.json` and `package-lock.json` are **automatically included** when a JavaScript entrypoint is detected. They are excluded from Python-only bundles to prevent monorepo conflicts. This ensures `npm install` runs correctly in the sandbox.
+</Note>
 
 **Git & IDE:**
 - `.git/`, `.gitignore`, `.gitattributes`

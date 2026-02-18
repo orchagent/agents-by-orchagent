@@ -479,6 +479,12 @@ Initialize a new agent or skill project.
 # Create an agent (default: direct LLM, on-demand)
 orch init my-agent
 
+# Create a JavaScript tool agent
+orch init my-tool --type tool --language javascript
+
+# Create a JavaScript Discord bot from template
+orch init my-bot --template discord-js
+
 # Create an agent with a specific run mode
 orch init my-agent --run-mode always_on
 
@@ -495,10 +501,16 @@ orch init
 |------|-------------|
 | `--type <type>` | `agent` (default) or `skill`. Legacy values `prompt`, `tool`, `agentic` are accepted for compatibility. |
 | `--run-mode <mode>` | `on_demand` (default) or `always_on` |
+| `--language <lang>` | `python` (default) or `javascript`. Scaffolds `main.js` + `package.json` instead of `main.py` + `requirements.txt`. |
+| `--template <name>` | Start from a template: `support-agent`, `discord`, `discord-js`, `github-weekly-summary` |
 
 When a name is provided, `init` creates a subdirectory with that name and writes all files there. Without a name, files are written to the current directory.
 
 The generated `orchagent.json` always uses `"type": "agent"` with the canonical `run_mode` field.
+
+<Note>
+`--language javascript` is supported for tool/code-runtime agents. Managed loop agents (agent-type with `loop` config) currently require Python — the managed loop runner is Python-only.
+</Note>
 
 ### publish
 

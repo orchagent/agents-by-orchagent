@@ -3,40 +3,81 @@ title: "OrchAgent SDK"
 description: "Use the official orchagent-sdk package for calling other agents"
 ---
 
-The `orchagent-sdk` Python package provides a simple interface for building orchestrator agents that call other agents. It handles authentication, call chain propagation, and error handling automatically.
+The orchagent SDK provides a simple interface for building orchestrator agents that call other agents. It handles authentication, call chain propagation, and error handling automatically. SDKs are available for both **Python** and **JavaScript/TypeScript**.
 
 ## Installation
 
-Install from PyPI:
-
-```bash
-pip install orchagent-sdk
-```
-
-<Tip>
-The SDK requires Python 3.9 or higher.
-</Tip>
+<Tabs>
+  <Tab title="Python">
+    ```bash
+    pip install orchagent-sdk
+    ```
+    Requires Python 3.9+.
+  </Tab>
+  <Tab title="JavaScript / TypeScript">
+    ```bash
+    npm install orchagent-sdk
+    ```
+    Requires Node.js 18+ (uses built-in `fetch`). Zero dependencies.
+  </Tab>
+</Tabs>
 
 ## Basic Usage
 
 The SDK provides `AgentClient` for calling other agents from within your agent:
 
-```python
-from fastapi import Request
-from orchagent import AgentClient
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from fastapi import Request
+    from orchagent import AgentClient
 
-@app.post("/analyze")
-async def analyze(request: Request, input: AnalyzeInput):
-    # Create client from incoming request
-    client = AgentClient.from_request(request)
+    @app.post("/analyze")
+    async def analyze(request: Request, input: AnalyzeInput):
+        # Create client from incoming request
+        client = AgentClient.from_request(request)
 
-    # Call another agent
-    result = await client.call("joe/leak-finder@v1", {"url": input.repo_url})
+        # Call another agent
+        result = await client.call("joe/leak-finder@v1", {"url": input.repo_url})
 
-    return {"findings": result}
-```
+        return {"findings": result}
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    const { AgentClient } = require('orchagent-sdk');
 
-The `AgentClient.from_request()` method extracts context from the incoming request, including:
+    async function main() {
+      const input = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf-8'));
+
+      const client = new AgentClient();
+      const result = await client.call('joe/leak-finder@v1', { url: input.repo_url });
+
+      console.log(JSON.stringify({ findings: result }));
+    }
+
+    main();
+    ```
+  </Tab>
+  <Tab title="TypeScript">
+    ```typescript
+    import { AgentClient } from 'orchagent-sdk';
+
+    async function main() {
+      const input = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf-8'));
+
+      const client = new AgentClient();
+      const result = await client.call('joe/leak-finder@v1', { url: input.repo_url });
+
+      console.log(JSON.stringify({ findings: result }));
+    }
+
+    main();
+    ```
+  </Tab>
+</Tabs>
+
+Both SDKs automatically extract context from the environment, including:
 
 - Service key for authentication
 - Call chain for cycle detection
@@ -45,7 +86,7 @@ The `AgentClient.from_request()` method extracts context from the incoming reque
 
 ## Local vs Server Mode
 
-The SDK automatically detects whether to route calls locally or through the gateway based on the `ORCHAGENT_LOCAL_EXECUTION` environment variable.
+Both SDKs automatically detect whether to route calls locally or through the gateway based on the `ORCHAGENT_LOCAL_EXECUTION` environment variable.
 
 | Mode | `ORCHAGENT_LOCAL_EXECUTION` | Behavior |
 |------|----------------------------|----------|
@@ -58,24 +99,11 @@ When you run an orchestrator with `orch run --with-deps`, the CLI automatically 
 
 ### Server Mode (Default)
 
-In server mode, calls go through the gateway which handles routing, authentication, and sandbox management:
-
-```python
-# Server mode - calls go to api.orchagent.io
-client = AgentClient.from_request(request)
-result = await client.call("joe/leak-finder@v1", {"url": repo})
-```
+In server mode, calls go through the gateway which handles routing, authentication, and sandbox management.
 
 ### Local Mode
 
-In local mode, calls go directly to locally running agent processes:
-
-```python
-# With ORCHAGENT_LOCAL_EXECUTION=true
-# Calls route to localhost ports where dependencies are running
-client = AgentClient.from_request(request)
-result = await client.call("joe/leak-finder@v1", {"url": repo})
-```
+In local mode, calls go directly to locally running agent processes. The SDK spawns subprocesses using `python3` for `.py` entrypoints and `node` for `.js` entrypoints.
 
 ## API Reference
 
@@ -85,57 +113,107 @@ The main class for calling other agents.
 
 #### Creating a Client
 
-```python
-from orchagent import AgentClient
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from orchagent import AgentClient
 
-# From an incoming request (recommended for orchestrators)
-client = AgentClient.from_request(request)
+    # From an incoming request (recommended for orchestrators)
+    client = AgentClient.from_request(request)
 
-# With explicit configuration
-client = AgentClient(
-    service_key="sk_agent_...",
-    gateway_url="https://api.orchagent.io"
-)
-```
+    # With explicit configuration
+    client = AgentClient(
+        service_key="sk_agent_...",
+        gateway_url="https://api.orchagent.io"
+    )
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    const { AgentClient } = require('orchagent-sdk');
+
+    // From environment variables (recommended — reads ORCHAGENT_SERVICE_KEY etc.)
+    const client = new AgentClient();
+
+    // From an HTTP request (Express, Koa, Fastify, etc.)
+    const client = AgentClient.fromRequest(req);
+
+    // With explicit configuration
+    const client = new AgentClient({
+      serviceKey: 'sk_agent_...',
+      gatewayUrl: 'https://api.orchagent.io'
+    });
+    ```
+  </Tab>
+</Tabs>
 
 #### call()
 
 Call another agent asynchronously.
 
-```python
-result = await client.call(
-    agent_id,      # Required: "org/name@version"
-    input_data,    # Required: dict of input parameters
-    endpoint=None, # Optional: specific endpoint (default: agent's default)
-    timeout=None   # Optional: timeout in seconds (default: inherited from request)
-)
-```
+<Tabs>
+  <Tab title="Python">
+    ```python
+    result = await client.call(
+        agent_id,      # Required: "org/name@version"
+        input_data,    # Required: dict of input parameters
+        endpoint=None, # Optional: specific endpoint (default: agent's default)
+        timeout=None   # Optional: timeout in seconds (default: inherited from request)
+    )
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    const result = await client.call(
+      'org/name@version',  // Required: agent reference
+      { input: 'data' },   // Required: input parameters
+      { endpoint: 'run', timeout: 30 }  // Optional
+    );
+    ```
+  </Tab>
+</Tabs>
 
 **Parameters:**
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `agent_id` | `str` | Yes | Agent identifier in format `org/name@version` |
-| `input_data` | `dict` | Yes | Input parameters for the agent |
+| `input_data` | `dict` / `object` | Yes | Input parameters for the agent |
 | `endpoint` | `str` | No | Specific endpoint to call (e.g., `"deep-scan"`) |
-| `timeout` | `float` | No | Timeout in seconds, overrides inherited deadline |
+| `timeout` | `float` / `number` | No | Timeout in seconds, overrides inherited deadline |
 
-**Returns:** `dict` - The agent's response data
+**Returns:** `dict` / `object` - The agent's response data
 
 **Raises:** `DependencyCallError`, `TimeoutExceededError`, `CallChainCycleError`
 
 #### Examples
 
-```python
-# Basic call
-result = await client.call("joe/summarizer@v1", {"text": document})
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Basic call
+    result = await client.call("joe/summarizer@v1", {"text": document})
 
-# Call specific endpoint
-result = await client.call("joe/scanner@v1", {"url": repo}, endpoint="deep-scan")
+    # Call specific endpoint
+    result = await client.call("joe/scanner@v1", {"url": repo}, endpoint="deep-scan")
 
-# Override timeout
-result = await client.call("joe/analyzer@v1", {"data": data}, timeout=60.0)
-```
+    # Override timeout
+    result = await client.call("joe/analyzer@v1", {"data": data}, timeout=60.0)
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    // Basic call
+    const result = await client.call('joe/summarizer@v1', { text: document });
+
+    // Call specific endpoint
+    const result = await client.call('joe/scanner@v1', { url: repo }, { endpoint: 'deep-scan' });
+
+    // Override timeout
+    const result = await client.call('joe/analyzer@v1', { data }, { timeout: 60 });
+    ```
+  </Tab>
+</Tabs>
 
 ## Environment Variables
 
@@ -156,29 +234,56 @@ When running on orchagent's servers, `ORCHAGENT_SERVICE_KEY` is automatically in
 
 ## Error Handling
 
-The SDK provides specific exception types for different failure modes:
+Both SDKs provide specific exception/error types for different failure modes:
 
-```python
-from orchagent import (
-    AgentClient,
-    DependencyCallError,
-    TimeoutExceededError,
-    CallChainCycleError
-)
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from orchagent import (
+        AgentClient,
+        DependencyCallError,
+        TimeoutExceededError,
+        CallChainCycleError
+    )
 
-try:
-    result = await client.call("joe/analyzer@v1", input_data)
-except DependencyCallError as e:
-    # The called agent returned an error
-    print(f"Agent error: {e.status_code}")
-    print(f"Response: {e.response_body}")
-except TimeoutExceededError:
-    # Request exceeded deadline
-    print("Call timed out")
-except CallChainCycleError:
-    # Cycle detected (A -> B -> A)
-    print("Circular dependency detected")
-```
+    try:
+        result = await client.call("joe/analyzer@v1", input_data)
+    except DependencyCallError as e:
+        # The called agent returned an error
+        print(f"Agent error: {e.status_code}")
+        print(f"Response: {e.response_body}")
+    except TimeoutExceededError:
+        # Request exceeded deadline
+        print("Call timed out")
+    except CallChainCycleError:
+        # Cycle detected (A -> B -> A)
+        print("Circular dependency detected")
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    const {
+      AgentClient,
+      DependencyCallError,
+      TimeoutExceededError,
+      CallChainCycleError
+    } = require('orchagent-sdk');
+
+    try {
+      const result = await client.call('joe/analyzer@v1', inputData);
+    } catch (err) {
+      if (err instanceof DependencyCallError) {
+        console.error(`Agent error: ${err.statusCode}`);
+        console.error(`Response: ${JSON.stringify(err.responseBody)}`);
+      } else if (err instanceof TimeoutExceededError) {
+        console.error('Call timed out');
+      } else if (err instanceof CallChainCycleError) {
+        console.error('Circular dependency detected');
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
 
 ### Exception Reference
 
@@ -192,27 +297,53 @@ except CallChainCycleError:
 
 When calling multiple agents, handle failures gracefully:
 
-```python
-import asyncio
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import asyncio
 
-async def analyze_repo(client, repo_url):
-    results = {}
+    async def analyze_repo(client, repo_url):
+        results = {}
 
-    # Use asyncio.gather with return_exceptions=True
-    outcomes = await asyncio.gather(
-        client.call("joe/leak-finder@v1", {"url": repo_url}),
-        client.call("joe/vuln-scanner@v1", {"url": repo_url}),
-        return_exceptions=True
-    )
+        # Use asyncio.gather with return_exceptions=True
+        outcomes = await asyncio.gather(
+            client.call("joe/leak-finder@v1", {"url": repo_url}),
+            client.call("joe/vuln-scanner@v1", {"url": repo_url}),
+            return_exceptions=True
+        )
 
-    for name, outcome in zip(["secrets", "vulnerabilities"], outcomes):
-        if isinstance(outcome, Exception):
-            results[name] = {"error": str(outcome)}
-        else:
-            results[name] = outcome
+        for name, outcome in zip(["secrets", "vulnerabilities"], outcomes):
+            if isinstance(outcome, Exception):
+                results[name] = {"error": str(outcome)}
+            else:
+                results[name] = outcome
 
-    return results
-```
+        return results
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    async function analyzeRepo(client, repoUrl) {
+      const results = {};
+
+      const outcomes = await Promise.allSettled([
+        client.call('joe/leak-finder@v1', { url: repoUrl }),
+        client.call('joe/vuln-scanner@v1', { url: repoUrl }),
+      ]);
+
+      const names = ['secrets', 'vulnerabilities'];
+      for (let i = 0; i < outcomes.length; i++) {
+        const outcome = outcomes[i];
+        results[names[i]] = outcome.status === 'fulfilled'
+          ? outcome.value
+          : { error: outcome.reason.message };
+      }
+
+      return results;
+    }
+    ```
+  </Tab>
+</Tabs>
 
 ## Best Practices
 
@@ -224,11 +355,11 @@ async def analyze_repo(client, repo_url):
 
 ### Recommendations
 
-1. **Always use `from_request()`** - This ensures proper context propagation (call chain, deadline, hops)
+1. **Always use `from_request()` / `fromRequest()`** - This ensures proper context propagation (call chain, deadline, hops). For JS code-runtime agents that read stdin, `new AgentClient()` is fine — it reads context from environment variables.
 
 2. **Handle all exception types** - Don't let `DependencyCallError` crash your agent
 
-3. **Use parallel calls when possible** - Fan-out to independent agents with `asyncio.gather()`
+3. **Use parallel calls when possible** - Fan-out to independent agents with `asyncio.gather()` (Python) or `Promise.allSettled()` (JavaScript)
 
 4. **Pin dependency versions** - Use `org/agent@v1`, not `org/agent@latest`
 
@@ -236,26 +367,46 @@ async def analyze_repo(client, repo_url):
 
 6. **Return partial results on failure** - Don't fail completely if one dependency fails
 
-```python
-# Good: Parallel calls with error handling
-async def review(client, repo):
-    secrets, vulns = await asyncio.gather(
-        client.call("joe/leak-finder@v1", {"url": repo}),
-        client.call("joe/vuln-scanner@v1", {"url": repo}),
-        return_exceptions=True
-    )
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Parallel calls with error handling
+    async def review(client, repo):
+        secrets, vulns = await asyncio.gather(
+            client.call("joe/leak-finder@v1", {"url": repo}),
+            client.call("joe/vuln-scanner@v1", {"url": repo}),
+            return_exceptions=True
+        )
 
-    return {
-        "secrets": secrets if not isinstance(secrets, Exception) else None,
-        "vulnerabilities": vulns if not isinstance(vulns, Exception) else None,
+        return {
+            "secrets": secrets if not isinstance(secrets, Exception) else None,
+            "vulnerabilities": vulns if not isinstance(vulns, Exception) else None,
+        }
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    // Parallel calls with error handling
+    async function review(client, repo) {
+      const [secrets, vulns] = await Promise.allSettled([
+        client.call('joe/leak-finder@v1', { url: repo }),
+        client.call('joe/vuln-scanner@v1', { url: repo }),
+      ]);
+
+      return {
+        secrets: secrets.status === 'fulfilled' ? secrets.value : null,
+        vulnerabilities: vulns.status === 'fulfilled' ? vulns.value : null,
+      };
     }
-```
+    ```
+  </Tab>
+</Tabs>
 
 ### Anti-patterns to Avoid
 
-- **Don't create clients manually** in orchestrators - use `from_request()` to inherit context
-- **Don't ignore the call chain** - it prevents cycles and tracks lineage
-- **Don't hardcode gateway URLs** - use the environment variable
+- **Don't create clients manually** in orchestrators — use `from_request()` (Python) or `fromRequest()` (JS) to inherit context
+- **Don't ignore the call chain** — it prevents cycles and tracks lineage
+- **Don't hardcode gateway URLs** — use the environment variable
 
 ## Next Steps
 

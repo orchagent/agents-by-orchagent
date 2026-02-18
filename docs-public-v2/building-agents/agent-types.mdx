@@ -280,42 +280,85 @@ Code runtime agents run your Python or JavaScript in **E2B sandboxes** — secur
 
 **What you declare in the manifest:**
 
-```json
-{
-  "name": "leak-finder",
-  "type": "agent",
-  "description": "Finds leaked secrets in codebases",
-  "supported_providers": ["gemini"],
-  "runtime": {
-    "command": "python main.py"
-  }
-}
-```
+<Tabs>
+  <Tab title="Python">
+    ```json
+    {
+      "name": "leak-finder",
+      "type": "agent",
+      "description": "Finds leaked secrets in codebases",
+      "supported_providers": ["gemini"],
+      "runtime": {
+        "command": "python main.py"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```json
+    {
+      "name": "leak-finder",
+      "type": "agent",
+      "description": "Finds leaked secrets in codebases",
+      "supported_providers": ["gemini"],
+      "runtime": {
+        "command": "node main.js"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
 
 ### Example
 
-```python
-# main.py
-import json
-import sys
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # main.py
+    import json
+    import sys
 
-def main():
-    # Read input from stdin
-    input_data = json.load(sys.stdin)
-    repo_url = input_data.get("repo_url")
+    def main():
+        # Read input from stdin
+        input_data = json.load(sys.stdin)
+        repo_url = input_data.get("repo_url")
 
-    # Your logic here: clone repo, scan files, call LLM, etc.
-    result = {
-        "issues": ["Found hardcoded API key in config.py"],
-        "risk_score": 0.7
+        # Your logic here: clone repo, scan files, call LLM, etc.
+        result = {
+            "issues": ["Found hardcoded API key in config.py"],
+            "risk_score": 0.7
+        }
+
+        # Write output to stdout
+        print(json.dumps(result))
+
+    if __name__ == "__main__":
+        main()
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```javascript
+    // main.js
+    const fs = require('fs');
+
+    function main() {
+      const inputData = JSON.parse(fs.readFileSync('/dev/stdin', 'utf-8'));
+      const repoUrl = inputData.repo_url;
+
+      // Your logic here: clone repo, scan files, call LLM, etc.
+      const result = {
+        issues: ['Found hardcoded API key in config.py'],
+        risk_score: 0.7,
+      };
+
+      // Write output to stdout
+      console.log(JSON.stringify(result));
     }
 
-    # Write output to stdout
-    print(json.dumps(result))
-
-if __name__ == "__main__":
-    main()
-```
+    main();
+    ```
+  </Tab>
+</Tabs>
 
 ### Input/Output Contract
 
@@ -347,13 +390,26 @@ Code runtime agents communicate via stdin/stdout as JSON.
 
 ### Directory Structure
 
-```
-my-agent/
-+-- orchagent.json      # Agent manifest
-+-- main.py             # Entry point
-+-- requirements.txt    # Dependencies
-\-- README.md           # Documentation (optional)
-```
+<Tabs>
+  <Tab title="Python">
+    ```
+    my-agent/
+    +-- orchagent.json      # Agent manifest
+    +-- main.py             # Entry point
+    +-- requirements.txt    # Dependencies
+    \-- README.md           # Documentation (optional)
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```
+    my-agent/
+    +-- orchagent.json      # Agent manifest
+    +-- main.js             # Entry point
+    +-- package.json        # Dependencies
+    \-- README.md           # Documentation (optional)
+    ```
+  </Tab>
+</Tabs>
 
 The CLI auto-detects entrypoints: `main.py`, `app.py`, `index.py`, `main.js`, `index.js`. Override with:
 

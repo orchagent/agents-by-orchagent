@@ -309,14 +309,14 @@ For more details, see the [manifest reference](/building-agents/manifest-format)
 
 ## LLM Credentials
 
-Scheduled runs use the LLM credentials stored in your workspace:
+Scheduled runs use LLM keys from your workspace secrets vault:
 
 1. If the schedule has a `--provider` set, that provider's key is used
 2. Otherwise, the agent's default provider is used
-3. Keys must be configured in your workspace before creating the schedule
+3. LLM keys must exist in the vault before creating the schedule (e.g., `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`)
 
 <Tip>
-Store your LLM API keys in the [dashboard](https://orchagent.io/dashboard) under your workspace settings, or use `orch llm-config` to configure them via CLI.
+Store your LLM API keys in the workspace vault: `orch secrets set ANTHROPIC_API_KEY sk-ant-...` or add them in the [dashboard](https://orchagent.io/dashboard) under Settings → Secrets.
 </Tip>
 
 ---

@@ -26,9 +26,11 @@ orchagent uses a **Bring Your Own Key** model. You provide your own LLM API keys
 
 When an agent needs an LLM key, it looks in this order:
 
-1. **Command-line flag** - `--key` on CLI commands
-2. **Environment variable** - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.
-3. **orchagent account** - Keys stored in your dashboard (for server execution)
+1. **Command-line flag** — `--key` on CLI commands
+2. **Environment variable** — `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc. (local execution)
+3. **Workspace secrets vault** — keys stored in your workspace (server execution)
+
+LLM keys are stored as regular workspace secrets with conventional names (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`). The platform matches these names automatically.
 
 ## Setting Up Keys
 
@@ -55,13 +57,17 @@ orch run --local acme/summarizer --input '{"text": "..."}'
 
 ### For Server Execution
 
-Store keys in your orchagent account:
+Store keys in your workspace secrets vault:
 
 ```bash
-orch llm-config --endpoint https://api.openai.com/v1 --model gpt-4o-mini --api-key sk-...
+# Add your LLM API key to the workspace vault
+orch secrets set ANTHROPIC_API_KEY sk-ant-...
+
+# Or for OpenAI
+orch secrets set OPENAI_API_KEY sk-...
 ```
 
-Or configure in the [dashboard](https://orchagent.io/dashboard).
+Or add them in the [dashboard](https://orchagent.io/dashboard) under Settings → Secrets.
 
 Then run agents on the cloud:
 
@@ -120,7 +126,7 @@ Keys stay on your machine. The agent runs locally and makes LLM calls directly f
 
 ### Server Execution
 
-Keys are encrypted and stored in your orchagent account. They're injected into the agent container at runtime.
+Keys are encrypted and stored in your workspace vault. They're injected into the agent's sandbox at runtime.
 
 <Note>
 Agent containers run in isolated environments. Your keys are never exposed to agent authors.
@@ -145,7 +151,7 @@ Server-executed agents route all outbound traffic through an allowlist proxy:
 ## Best Practices
 
 1. **Use environment variables** for local development
-2. **Store keys in dashboard** for server execution
+2. **Store keys in workspace vault** for server execution (`orch secrets set` or dashboard)
 3. **Set spending limits** with your LLM provider
 4. **Rotate keys regularly** if you share them
 5. **Use separate keys** for development and production

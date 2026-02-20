@@ -93,11 +93,12 @@ Edit `orchagent.json` with your agent's configuration:
   "name": "my-agent",
   "type": "agent",
   "description": "What my agent does",
-  "supported_providers": ["openai", "anthropic"]
+  "supported_providers": ["openai", "anthropic"],
+  "required_secrets": ["ANTHROPIC_API_KEY"]
 }
 ```
 
-See [Manifest Format](/building-agents/manifest-format) for all options.
+The `required_secrets` field declares which env vars your code needs at runtime. These are matched by name against your workspace secrets vault. See [Manifest Format](/building-agents/manifest-format) for all options.
 
 ### Step 3: Test Locally
 
@@ -124,21 +125,21 @@ orch publish
 For agents with `runtime.command` or `loop` config that need to run continuously (Discord bots, webhook listeners, background workers), deploy as an always-on service:
 
 ```bash
-orch service deploy yourorg/my-agent \
-  --secret API_TOKEN \
-  --env LOG_LEVEL=info
+# Secrets are auto-resolved from the agent's required_secrets
+orch service deploy yourorg/my-agent --env LOG_LEVEL=info
 ```
 
-See [Always-On Services](/using-agents/services) for full documentation.
+The platform reads `required_secrets` from the agent and injects them from your workspace vault. See [Always-On Services](/using-agents/services) for full documentation.
 
 ## What Happens on Publish
 
 The platform runs several checks:
 
-1. **Manifest validation** - Verifies `orchagent.json` is valid
-2. **Schema validation** - Validates input/output schemas
-3. **Dependency check** - Verifies all dependencies exist (for orchestrators)
-4. **Cycle detection** - Ensures no circular dependencies
+1. **Manifest validation** — verifies `orchagent.json` is valid
+2. **Schema validation** — validates input/output schemas
+3. **Secrets declaration** — tool and agent types must declare `required_secrets` (use `--no-required-secrets` to bypass)
+4. **Dependency check** — verifies all dependencies exist (for orchestrators)
+5. **Cycle detection** — ensures no circular dependencies
 
 For **managed loop** agents (with `loop` config), the platform also:
 

@@ -8,8 +8,8 @@ Deploy agents as **always-on services** that run continuously in the cloud. Serv
 ## Quick Start
 
 ```bash
-# Deploy a service
-orch service deploy acme/discord-bot --secret DISCORD_BOT_TOKEN
+# Deploy a service (secrets auto-resolved from agent's required_secrets)
+orch service deploy acme/discord-bot
 
 # Check status
 orch service list
@@ -50,7 +50,7 @@ orch service deploy <org/agent[@version]> \
 | `--min-instances <n>` | Minimum running instances | `1` |
 | `--max-instances <n>` | Maximum running instances | `1` |
 | `--env KEY=VALUE` | Environment variable (repeatable) | — |
-| `--secret <NAME>` | Workspace secret name (repeatable) | — |
+| `--secret <NAME>` | Extra workspace secret (repeatable). Agent `required_secrets` are auto-included. | — |
 | `--command <cmd>` | Override entrypoint command | Auto-detected |
 | `--arg <value>` | Command argument (repeatable) | — |
 | `--workspace <slug>` | Workspace slug | Current workspace |
@@ -63,10 +63,10 @@ Only agents with a `runtime.command` (code runtime) or `loop` config (managed lo
 ### Example
 
 ```bash
+# Agent declares required_secrets: ["DISCORD_BOT_TOKEN", "DATABASE_URL"]
+# Those are auto-resolved — just add extras if needed
 orch service deploy acme/discord-bot \
   --name "prod-discord-bot" \
-  --secret DISCORD_BOT_TOKEN \
-  --secret DATABASE_URL \
   --env LOG_LEVEL=info
 ```
 
@@ -91,7 +91,7 @@ View logs: orch service logs svc_abc123
 4. A service runner container downloads your agent bundle, installs dependencies (pip or npm), detects the entrypoint, and starts the process
 5. A health endpoint at `/health` returns `200` when the service is ready
 6. If the process crashes, Cloud Run automatically restarts it
-7. Workspace secrets are injected as environment variables into the container
+7. The agent's `required_secrets` (plus any `--secret` extras) are resolved from the workspace vault and injected as environment variables
 
 ---
 
@@ -173,17 +173,40 @@ Permanently removes the service and its Cloud Run deployment.
 
 ## Workspace Secrets
 
-Use the `--secret` flag to inject workspace secrets as environment variables. Secrets are resolved by name at deploy time and injected securely into the container.
+Secrets are **automatically resolved** from the agent's `required_secrets` field. If your agent declares what it needs in `orchagent.json`, you don't need any `--secret` flags at deploy time:
 
-```bash
-orch service deploy acme/my-bot \
-  --secret DISCORD_BOT_TOKEN \
-  --secret DATABASE_URL \
-  --secret OPENAI_API_KEY
+```json
+// orchagent.json
+{
+  "name": "my-bot",
+  "required_secrets": ["DISCORD_BOT_TOKEN", "DATABASE_URL"]
+}
 ```
 
+```bash
+# Secrets are auto-resolved from the agent — no --secret flags needed
+orch service deploy acme/my-bot
+```
+
+At deploy time, the platform:
+1. Reads `required_secrets` from the agent
+2. Validates that all secrets exist in the workspace vault
+3. Injects them as environment variables into the container
+
+If any declared secrets are missing from the vault, the deploy fails with an actionable error telling you which secrets to add.
+
+### The `--secret` escape hatch
+
+Use `--secret` to inject **additional** secrets not declared in `required_secrets` (e.g., operational tokens, debug credentials):
+
+```bash
+orch service deploy acme/my-bot --secret MONITORING_TOKEN
+```
+
+The `--secret` flags are merged with `required_secrets` — you get both. On version updates and restarts, the platform re-merges to pick up any new `required_secrets` from the latest version.
+
 <Tip>
-Configure workspace secrets in the [dashboard](https://orchagent.io/dashboard) under your workspace settings before deploying a service that depends on them.
+Add secrets to your workspace vault in the [dashboard](https://orchagent.io/dashboard) under Settings → Secrets, or via `orch secrets set SECRET_NAME <value>`.
 </Tip>
 
 ---
@@ -397,32 +420,28 @@ If your entrypoint doesn't match any of these names, use the `--command` flag or
 ### Discord Bot
 
 ```bash
-# Publish the agent
+# Publish the agent (orchagent.json has required_secrets: ["DISCORD_BOT_TOKEN"])
 cd my-discord-bot
 orch publish
 
-# Deploy as a service with the bot token
+# Deploy — DISCORD_BOT_TOKEN is auto-resolved from the vault
 orch service deploy acme/my-discord-bot \
-  --secret DISCORD_BOT_TOKEN \
   --env BOT_PREFIX="!"
 ```
 
 ### Webhook Listener
 
 ```bash
-# Deploy a webhook listener that processes incoming events
-orch service deploy acme/webhook-processor \
-  --secret WEBHOOK_SECRET \
-  --secret DATABASE_URL
+# Agent declares required_secrets: ["WEBHOOK_SECRET", "DATABASE_URL"]
+orch service deploy acme/webhook-processor
 ```
 
 ### Background Worker
 
 ```bash
-# Deploy a worker that polls a queue
+# Agent declares required_secrets: ["REDIS_URL"]
 orch service deploy acme/queue-worker \
   --command "python worker.py" \
-  --secret REDIS_URL \
   --env QUEUE_NAME=tasks \
   --env CONCURRENCY=4
 ```
@@ -449,7 +468,7 @@ orch service deploy acme/my-agent \
 **Service keeps restarting?**
 - Check the logs for crash output: `orch service logs <service-id>`
 - Look at the last error: `orch service info <service-id>`
-- Ensure all required secrets are configured in your workspace
+- Ensure all `required_secrets` from the agent's orchagent.json exist in your workspace vault
 - Verify your entrypoint process doesn't exit immediately
 - Your code must NOT bind to port 8080 — the health server uses it
 

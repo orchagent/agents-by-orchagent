@@ -92,7 +92,45 @@ Declares that the agent uses a managed LLM tool-use loop:
 | `is_public` | boolean | `true` | Public (free) or private (Pro plan required) |
 | `default_skills` | array | `[]` | Skills to inject into agent prompts (e.g., `["yourorg/writing-style"]`) |
 | `skills_locked` | boolean | `false` | When true, callers cannot override default_skills via flags (immutable after publish) |
-| `required_secrets` | array | `[]` | Workspace secret names to inject as env vars in the sandbox (e.g., `["EXTERNAL_API_KEY"]`). See [Building an Orchestrator](/building-agents/building-orchestrators#workspace-secrets). |
+| `required_secrets` | array | `[]` | Env var names your agent needs at runtime. See [Workspace Secrets](#workspace-secrets) below. **Required for `tool` and `agent` types.** |
+
+## Workspace Secrets
+
+Declare the environment variables your agent needs at runtime using `required_secrets`. These are matched **by name** against your workspace secrets vault and injected as env vars into the sandbox.
+
+```json
+{
+  "name": "discord-bot",
+  "type": "agent",
+  "required_secrets": ["DISCORD_BOT_TOKEN", "DATABASE_URL"]
+}
+```
+
+At runtime, your code reads them as environment variables:
+
+```python
+import os
+token = os.environ["DISCORD_BOT_TOKEN"]
+```
+
+### How it works
+
+1. You declare `required_secrets` in `orchagent.json`
+2. You add secrets to your workspace vault (dashboard or `orch secrets set`)
+3. At runtime, the platform matches secret names and injects them as env vars
+4. **On-demand runs** (`orch run`): returns a `400 MISSING_SECRETS` error if any declared secrets are missing from the vault
+5. **Service deploys** (`orch service deploy`): auto-reads `required_secrets` and validates against the vault before deploying. No `--secret` flags needed.
+6. **Schedules**: same injection — secrets must exist in the vault at execution time
+
+### Publish enforcement
+
+`orch publish` **blocks** tool and agent types that don't declare `required_secrets`. This ensures the Agent Requirements UI and service auto-resolution always have accurate data. Use `--no-required-secrets` to bypass this check if your agent genuinely needs no secrets.
+
+Prompt and skill types are exempt.
+
+<Warning>
+**Do not add `ORCHAGENT_SERVICE_KEY` to `required_secrets`.** The gateway auto-injects a temporary service key for agents with manifest dependencies. Adding your own overrides it and breaks orchestration.
+</Warning>
 
 ## Code Runtime Fields
 
@@ -134,6 +172,7 @@ Control what files are included in your code bundle:
   "runtime": {
     "command": "python sandbox_main.py"
   },
+  "required_secrets": ["GEMINI_API_KEY"],
   "entrypoint": "sandbox_main.py",
   "tags": ["security", "scanning"],
   "is_public": true
@@ -351,6 +390,7 @@ The platform validates manifests on publish:
   "runtime": {
     "command": "python bot.py"
   },
+  "required_secrets": ["DISCORD_BOT_TOKEN", "ANTHROPIC_API_KEY"],
   "callable": false,
   "timeout_seconds": 0,
   "tags": ["discord", "moderation"]
@@ -369,6 +409,7 @@ The platform validates manifests on publish:
   "loop": {
     "max_turns": 30
   },
+  "required_secrets": ["ANTHROPIC_API_KEY"],
   "callable": true,
   "timeout_seconds": 300,
   "custom_tools": [

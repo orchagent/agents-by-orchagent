@@ -157,7 +157,7 @@ Create a directory with three files:
 | `manifest.dependencies` | Agents this orchestrator is allowed to call — anything not listed is blocked |
 | `manifest.max_hops` | Maximum call chain depth (2 = this agent can call agents that don't call other agents) |
 | `manifest.timeout_ms` | Total timeout for the entire execution including all dependency calls |
-| `manifest.per_call_downstream_cap` | Cost cap per downstream dependency call |
+| `manifest.per_call_downstream_cap` | Budget passed to each dependency call (limits child agent spending, not this agent's own calls) |
 | `custom_tools` | Tool definitions presented to the LLM — each `command` calls a dependency via the built-in `orch_call.py` helper |
 
 <Warning>

@@ -273,7 +273,7 @@ orch schedule create yourorg/security-review --webhook
 | `callable: true` | Lets other agents call this agent as a dependency |
 | `manifest.dependencies` | Declares which agents the orchestrator can call |
 | `max_hops` | Maximum depth of nested agent calls |
-| `per_call_downstream_cap` | Max total sub-agent calls per request |
+| `per_call_downstream_cap` | Budget passed to each dependency call (limits child agent spending, not this agent's own calls) |
 | `orchagent-sdk` | Python/JS library that handles auth, call chain, and deadlines |
 | Parallel calls | Use `asyncio.gather()` (Python) or `Promise.all()` (JS) for concurrent sub-agent calls |
 

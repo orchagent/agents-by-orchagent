@@ -144,7 +144,7 @@ Caller → Agent A → Agent B → Agent C
 
 ### Downstream Cap
 
-Limits how many downstream calls an orchestrator can make per request:
+Controls the budget passed to each downstream dependency call. This limits what each called agent can spend in further downstream calls — it does not limit the current agent's own call count:
 
 ```json
 {

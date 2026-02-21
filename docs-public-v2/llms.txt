@@ -34,7 +34,7 @@ Additional agent fields:
 
 ## Docs
 
-- [Introduction](https://docs.orchagent.io/introduction): What is orchagent
+- [What is orchagent?](https://docs.orchagent.io): Platform overview
 - [Quickstart](https://docs.orchagent.io/quickstart): Deploy your first agent in minutes
 - [API Reference](https://docs.orchagent.io/using-agents/api-reference): Authentication, endpoints, errors
 - [CLI Commands](https://docs.orchagent.io/using-agents/cli-commands): orch login, run, publish
@@ -43,6 +43,9 @@ Additional agent fields:
 - [Manifest Format](https://docs.orchagent.io/building-agents/manifest-format): orchagent.json schema
 - [Publishing](https://docs.orchagent.io/building-agents/publishing): Deploy your agent
 - [Orchestration](https://docs.orchagent.io/building-agents/orchestration): Agent-to-agent calls
+- [Guide: Multi-Agent Orchestration](https://docs.orchagent.io/guides/orchestration-walkthrough): Build a multi-agent pipeline
+- [Guide: CI/CD Integration](https://docs.orchagent.io/guides/cicd): GitHub Actions workflow for agent deployment
+- [Security](https://docs.orchagent.io/concepts/security): Sandbox isolation, network controls, secret management
 - [BYOK](https://docs.orchagent.io/concepts/byok): Bring Your Own Key model
 - [Scheduling](https://docs.orchagent.io/using-agents/scheduling): Cron schedules and webhooks
 - [Services](https://docs.orchagent.io/using-agents/services): Always-on service deployment

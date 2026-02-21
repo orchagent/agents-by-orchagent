@@ -32,17 +32,32 @@ You can also add credits from the dashboard at **Settings > Billing > Add Credit
 
 Credits are added via Stripe Checkout. They don't expire and are refundable on request.
 
+## Plans & Execution Limits
+
+Each plan includes daily execution allowances. Limits reset at midnight UTC.
+
+| | Free | Pro ($29/mo) | Team ($99/mo) | Enterprise |
+|---|---|---|---|---|
+| **Tool executions/day** | 50 | 500 | 2,000 | Custom |
+| **Agent executions/day** | 5 | 50 | 200 | Custom |
+| **Tool timeout** | 30s | 2 min | 5 min | 15 min |
+| **Agent timeout** | 2 min | 5 min | 5 min | 15 min |
+| **Cron schedules** | 2 | 20 | 100 | Unlimited |
+| **Private agents** | 0 | 50 | Unlimited | Unlimited |
+| **Workspace members** | 1 | 5 | 25 | Unlimited |
+| **Always-on services** | 0 | 2 included | 5 included | Unlimited |
+
+<Info>
+**Tool vs Agent executions:** "Tool" refers to code runtime agents (your code in a sandbox). "Agent" refers to managed loop agents (LLM tool-use loop). Direct LLM agents (prompt + schema only) count as tool executions.
+</Info>
+
+### Always-On Services
+
+Pro and Team plans include always-on service slots. Additional services are $5/mo each. Services run on shared-CPU infrastructure with 512 MB RAM. See [Services](/using-agents/services) for details.
+
 ## Running Agents
 
 When you run an agent, the platform usage cost is deducted from your credit balance automatically. If your balance is insufficient, you'll get a `402 Payment Required` error.
-
-### Checking Costs
-
-Agent pricing is shown on agent detail pages. You can also check via the public API endpoint:
-
-```http
-GET /public/agents/{org}/{agent}/{version}
-```
 
 ---
 

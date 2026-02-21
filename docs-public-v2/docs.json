@@ -64,8 +64,16 @@
                 ]
               },
               {
+                "group": "Guides",
+                "pages": [
+                  "guides/orchestration-walkthrough",
+                  "guides/cicd"
+                ]
+              },
+              {
                 "group": "Concepts",
                 "pages": [
+                  "concepts/security",
                   "concepts/byok",
                   "concepts/local-vs-server",
                   "concepts/rate-limits",
@@ -181,6 +189,10 @@
     {
       "source": "/always-on",
       "destination": "/using-agents/services"
+    },
+    {
+      "source": "/security",
+      "destination": "/concepts/security"
     }
   ]
 }

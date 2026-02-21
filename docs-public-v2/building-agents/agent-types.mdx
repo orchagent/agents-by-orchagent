@@ -263,7 +263,11 @@ Every managed loop agent automatically gets these tools:
 
 ### Provider Support
 
-Managed loop agents currently support **Anthropic only** (Claude). This is because Anthropic has the best tool-use support. More providers will be added in the future.
+Managed loop agents currently support **Anthropic (Claude) only**.
+
+**Why?** The managed loop uses Claude's native tool-use protocol: the platform sends a system prompt with tool definitions, the LLM returns `tool_use` blocks, the platform executes them in the sandbox, and feeds `tool_result` messages back. This cycle repeats until the LLM calls `submit_result` or hits `max_turns`. The implementation relies on Anthropic-specific message formatting (system/user/assistant roles with structured tool-use content blocks) that doesn't map 1:1 to other providers' tool-calling APIs.
+
+Multi-provider support for managed loop is on the roadmap. In the meantime, if you need to use OpenAI or Gemini models in a tool-use loop, use a **code runtime agent** instead — you have full control over the LLM calls and can use any provider's SDK directly.
 
 ---
 

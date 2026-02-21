@@ -135,6 +135,41 @@ curl -X POST https://api.orchagent.io/webhooks/{schedule_id}/{secret} \
 
 The request body is merged with the schedule's default `input_data` and passed to the agent.
 
+### Webhook Payload Format
+
+**Request:**
+
+Send a JSON object in the POST body. The webhook accepts any valid JSON:
+
+```bash
+curl -X POST https://api.orchagent.io/webhooks/{schedule_id}/{secret} \
+  -H "Content-Type: application/json" \
+  -d '{"event": "new_issue", "repo": "acme/app", "number": 42}'
+```
+
+The platform merges the request body with the schedule's default `input_data` (request body takes precedence for overlapping keys). If no body is sent, the agent receives only the schedule's default input. Non-object JSON values (strings, arrays, numbers) are wrapped as `{"data": <value>}`.
+
+**Response:**
+
+```json
+{
+  "run_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "success",
+  "duration_ms": 3420,
+  "output": { "result": "..." },
+  "error": null
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `run_id` | `string` | Unique run identifier |
+| `status` | `string` | `success`, `error`, or `timeout` |
+| `duration_ms` | `integer` | Execution time in milliseconds |
+| `output` | `object` | Agent output (null on error) |
+| `error` | `string` | Error message (null on success) |
+| `deduplicated` | `boolean` | `true` if an idempotency key matched an existing run |
+
 ### Webhook Security
 
 The URL itself contains the secret token — no separate authentication headers needed. Treat the webhook URL like an API key:

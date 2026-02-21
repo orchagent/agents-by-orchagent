@@ -598,21 +598,28 @@ The CLI resolves agent refs using the same fallback logic as `run`:
 
 ### delete
 
-Delete an agent or skill you own. By default, deletes the latest version only. Requires the full `org/agent` reference.
+Delete an agent or skill you own. By default, deletes the latest version only. Requires the full `org/agent` reference. Use the `@version` syntax to delete a specific version.
 
 ```bash
 # Delete latest version (prompts for confirmation)
 orch delete yourorg/my-agent
 
 # Delete a specific version
-orch delete yourorg/my-agent --version v2
+orch delete yourorg/my-agent@v2
 
-# Delete all versions at once
-orch delete yourorg/my-agent --all
+# Skip confirmation prompt
+orch delete yourorg/my-agent -y
 
 # Preview what would be deleted
 orch delete yourorg/my-agent --dry-run
 ```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `-y, --yes` | Skip confirmation prompt |
+| `--dry-run` | Show what would be deleted without making changes |
 
 Deleted data is retained for 30 days before permanent removal.
 

@@ -106,6 +106,31 @@ The fork endpoint accepts an optional JSON body with `workspace_id` (target work
 | `DELETE /workspaces/{id}/services/{service_id}` | Delete a service |
 | `GET /workspaces/{id}/services/{service_id}/logs` | Get service logs |
 
+### Workspaces (Auth Required)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /workspaces` | List your workspaces |
+| `POST /workspaces` | Create a workspace |
+| `GET /workspaces/{id}/members` | List workspace members |
+| `POST /workspaces/{id}/invite` | Invite member to workspace |
+
+### Secrets (Auth Required)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /workspaces/{id}/secrets` | List secret names (values never returned) |
+| `PUT /workspaces/{id}/secrets` | Create or update a secret |
+| `DELETE /workspaces/{id}/secrets/{name}` | Delete a secret |
+
+### Billing (Auth Required)
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /billing/balance` | Get credit balance |
+| `POST /billing/checkout` | Create Stripe Checkout session to add credits |
+| `GET /billing/history` | Get transaction history |
+
 ### API Keys (Auth Required)
 
 | Endpoint | Description |
@@ -157,11 +182,13 @@ X-RateLimit-Reset: 1704067200
 
 ## SDKs
 
-Official SDKs coming soon. For now, use the HTTP API directly or the CLI:
+| Language | Package | Install |
+|----------|---------|---------|
+| Python | `orchagent-sdk` | `pip install orchagent-sdk` |
+| JavaScript | `orchagent-sdk` | `npm install orchagent-sdk` |
+| CLI | `@orchagent/cli` | `npm install -g @orchagent/cli` |
 
-```bash
-npm install -g orchagent
-```
+See the [SDK Reference](/building-agents/sdk) for full documentation.
 
 ## Need Help?
 

@@ -1,0 +1,136 @@
+---
+title: "Security"
+description: "How orchagent protects your code, data, and credentials"
+---
+
+orchagent is designed for teams deploying AI agents in production. This page consolidates the platform's security model across sandbox isolation, secret management, network controls, and data handling.
+
+## Sandbox Isolation
+
+Every agent execution runs in an **ephemeral E2B sandbox** — a fresh, isolated micro-VM that is destroyed after the run completes.
+
+| Property | Detail |
+|----------|--------|
+| **Isolation** | Each run gets its own sandbox — no shared state between runs or users |
+| **Ephemeral** | Sandboxes are created on demand and destroyed after execution |
+| **No persistence** | Nothing written to disk survives past the run |
+| **Resource limits** | CPU, memory, and execution time are capped per tier |
+| **No root access** | Agent code runs as a non-root user inside the sandbox |
+
+Sandboxes cannot communicate with each other. Each run starts from a clean state with only the agent's code bundle and declared dependencies installed.
+
+## Network Controls
+
+Server-executed agents route all outbound traffic through an **allowlist proxy**. Only approved destinations are reachable.
+
+**Allowed destinations:**
+
+| Destination | Purpose |
+|-------------|---------|
+| OpenAI API (`api.openai.com`) | LLM calls |
+| Anthropic API (`api.anthropic.com`) | LLM calls |
+| Google Gemini API (`generativelanguage.googleapis.com`) | LLM calls |
+| orchagent gateway (`api.orchagent.io`) | Agent-to-agent calls |
+| PyPI, npm registry | Dependency installation |
+
+**Blocked:**
+
+- All other external domains
+- Private/internal IP ranges (`10.x`, `172.16.x`, `192.168.x`)
+- Cloud metadata endpoints (`169.254.169.254`)
+- DNS rebinding attempts
+
+<Note>
+Code runtime agents that need to reach external APIs (e.g., GitHub, Slack, databases) should use the orchagent gateway as a proxy, or request allowlist additions for enterprise plans.
+</Note>
+
+## Secret Management
+
+Secrets are stored in your **workspace vault** and injected into sandboxes at runtime.
+
+### Storage
+
+- Secrets are encrypted at rest in Supabase (AES-256)
+- Secrets are never logged, never included in run history, and never exposed in API responses
+- The vault is scoped to your workspace — members can use secrets but cannot read their values
+
+### Injection
+
+- Agents declare required secrets in `orchagent.json` via `required_secrets`
+- At runtime, only declared secrets are injected as environment variables
+- Undeclared secrets are **not available**, even if they exist in the vault
+- LLM API keys are resolved automatically by provider name convention (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`)
+
+### Best Practices
+
+- Store LLM keys and external API credentials in the vault — never hardcode them
+- Use `orch secrets set` or the dashboard (Settings > Secrets) to manage secrets
+- Rotate keys regularly, especially shared workspace keys
+- For always-on services, secrets are re-resolved on every restart
+
+## BYOK Model
+
+orchagent uses **Bring Your Own Key** — you provide your own LLM API keys. This means:
+
+- **No middleman access**: orchagent never stores or proxies your LLM conversations beyond the execution sandbox
+- **Your billing relationship**: LLM costs go through your own provider account
+- **Your data policies**: LLM calls use your account's data retention settings
+
+See [BYOK](/concepts/byok) for setup details.
+
+## Data Handling
+
+### Run Data
+
+| Data | Retention | Access |
+|------|-----------|--------|
+| Run inputs/outputs | Stored in workspace run history | Workspace members only |
+| Execution logs (stdout/stderr) | Stored, truncated to 10 KB | Workspace members only |
+| Sandbox filesystem | Destroyed after run | Not retained |
+
+### Agent Code
+
+- Published agent code bundles are stored encrypted in cloud storage
+- Private agents are accessible only to workspace members
+- Public agents with `allow_local_download=false` (default) redact prompts, manifests, and code pointers from public API responses to protect author IP
+
+### Audit Trail
+
+Every run is logged with:
+- Timestamp, duration, status
+- Agent reference and version
+- Caller identity (API key or user)
+- Workspace context
+
+Run history is available via `orch logs`, the dashboard, and the `/usage` API endpoints.
+
+## Authentication
+
+### API Keys
+
+- API keys use the `sk_live_` prefix and are generated in the dashboard
+- Keys are hashed before storage — the full key is shown only once at creation
+- Each key is scoped to a user and inherits their workspace permissions
+- Use `ORCHAGENT_API_KEY` environment variable for CI/CD (avoid `--key` flag which exposes the key in shell history)
+
+### Workspace Access Control
+
+| Role | Capabilities |
+|------|-------------|
+| **Owner** | Full control: deploy, delete, manage secrets, invite members, manage schedules/services |
+| **Member** | Run agents, view logs, list schedules/services |
+
+Workspace membership is managed via email invitations (`orch workspace invite`).
+
+## Always-On Services
+
+Services have additional security considerations:
+
+- Sensitive environment variables (`secret`, `token`, `password`, `api_key`, `credential`, `private_key` patterns) are **rejected** via `--env` and must use `--secret` instead
+- Log output automatically redacts values matching sensitive patterns
+- Health endpoints (`/health`) are internal-only and not exposed publicly
+- Crash loop detection auto-pauses runaway services to prevent resource exhaustion
+
+## Responsible Disclosure
+
+If you discover a security vulnerability, please email [security@orchagent.io](mailto:security@orchagent.io). We take all reports seriously and will respond within 48 hours.

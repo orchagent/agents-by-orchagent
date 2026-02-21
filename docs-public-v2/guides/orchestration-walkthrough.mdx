@@ -1,0 +1,304 @@
+---
+title: "Guide: Multi-Agent Orchestration"
+description: "Build a security review orchestrator that coordinates multiple agents"
+---
+
+This guide walks you through building a real orchestrator agent that calls multiple sub-agents to perform a comprehensive security review. By the end, you'll have a working 3-agent pipeline deployed on orchagent.
+
+## What You'll Build
+
+```
+You (or a schedule/webhook)
+  │
+  ▼
+security-review (orchestrator)
+  ├── leak-finder (scans for hardcoded secrets)
+  └── vuln-scanner (checks for known vulnerabilities)
+```
+
+The orchestrator calls both sub-agents in parallel, combines their results, and returns a unified security report.
+
+**Prerequisites:** `orch login` completed, an Anthropic or OpenAI API key in your vault (`orch secrets set ANTHROPIC_API_KEY sk-ant-...`).
+
+---
+
+## Step 1: Create the Leaf Agents
+
+Leaf agents do focused, single tasks. Start with these two.
+
+### leak-finder (code runtime)
+
+```bash
+orch init leak-finder --type agent
+cd leak-finder
+```
+
+**`orchagent.json`:**
+```json
+{
+  "name": "leak-finder",
+  "type": "agent",
+  "description": "Scans a GitHub repo URL for hardcoded secrets and API keys",
+  "supported_providers": ["anthropic", "openai"],
+  "callable": true,
+  "runtime": {
+    "command": "python main.py"
+  }
+}
+```
+
+**`main.py`:**
+```python
+import json
+import sys
+import subprocess
+
+def main():
+    input_data = json.load(sys.stdin)
+    repo_url = input_data.get("url", "")
+
+    # Clone and scan
+    subprocess.run(["git", "clone", "--depth", "1", repo_url, "/tmp/repo"],
+                   capture_output=True, timeout=30)
+
+    # Simple pattern scan (real agents would use more sophisticated detection)
+    import re
+    findings = []
+    from pathlib import Path
+    for f in Path("/tmp/repo").rglob("*"):
+        if f.is_file() and f.suffix in (".py", ".js", ".ts", ".env", ".yaml", ".json"):
+            try:
+                text = f.read_text(errors="ignore")
+                if re.search(r'(sk-[a-zA-Z0-9]{20,}|AKIA[A-Z0-9]{16})', text):
+                    findings.append({"file": str(f.relative_to("/tmp/repo")), "type": "api_key"})
+            except Exception:
+                pass
+
+    print(json.dumps({"findings": findings, "files_scanned": len(list(Path("/tmp/repo").rglob("*")))}))
+
+if __name__ == "__main__":
+    main()
+```
+
+**`schema.json`:**
+```json
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "url": { "type": "string", "description": "GitHub repo URL to scan" }
+    },
+    "required": ["url"]
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "findings": { "type": "array" },
+      "files_scanned": { "type": "integer" }
+    }
+  }
+}
+```
+
+```bash
+orch publish
+cd ..
+```
+
+<Note>
+The key field is `"callable": true` — without this, the orchestrator won't be able to call this agent.
+</Note>
+
+### vuln-scanner (direct LLM)
+
+A simple prompt-based agent that uses an LLM to analyze code for vulnerabilities.
+
+```bash
+orch init vuln-scanner
+cd vuln-scanner
+```
+
+**`orchagent.json`:**
+```json
+{
+  "name": "vuln-scanner",
+  "type": "agent",
+  "description": "Analyzes code snippets for common security vulnerabilities",
+  "supported_providers": ["anthropic", "openai"],
+  "callable": true
+}
+```
+
+**`prompt.md`:**
+```markdown
+You are a security vulnerability scanner. Analyze the following code or repository description for common security vulnerabilities (OWASP Top 10, hardcoded credentials, SQL injection, XSS, etc.).
+
+Return a JSON object with:
+- "vulnerabilities": array of { "severity": "high"|"medium"|"low", "type": string, "description": string }
+- "risk_score": number 0-1
+
+Input: {{code}}
+```
+
+```bash
+orch publish
+cd ..
+```
+
+---
+
+## Step 2: Create the Orchestrator
+
+```bash
+orch init security-review --type agent
+cd security-review
+```
+
+**`orchagent.json`:**
+```json
+{
+  "name": "security-review",
+  "type": "agent",
+  "description": "Comprehensive security review combining leak detection and vulnerability scanning",
+  "supported_providers": ["anthropic", "openai"],
+  "runtime": {
+    "command": "python main.py"
+  },
+  "timeout_seconds": 120,
+  "manifest": {
+    "manifest_version": 1,
+    "dependencies": [
+      { "id": "yourorg/leak-finder", "version": "v1" },
+      { "id": "yourorg/vuln-scanner", "version": "v1" }
+    ],
+    "max_hops": 2,
+    "timeout_ms": 120000,
+    "per_call_downstream_cap": 10
+  }
+}
+```
+
+<Warning>
+Replace `yourorg` with your actual org slug (shown in `orch whoami`).
+</Warning>
+
+**`main.py`:**
+```python
+import asyncio
+import json
+import sys
+from orchagent import AgentClient
+
+async def main():
+    input_data = json.load(sys.stdin)
+    repo_url = input_data.get("url", "")
+
+    # Create client (auto-reads orchestration env vars)
+    client = AgentClient()
+
+    # Call both agents in parallel
+    leak_result, vuln_result = await asyncio.gather(
+        client.call("yourorg/leak-finder@v1", {"url": repo_url}),
+        client.call("yourorg/vuln-scanner@v1", {"code": f"Repository: {repo_url}"}),
+    )
+
+    # Combine results
+    report = {
+        "repo": repo_url,
+        "leaked_secrets": leak_result.get("findings", []),
+        "vulnerabilities": vuln_result.get("vulnerabilities", []),
+        "risk_score": vuln_result.get("risk_score", 0),
+        "summary": (
+            f"Found {len(leak_result.get('findings', []))} leaked secrets "
+            f"and {len(vuln_result.get('vulnerabilities', []))} vulnerabilities"
+        ),
+    }
+
+    print(json.dumps(report))
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**`requirements.txt`:**
+```
+orchagent-sdk
+```
+
+```bash
+orch publish
+```
+
+---
+
+## Step 3: Run It
+
+```bash
+# Cloud execution (default — recommended for orchestrators)
+orch run yourorg/security-review --data '{"url": "https://github.com/user/repo"}'
+```
+
+The orchestrator will:
+1. Receive the input
+2. Call `leak-finder` and `vuln-scanner` in parallel
+3. Wait for both to complete
+4. Return the combined security report
+
+---
+
+## Step 4: Automate It
+
+### Cron schedule (daily scan)
+
+```bash
+orch schedule create yourorg/security-review \
+  --cron "0 9 * * 1-5" \
+  --timezone "America/New_York" \
+  --input '{"url": "https://github.com/yourorg/main-app"}'
+```
+
+### Webhook trigger (on PR events)
+
+```bash
+orch schedule create yourorg/security-review --webhook
+# Save the webhook URL → add to GitHub repo settings → Webhooks
+```
+
+---
+
+## Key Concepts Recap
+
+| Concept | What It Means |
+|---------|--------------|
+| `callable: true` | Lets other agents call this agent as a dependency |
+| `manifest.dependencies` | Declares which agents the orchestrator can call |
+| `max_hops` | Maximum depth of nested agent calls |
+| `per_call_downstream_cap` | Max total sub-agent calls per request |
+| `orchagent-sdk` | Python/JS library that handles auth, call chain, and deadlines |
+| Parallel calls | Use `asyncio.gather()` (Python) or `Promise.all()` (JS) for concurrent sub-agent calls |
+
+## Troubleshooting
+
+**"DEPENDENCY_NOT_ALLOWED" error?**
+- The agent you're calling isn't in your `manifest.dependencies` array
+
+**"Agent not callable" error?**
+- The sub-agent doesn't have `"callable": true"` in its orchagent.json — republish it
+
+**Timeout errors?**
+- Your orchestrator's `timeout_seconds` must be larger than the sum of all sequential sub-agent calls
+- Use parallel calls (`asyncio.gather`) when sub-agents are independent
+
+**SDK not found in sandbox?**
+- Add `orchagent-sdk` to your `requirements.txt` (Python) or `package.json` (JS)
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Orchestration Reference" icon="diagram-project" href="/building-agents/orchestration">
+    Full orchestration API: skills, call patterns, rate limits
+  </Card>
+  <Card title="SDK Reference" icon="code" href="/building-agents/sdk">
+    Complete Python and JavaScript SDK docs
+  </Card>
+</CardGroup>

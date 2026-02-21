@@ -526,6 +526,665 @@
         }
       }
     },
+    "/workspaces": {
+      "get": {
+        "summary": "List workspaces",
+        "description": "Get a list of workspaces you belong to",
+        "operationId": "listWorkspaces",
+        "tags": ["Workspaces"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of workspaces",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Workspace" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create workspace",
+        "description": "Create a new team workspace",
+        "operationId": "createWorkspace",
+        "tags": ["Workspaces"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "description": "Display name" },
+                  "slug": { "type": "string", "description": "URL-safe identifier (auto-generated if omitted)" }
+                },
+                "required": ["name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Workspace created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Workspace" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/{id}/members": {
+      "get": {
+        "summary": "List workspace members",
+        "operationId": "listWorkspaceMembers",
+        "tags": ["Workspaces"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "user_id": { "type": "string" },
+                      "email": { "type": "string" },
+                      "role": { "type": "string", "enum": ["owner", "member"] },
+                      "joined_at": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/{id}/invite": {
+      "post": {
+        "summary": "Invite member to workspace",
+        "operationId": "inviteWorkspaceMember",
+        "tags": ["Workspaces"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string" },
+                  "role": { "type": "string", "enum": ["owner", "member"], "default": "member" }
+                },
+                "required": ["email"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Invitation sent" },
+          "400": { "description": "Invalid email or already a member" }
+        }
+      }
+    },
+    "/workspaces/{id}/secrets": {
+      "get": {
+        "summary": "List workspace secrets",
+        "description": "List secret names in a workspace (values are never returned)",
+        "operationId": "listSecrets",
+        "tags": ["Secrets"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of secret names",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "created_at": { "type": "string", "format": "date-time" },
+                      "updated_at": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Set a workspace secret",
+        "description": "Create or update a secret. Values are encrypted at rest.",
+        "operationId": "setSecret",
+        "tags": ["Secrets"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "description": "Secret name (e.g., ANTHROPIC_API_KEY)" },
+                  "value": { "type": "string", "description": "Secret value" }
+                },
+                "required": ["name", "value"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Secret set" },
+          "400": { "description": "Invalid secret name" }
+        }
+      }
+    },
+    "/workspaces/{id}/secrets/{name}": {
+      "delete": {
+        "summary": "Delete a workspace secret",
+        "operationId": "deleteSecret",
+        "tags": ["Secrets"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" },
+          { "name": "name", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Secret name" }
+        ],
+        "responses": {
+          "200": { "description": "Secret deleted" },
+          "404": { "description": "Secret not found" }
+        }
+      }
+    },
+    "/workspaces/{id}/schedules": {
+      "get": {
+        "summary": "List schedules",
+        "description": "List cron and webhook schedules in a workspace",
+        "operationId": "listSchedules",
+        "tags": ["Schedules"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" },
+          { "name": "agent_name", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Filter by agent name" },
+          { "name": "type", "in": "query", "required": false, "schema": { "type": "string", "enum": ["cron", "webhook"] }, "description": "Filter by schedule type" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of schedules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Schedule" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create schedule",
+        "description": "Create a cron or webhook schedule for an agent",
+        "operationId": "createSchedule",
+        "tags": ["Schedules"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateScheduleRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Schedule created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Schedule" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/{id}/schedules/{schedule_id}": {
+      "get": {
+        "summary": "Get schedule details",
+        "operationId": "getSchedule",
+        "tags": ["Schedules"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" },
+          { "name": "schedule_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Schedule ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Schedule details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Schedule" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update schedule",
+        "description": "Update schedule configuration (cron expression, timezone, input data, enabled status)",
+        "operationId": "updateSchedule",
+        "tags": ["Schedules"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" },
+          { "name": "schedule_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Schedule ID" }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cron_expression": { "type": "string" },
+                  "timezone": { "type": "string" },
+                  "input_data": { "type": "object" },
+                  "enabled": { "type": "boolean" },
+                  "pin_version": { "type": "boolean" },
+                  "alert_webhook_url": { "type": "string" },
+                  "alert_on_failure_count": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Schedule updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Schedule" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete schedule",
+        "operationId": "deleteSchedule",
+        "tags": ["Schedules"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" },
+          { "name": "schedule_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Schedule ID" }
+        ],
+        "responses": {
+          "200": { "description": "Schedule deleted" }
+        }
+      }
+    },
+    "/workspaces/{id}/schedules/{schedule_id}/trigger": {
+      "post": {
+        "summary": "Trigger schedule",
+        "description": "Manually trigger a schedule execution",
+        "operationId": "triggerSchedule",
+        "tags": ["Schedules"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" },
+          { "name": "schedule_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Schedule ID" }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "input_data": { "type": "object", "description": "Override input data for this execution" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Execution result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WebhookTriggerResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/{schedule_id}/{secret}": {
+      "post": {
+        "summary": "Webhook trigger",
+        "description": "Trigger an agent execution via webhook URL. No authentication header needed — the URL contains the secret.",
+        "operationId": "webhookTrigger",
+        "tags": ["Schedules"],
+        "parameters": [
+          { "name": "schedule_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Schedule ID" },
+          { "name": "secret", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Webhook secret token" },
+          { "name": "idempotency-key", "in": "header", "required": false, "schema": { "type": "string" }, "description": "Idempotency key to prevent duplicate executions" }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Input data merged with the schedule's default input_data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Execution result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WebhookTriggerResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid JSON body" },
+          "403": { "description": "Invalid webhook secret" },
+          "404": { "description": "Schedule not found" }
+        }
+      }
+    },
+    "/workspaces/{id}/services": {
+      "get": {
+        "summary": "List services",
+        "description": "List always-on services in a workspace",
+        "operationId": "listServices",
+        "tags": ["Services"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" },
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Filter by service status" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of services",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Service" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Deploy a service",
+        "description": "Deploy an agent as an always-on service",
+        "operationId": "deployService",
+        "tags": ["Services"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DeployServiceRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Service deployed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Service" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspaces/{id}/services/{service_id}": {
+      "get": {
+        "summary": "Get service details",
+        "operationId": "getService",
+        "tags": ["Services"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" },
+          { "name": "service_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Service ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Service" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update service config",
+        "description": "Update environment variables, secrets, or alert configuration. Triggers a restart if the service is running.",
+        "operationId": "updateService",
+        "tags": ["Services"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" },
+          { "name": "service_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Service ID" }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "env": { "type": "object", "description": "Full replacement of environment variables" },
+                  "secret_names": { "type": "array", "items": { "type": "string" }, "description": "Full replacement of attached secrets" },
+                  "alert_webhook_url": { "type": "string" },
+                  "max_restart_failures": { "type": "integer", "minimum": 1, "maximum": 50 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Service updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Service" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a service",
+        "operationId": "deleteService",
+        "tags": ["Services"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" },
+          { "name": "service_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Service ID" }
+        ],
+        "responses": {
+          "200": { "description": "Service deleted" }
+        }
+      }
+    },
+    "/workspaces/{id}/services/{service_id}/restart": {
+      "post": {
+        "summary": "Restart a service",
+        "operationId": "restartService",
+        "tags": ["Services"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" },
+          { "name": "service_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Service ID" }
+        ],
+        "responses": {
+          "200": { "description": "Service restarted" }
+        }
+      }
+    },
+    "/workspaces/{id}/services/{service_id}/logs": {
+      "get": {
+        "summary": "Get service logs",
+        "operationId": "getServiceLogs",
+        "tags": ["Services"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Workspace ID" },
+          { "name": "service_id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Service ID" },
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 100, "maximum": 500 }, "description": "Number of log lines" },
+          { "name": "since", "in": "query", "required": false, "schema": { "type": "string", "format": "date-time" }, "description": "Return logs since this timestamp" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service logs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "lines": { "type": "array", "items": { "type": "object", "properties": { "timestamp": { "type": "string" }, "severity": { "type": "string" }, "message": { "type": "string" } } } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/balance": {
+      "get": {
+        "summary": "Get credit balance",
+        "description": "Get your current credit balance",
+        "operationId": "getBillingBalance",
+        "tags": ["Billing"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Credit balance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "balance_cents": { "type": "integer", "description": "Balance in cents" },
+                    "currency": { "type": "string", "default": "usd" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/checkout": {
+      "post": {
+        "summary": "Add credits",
+        "description": "Create a Stripe Checkout session to add credits",
+        "operationId": "createCheckout",
+        "tags": ["Billing"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount_usd": { "type": "integer", "minimum": 5, "description": "Amount in USD (minimum $5)" }
+                },
+                "required": ["amount_usd"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checkout session URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "checkout_url": { "type": "string", "description": "Stripe Checkout URL" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/history": {
+      "get": {
+        "summary": "Get billing history",
+        "description": "Get credit transaction history (top-ups, charges, refunds)",
+        "operationId": "getBillingHistory",
+        "tags": ["Billing"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 50 }, "description": "Number of transactions" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "type": { "type": "string", "enum": ["top_up", "charge", "refund"] },
+                      "amount_cents": { "type": "integer" },
+                      "description": { "type": "string" },
+                      "created_at": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api-keys": {
       "get": {
         "summary": "List API keys",
@@ -771,6 +1430,100 @@
           "service_key": { "type": "string", "description": "Service API key for the forked agent (shown only once)" },
           "service_key_prefix": { "type": "string", "description": "Key prefix for identification" }
         }
+      },
+      "Workspace": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" },
+          "owner_user_id": { "type": "string" },
+          "member_count": { "type": "integer" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Schedule": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "workspace_id": { "type": "string" },
+          "agent_id": { "type": "string" },
+          "agent_name": { "type": "string" },
+          "agent_version": { "type": "string" },
+          "type": { "type": "string", "enum": ["cron", "webhook"] },
+          "cron_expression": { "type": "string", "nullable": true },
+          "timezone": { "type": "string" },
+          "input_data": { "type": "object", "nullable": true },
+          "enabled": { "type": "boolean" },
+          "pin_version": { "type": "boolean" },
+          "webhook_url": { "type": "string", "nullable": true, "description": "Webhook URL (only returned on creation)" },
+          "consecutive_failures": { "type": "integer" },
+          "max_consecutive_failures": { "type": "integer" },
+          "last_run_at": { "type": "string", "format": "date-time", "nullable": true },
+          "last_run_status": { "type": "string", "nullable": true },
+          "total_runs": { "type": "integer" },
+          "next_run_at": { "type": "string", "format": "date-time", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreateScheduleRequest": {
+        "type": "object",
+        "properties": {
+          "agent_id": { "type": "string", "description": "Agent ID to schedule" },
+          "type": { "type": "string", "enum": ["cron", "webhook"] },
+          "cron_expression": { "type": "string", "description": "Cron expression (required for type=cron)" },
+          "timezone": { "type": "string", "default": "UTC" },
+          "input_data": { "type": "object", "description": "Default input data for each execution" },
+          "pin_version": { "type": "boolean", "default": false },
+          "provider": { "type": "string", "description": "LLM provider override" }
+        },
+        "required": ["agent_id", "type"]
+      },
+      "WebhookTriggerResponse": {
+        "type": "object",
+        "properties": {
+          "run_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["success", "error", "timeout"] },
+          "duration_ms": { "type": "integer" },
+          "output": { "type": "object", "nullable": true },
+          "error": { "type": "string", "nullable": true },
+          "deduplicated": { "type": "boolean", "description": "True if idempotency key matched an existing run" }
+        }
+      },
+      "Service": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "workspace_id": { "type": "string" },
+          "agent_id": { "type": "string" },
+          "agent_name": { "type": "string" },
+          "name": { "type": "string" },
+          "state": { "type": "string", "enum": ["provisioning", "running", "paused", "error", "deleting"] },
+          "health": { "type": "string", "enum": ["healthy", "unhealthy", "unknown"] },
+          "restart_count": { "type": "integer" },
+          "consecutive_restart_failures": { "type": "integer" },
+          "max_restart_failures": { "type": "integer" },
+          "env": { "type": "object", "description": "Environment variables" },
+          "secret_names": { "type": "array", "items": { "type": "string" } },
+          "min_instances": { "type": "integer" },
+          "max_instances": { "type": "integer" },
+          "deployed_at": { "type": "string", "format": "date-time" },
+          "last_restart_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "DeployServiceRequest": {
+        "type": "object",
+        "properties": {
+          "agent_id": { "type": "string", "description": "Agent ID to deploy" },
+          "name": { "type": "string", "description": "Service name (defaults to agent name)" },
+          "min_instances": { "type": "integer", "default": 1 },
+          "max_instances": { "type": "integer", "default": 1 },
+          "env": { "type": "object", "description": "Environment variables (sensitive values rejected)" },
+          "secret_names": { "type": "array", "items": { "type": "string" }, "description": "Additional workspace secrets to attach" },
+          "command": { "type": "string", "description": "Override entrypoint command" },
+          "args": { "type": "array", "items": { "type": "string" }, "description": "Command arguments" }
+        },
+        "required": ["agent_id"]
       },
       "ComputeUsageStats": {
         "type": "object",

@@ -1,0 +1,127 @@
+---
+title: "Guide: CI/CD Integration"
+description: "Automate agent testing and deployment with GitHub Actions"
+---
+
+Integrate orchagent into your CI/CD pipeline to automatically test and deploy agents on every push.
+
+## GitHub Actions Workflow
+
+Create `.github/workflows/deploy-agent.yml`:
+
+```yaml
+name: Deploy Agent
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'my-agent/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install orchagent CLI
+        run: npm install -g @orchagent/cli
+
+      - name: Run agent tests
+        working-directory: my-agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: orch test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install orchagent CLI
+        run: npm install -g @orchagent/cli
+
+      - name: Publish agent
+        working-directory: my-agent
+        env:
+          ORCHAGENT_API_KEY: ${{ secrets.ORCHAGENT_API_KEY }}
+        run: |
+          orch publish --dry-run
+          orch publish
+```
+
+## Required Secrets
+
+Add these to your GitHub repo under **Settings > Secrets and variables > Actions**:
+
+| Secret | Description |
+|--------|-------------|
+| `ORCHAGENT_API_KEY` | Your orchagent API key (from `orch login` or dashboard) |
+| `ANTHROPIC_API_KEY` | LLM key for running fixture tests (if using `orch test`) |
+
+## Deploying Multiple Agents
+
+For monorepos with multiple agents, use a matrix strategy:
+
+```yaml
+jobs:
+  deploy:
+    strategy:
+      matrix:
+        agent: [leak-finder, vuln-scanner, security-review]
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @orchagent/cli
+      - run: orch publish
+        working-directory: agents/${{ matrix.agent }}
+        env:
+          ORCHAGENT_API_KEY: ${{ secrets.ORCHAGENT_API_KEY }}
+```
+
+## Version Pinning
+
+By default, publishing auto-increments the version (v1, v2, v3...). Schedules and webhook triggers auto-update to the latest version unless pinned.
+
+To pin a schedule to a specific version:
+
+```bash
+orch schedule update <schedule-id> --pin-version
+```
+
+## Dry Run in PRs
+
+Add a dry-run check to pull requests:
+
+```yaml
+on:
+  pull_request:
+    paths: ['my-agent/**']
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @orchagent/cli
+      - name: Validate agent
+        working-directory: my-agent
+        env:
+          ORCHAGENT_API_KEY: ${{ secrets.ORCHAGENT_API_KEY }}
+        run: orch publish --dry-run
+```
+
+The dry-run validates your manifest, checks dependencies, and reports what would be published — without actually publishing.
+
+## Next Steps
+
+- [Publishing Reference](/building-agents/publishing) — full publish options
+- [Scheduling](/using-agents/scheduling) — auto-update behavior with schedules
+- [CLI Commands](/using-agents/cli-commands) — all CLI flags

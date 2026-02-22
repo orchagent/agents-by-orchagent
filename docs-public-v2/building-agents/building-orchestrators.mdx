@@ -451,6 +451,18 @@ At runtime, these secrets are injected as environment variables into your agent'
 
 Always publish **bottom-up** — leaf agents before orchestrators. The gateway validates that all declared dependencies exist at publish time.
 
+The easiest way is `--all` from the parent directory — it auto-detects the dependency graph and publishes in the correct order:
+
+```bash
+# Publish all agents in dependency order (recommended)
+orch publish --all
+
+# Preview the plan without publishing
+orch publish --all --dry-run
+```
+
+**Manual alternative:**
+
 ```bash
 # 1. Publish leaf agents first
 cd leak-finder && orch publish

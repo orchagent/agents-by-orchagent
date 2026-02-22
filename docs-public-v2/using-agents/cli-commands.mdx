@@ -525,6 +525,12 @@ orch publish --dry-run
 # Publish your agent
 orch publish
 
+# Publish all agents in subdirectories (dependency order)
+orch publish --all
+
+# Preview batch publish plan
+orch publish --all --dry-run
+
 # Publish with default skills
 orch publish --skills yourorg/style@v1,yourorg/rules@v1
 
@@ -533,6 +539,8 @@ orch publish --local-download
 ```
 
 The publish command canonicalizes the manifest type, infers the `execution_engine` from your `runtime`/`loop` declarations, and validates all fields. The dry-run output shows: Type, Run mode, Execution engine, Callable, Providers, and Visibility.
+
+The `--all` flag scans immediate subdirectories for `orchagent.json` or `SKILL.md` files, builds a dependency graph from `manifest.dependencies` and `custom_tools` references, and publishes in topological order (leaf-first). If any agent fails to publish, the batch stops to prevent publishing agents whose dependencies are missing.
 
 ### pull
 

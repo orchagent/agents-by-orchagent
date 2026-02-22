@@ -69,7 +69,23 @@ Add these to your GitHub repo under **Settings > Secrets and variables > Actions
 
 ## Deploying Multiple Agents
 
-For monorepos with multiple agents, use a matrix strategy:
+For monorepos with multiple agents, use `--all` to publish everything in dependency order:
+
+```yaml
+jobs:
+  deploy:
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @orchagent/cli
+      - name: Publish all agents (dependency order)
+        env:
+          ORCHAGENT_API_KEY: ${{ secrets.ORCHAGENT_API_KEY }}
+        run: orch publish --all
+```
+
+This scans subdirectories for `orchagent.json`/`SKILL.md` files, builds a dependency graph, and publishes leaf-first. If any agent fails, the batch stops.
+
+**Alternative:** For more control, use a matrix strategy:
 
 ```yaml
 jobs:
@@ -85,6 +101,10 @@ jobs:
         env:
           ORCHAGENT_API_KEY: ${{ secrets.ORCHAGENT_API_KEY }}
 ```
+
+<Warning>
+Matrix strategies run agents in parallel — ensure leaf agents are published before orchestrators by setting `max-parallel: 1` or splitting into separate jobs with dependencies.
+</Warning>
 
 ## Version Pinning
 

@@ -20,6 +20,10 @@ The orchestrator calls both sub-agents in parallel, combines their results, and 
 
 **Prerequisites:** `orch login` completed, an Anthropic or OpenAI API key in your vault (`orch secrets set ANTHROPIC_API_KEY sk-ant-...`).
 
+<Tip>
+**Want to skip the setup?** Use `orch init my-orchestrator --template fan-out` to scaffold a complete parallel orchestrator instantly. Templates are also available for `pipeline` (sequential) and `map-reduce` patterns. See [Building an Orchestrator](/building-agents/building-orchestrators#quick-start-with-templates) for details.
+</Tip>
+
 ---
 
 ## Step 1: Create the Leaf Agents

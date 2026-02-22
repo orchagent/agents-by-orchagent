@@ -272,9 +272,17 @@ except CallChainCycleError:
 
 ## Common Patterns
 
-### Serial Calls
+orchagent provides templates to scaffold these patterns instantly:
 
-Call agents one after another:
+```bash
+orch init my-agent --template fan-out     # Parallel calls
+orch init my-agent --template pipeline    # Sequential calls
+orch init my-agent --template map-reduce  # Split, process, aggregate
+```
+
+### Serial Calls (Pipeline)
+
+Call agents one after another, feeding each step's output into the next:
 
 ```python
 step1 = await client.call("org/parser@v1", {"file": input.file})
@@ -297,6 +305,23 @@ secrets, vulns, licenses = await asyncio.gather(
 )
 
 return {"secrets": secrets, "vulns": vulns, "licenses": licenses}
+```
+
+### Map-Reduce
+
+Split input into items, process each in parallel, aggregate:
+
+```python
+import asyncio
+
+# Map: process each item in parallel
+mapped = await asyncio.gather(
+    *[client.call("org/processor@v1", {"item": item}) for item in items]
+)
+
+# Reduce: aggregate results
+reduced = await client.call("org/aggregator@v1", {"results": mapped})
+return reduced
 ```
 
 ### Conditional Calls

@@ -9,6 +9,31 @@ This guide walks you through building an orchestrator agent — an agent that ca
 This is a hands-on tutorial. For reference documentation on orchestration concepts, see [Orchestration](/building-agents/orchestration). For SDK details, see [SDK Reference](/building-agents/sdk).
 </Tip>
 
+## Quick Start with Templates
+
+The fastest way to scaffold an orchestrator is with `orch init --template`. Three orchestration patterns are available:
+
+```bash
+# Fan-out: call multiple agents in parallel, combine results
+orch init my-scanner --template fan-out
+
+# Pipeline: sequential processing — each step feeds into the next
+orch init my-pipeline --template pipeline
+
+# Map-reduce: split input, process in parallel, aggregate
+orch init my-processor --template map-reduce
+```
+
+Each template generates a complete project with `orchagent.json`, `main.py`, `schema.json`, `requirements.txt`, and `README.md`. Update `manifest.dependencies` with your actual agents, edit the orchestration logic, and publish.
+
+All templates support JavaScript via `--language javascript`.
+
+<Tip>
+Templates are a great starting point. Read on to understand how orchestration works under the hood, or jump straight to [Part 4: Publish and Run](#part-4-publish-and-run) if you've already customized your template.
+</Tip>
+
+---
+
 ## Prerequisites
 
 - orchagent CLI installed and authenticated (`orch login`)

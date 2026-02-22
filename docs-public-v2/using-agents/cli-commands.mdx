@@ -61,6 +61,7 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch service env list` | List env vars on a service | - |
 | `orch service secret add` | Attach workspace secrets | Cloud |
 | `orch service secret remove` | Detach workspace secrets | Cloud |
+| `orch health <agent>` | Smoke test an agent | Cloud |
 | `orch diff <ref1> [ref2]` | Compare two agent versions | - |
 | `orch pull <agent>` | Reconstruct a local project from a published agent | - |
 | `orch fork <agent>` | Fork a public agent into your workspace | - |
@@ -888,6 +889,73 @@ orch doctor --json
 - Connectivity (gateway reachable, latency)
 - Authentication (API key valid)
 - LLM Configuration (keys configured)
+
+### health
+
+Smoke test an agent by running a minimal cloud execution. Useful for verifying an agent is deployed, reachable, and responding correctly.
+
+```bash
+# Basic health check
+orch health acme/my-agent
+
+# Health check a specific version
+orch health acme/my-agent@v2
+
+# JSON output (for CI/CD pipelines)
+orch health acme/my-agent --json
+
+# Custom input instead of auto-generated
+orch health acme/my-agent --data '{"query": "test"}'
+
+# Custom timeout (default: 30s)
+orch health acme/my-agent --timeout 60000
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output result as JSON |
+| `--data <json>` | Custom input data (overrides auto-generated sample) |
+| `--timeout <ms>` | Execution timeout in milliseconds (default: 30000, min: 1000) |
+
+**What happens:**
+
+1. CLI resolves the agent (public or private)
+2. Auto-generates minimal input from the agent's `input_schema` (fills required fields with sample values)
+3. Fires a real POST to the agent's cloud endpoint
+4. Reports pass/fail with latency and run ID
+
+**Example output:**
+
+```
+✔ PASS joe/my-agent@v1 — 2340ms
+
+  Resolve:  pass
+  Execute:  pass
+  Run ID:   run_abc123
+  Logs:     orch logs run_abc123
+```
+
+**JSON output:**
+
+```json
+{
+  "agent": "joe/my-agent",
+  "version": "v1",
+  "status": "pass",
+  "latency_ms": 2340,
+  "run_id": "run_abc123",
+  "checks": {
+    "resolve": "pass",
+    "execute": "pass"
+  }
+}
+```
+
+<Tip>
+Use `orch health` in CI/CD pipelines after deploying a new agent version to verify it's working. The `--json` flag and exit code (`0` = pass, `1` = fail) make it easy to integrate with any CI system.
+</Tip>
 
 ---
 

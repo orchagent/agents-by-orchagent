@@ -69,6 +69,7 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch diff <ref1> [ref2]` | Compare two agent versions | - |
 | `orch pull <agent>` | Reconstruct a local project from a published agent | - |
 | `orch fork <agent>` | Fork a public agent into your workspace | - |
+| `orch metrics` | Show agent performance metrics | - |
 | `orch billing balance` | Check credit balance | - |
 
 ### When to Use What
@@ -1110,6 +1111,65 @@ Trace for a1b2c3d4-e5f6-...
 <Tip>
 Use `orch replay` to re-execute a run, then `orch trace` on the new run to compare execution traces side-by-side.
 </Tip>
+
+### metrics
+
+Show agent performance metrics for a workspace — success rates, latency percentiles, error rates, and per-agent breakdown.
+
+```bash
+# Show metrics for the last 30 days (default)
+orch metrics
+
+# Show metrics for the last 7 days
+orch metrics --days 7
+
+# Filter to a specific agent
+orch metrics --agent scanner
+
+# Use a specific workspace
+orch metrics --workspace acme-corp
+
+# JSON output for scripting
+orch metrics --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--days <n>` | Number of days to analyze (1-365, default: 30) |
+| `--agent <name>` | Filter to a specific agent |
+| `--json` | Output as JSON |
+
+**Output includes:**
+
+- **Overview** — Total runs, success rate, error rate (failed + timeout), p50/p95/avg latency, runs per day
+- **Per-agent table** — Each agent's run count, success rate, latency percentiles, error count, and top error message
+
+**Example output:**
+
+```
+Agent Metrics (last 30d)
+==================================================
+
+  Total Runs:   150
+  Success Rate: 93.3%
+  Error Rate:   6.7% (8 failed, 2 timeout)
+  p50 Latency:  1.2s
+  p95 Latency:  4.5s
+  Avg Latency:  1.8s
+  Runs/Day:     5
+
+Per Agent
+------------------------------------------------------------------------------------------
+Agent                       Runs   Success       p50       p95  Errors  Top Error
+------------------------------------------------------------------------------------------
+scanner                      100      96%     800ms     3.2s       4  SANDBOX_TIMEOUT
+review-agent                  50      88%     2.5s     8.0s       6  LLM_RATE_LIMIT
+```
+
+The same metrics are available on the web dashboard at `orchagent.io/metrics` with interactive charts for run activity, latency trends, and success rate over time.
 
 ---
 

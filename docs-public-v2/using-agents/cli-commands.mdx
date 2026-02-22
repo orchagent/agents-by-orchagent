@@ -63,6 +63,7 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch service secret add` | Attach workspace secrets | Cloud |
 | `orch service secret remove` | Detach workspace secrets | Cloud |
 | `orch health <agent>` | Smoke test an agent | Cloud |
+| `orch estimate <agent>` | Show estimated run cost | - |
 | `orch diff <ref1> [ref2]` | Compare two agent versions | - |
 | `orch pull <agent>` | Reconstruct a local project from a published agent | - |
 | `orch fork <agent>` | Fork a public agent into your workspace | - |
@@ -132,6 +133,7 @@ orch run joe/summarizer --data '{"text":"..."}' --provider openai --model gpt-4o
 | `--output <file>` | Save response to file |
 | `--json` | Raw JSON output |
 | `--verbose` | Show sandbox stdout/stderr and debug info (cloud only) |
+| `--estimate` | Show cost estimate before running and ask for confirmation |
 | `--no-stream` | Disable real-time streaming for sandbox runs |
 | `--skills <refs>` | Add skills (comma-separated) |
 
@@ -870,6 +872,76 @@ The dev server enables CORS, so you can send requests from browser-based tools o
 
 <Tip>
 Use `orch dev` alongside `orch test --watch` for a full development loop: the dev server handles HTTP requests while test watch validates on every save.
+</Tip>
+
+### estimate
+
+Show estimated cost for running an agent, based on historical run data from the last 30 days.
+
+```bash
+# Estimate cost for an agent
+orch estimate yourorg/my-agent
+
+# Estimate a specific version
+orch estimate yourorg/my-agent@v2
+
+# JSON output for scripting
+orch estimate yourorg/my-agent --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+
+**Output includes:**
+
+- **Cost stats** — Average, median (p50), and 95th percentile cost per run
+- **Token averages** — Average input and output tokens per run
+- **Duration** — Average execution time
+- **Success rate** — Percentage of runs that completed successfully
+- **Provider breakdown** — Per-provider cost averages (e.g., Anthropic vs OpenAI)
+
+**Example output:**
+
+```
+yourorg/my-agent@v1
+========================================
+
+Type: agent
+Engine: managed_loop
+Providers: anthropic, openai
+
+Cost Estimate (25 runs, last 30d)
+----------------------------------------
+  Average:   $0.015
+  Median:    $0.012
+  95th pct:  $0.045
+
+Tokens (avg per run)
+  Input:  1.5k
+  Output: 500
+
+Duration
+  Average: 3.2s
+  Success: 96%
+
+By Provider
+  anthropic (claude-haiku-4-5-20251001): $0.012 avg · 20 runs
+  openai (gpt-4o-mini): $0.020 avg · 5 runs
+```
+
+You can also use `--estimate` on the `run` command to see the estimate before executing:
+
+```bash
+orch run yourorg/my-agent --data '{"text": "..."}' --estimate
+```
+
+This shows the cost estimate and prompts for confirmation before proceeding.
+
+<Tip>
+If the agent has never been run before, the estimate will show "No run history available." Run the agent once and the estimate will populate from subsequent runs.
 </Tip>
 
 ### diff

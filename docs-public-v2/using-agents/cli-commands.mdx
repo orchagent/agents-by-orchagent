@@ -725,7 +725,7 @@ The CLI automatically discovers tests based on file patterns:
 
 **Fixture Format:**
 
-For direct LLM agents, create fixture files in `tests/` to test your prompts against an LLM:
+For prompt and skill agents, create fixture files in `tests/` to test your prompts against an LLM:
 
 ```json
 {
@@ -749,6 +749,38 @@ For direct LLM agents, create fixture files in `tests/` to test your prompts aga
 
 - LLM API key in environment (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, etc.)
 - A `prompt.md` or `SKILL.md` file in the agent directory
+
+**Mocked Orchestration Tests:**
+
+For managed-loop orchestrator agents (type `agent` with `custom_tools`), add a `mocks` field to test the full agent loop with deterministic sub-agent responses — no live sub-agents needed:
+
+```json
+{
+  "description": "Orchestrator aggregates scan results",
+  "input": {"code": "import os; os.getenv('SECRET')"},
+  "mocks": {
+    "scan_secrets": {"findings": [{"type": "env_access", "severity": "medium"}]},
+    "scan_deps": {"vulnerabilities": []}
+  },
+  "expected_contains": ["env_access", "medium"]
+}
+```
+
+The `mocks` field maps custom tool names to their mock responses. When the LLM calls a mocked tool during the agent loop, it receives the mock response instantly instead of executing the real sub-agent command. Built-in tools (`bash`, `read_file`, etc.) always execute normally.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `input` | Yes | Input data for the orchestrator |
+| `mocks` | Yes | Map of custom tool name to mock JSON response |
+| `expected_output` | No* | Exact match comparison |
+| `expected_contains` | No* | Substrings that must appear in output |
+| `description` | No | Human-readable test description |
+
+*At least one of `expected_output` or `expected_contains` is required.
+
+<Tip>
+Mocked orchestration tests are ideal for CI — they test the full LLM reasoning loop (tool selection, multi-turn reasoning, result aggregation) without requiring deployed sub-agents or network access to the gateway.
+</Tip>
 
 <Tip>
 Watch mode works on all platforms (macOS, Linux, Windows) and automatically picks up new test files as you create them.

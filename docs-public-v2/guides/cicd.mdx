@@ -58,6 +58,39 @@ jobs:
           orch publish
 ```
 
+## Testing Orchestrators in CI
+
+Orchestrator agents that call sub-agents can use **mocked fixtures** to test the full LLM reasoning loop without requiring live sub-agents. Create fixtures with a `mocks` field that maps custom tool names to deterministic responses:
+
+```
+my-orchestrator/
+  orchagent.json
+  prompt.md
+  schema.json
+  tests/
+    fixture-mock-happy-path.json
+    fixture-mock-error-handling.json
+```
+
+```json
+// tests/fixture-mock-happy-path.json
+{
+  "description": "Orchestrator combines scan results correctly",
+  "input": {"code": "import requests"},
+  "mocks": {
+    "scan_secrets": {"findings": []},
+    "scan_deps": {"vulnerabilities": [{"name": "requests", "severity": "low"}]}
+  },
+  "expected_contains": ["requests", "low"]
+}
+```
+
+The workflow is the same — `orch test` automatically detects mocked fixtures and runs the full agent loop with mock responses injected for custom tool calls. No additional CI configuration needed.
+
+<Tip>
+Mocked orchestration tests verify that the LLM correctly selects tools, processes their responses, and produces the expected output — all without network calls to deployed sub-agents. This makes them fast and reliable in CI.
+</Tip>
+
 ## Required Secrets
 
 Add these to your GitHub repo under **Settings > Secrets and variables > Actions**:
@@ -65,7 +98,7 @@ Add these to your GitHub repo under **Settings > Secrets and variables > Actions
 | Secret | Description |
 |--------|-------------|
 | `ORCHAGENT_API_KEY` | Your orchagent API key (from `orch login` or dashboard) |
-| `ANTHROPIC_API_KEY` | LLM key for running fixture tests (if using `orch test`) |
+| `ANTHROPIC_API_KEY` | LLM key for running fixture tests and mocked orchestration tests |
 
 ## Deploying Multiple Agents
 

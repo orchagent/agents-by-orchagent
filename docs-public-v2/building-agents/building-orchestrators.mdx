@@ -619,6 +619,90 @@ my-orchestrator/
 
 ---
 
+## Testing Your Orchestrator
+
+Orchestrators are hard to test because they depend on live sub-agents. **Mocked fixtures** solve this — they run the full LLM agent loop but return deterministic mock responses for sub-agent calls instead of hitting the network.
+
+### Step 1: Create a mocked fixture
+
+Create `tests/fixture-mock-basic.json`:
+
+```json
+{
+  "description": "Orchestrator combines scan results into a security report",
+  "input": {
+    "code": "import os; os.getenv('DB_PASSWORD')"
+  },
+  "mocks": {
+    "scan_secrets": {
+      "findings": [{"type": "env_access", "variable": "DB_PASSWORD", "severity": "high"}]
+    },
+    "scan_deps": {
+      "vulnerabilities": []
+    }
+  },
+  "expected_contains": ["DB_PASSWORD", "high"]
+}
+```
+
+The `mocks` keys must match the custom tool `name` fields in your `orchagent.json`. Each value is the JSON response the LLM will see when it calls that tool.
+
+### Step 2: Run the tests
+
+```bash
+orch test --verbose
+```
+
+The output shows the full agent loop — which tools the LLM chose to call, the mock responses injected, and whether the final output matches your expectations:
+
+```
+Validating agent...
+  Type: agent (agent loop)
+  Name: security-review
+  Configuration valid
+
+Running mocked orchestration tests...
+
+  Provider: anthropic (claude-sonnet-4-5-20250929)
+  Custom tools: scan_secrets, scan_deps
+  Max turns: 25
+
+  fixture-mock-basic.json (Orchestrator combines scan results): PASS
+```
+
+### What gets tested
+
+Mocked tests exercise the **full reasoning pipeline**:
+
+1. The LLM reads your prompt and the user's input
+2. It decides which tools to call (and in what order)
+3. Custom tools return your mock responses instead of calling real sub-agents
+4. The LLM processes the results and calls `submit_result`
+5. The final output is validated against `expected_output` or `expected_contains`
+
+Built-in tools (`bash`, `read_file`, `write_file`, `list_files`) still execute normally — only custom tools listed in `mocks` are intercepted.
+
+### File structure with tests
+
+```
+my-orchestrator/
+  orchagent.json
+  prompt.md
+  schema.json
+  tests/
+    fixture-mock-basic.json       # mocked: tests tool selection + aggregation
+    fixture-mock-edge-case.json   # mocked: tests error handling in results
+    fixture-prompt-only.json      # non-mocked: tests prompt quality (LLM call only)
+```
+
+You can mix mocked and non-mocked fixtures in the same `tests/` directory. `orch test` automatically routes each fixture to the correct runner based on whether it has a `mocks` field.
+
+<Tip>
+Mocked tests are ideal for CI/CD — they verify the LLM's reasoning without requiring deployed sub-agents. See the [CI/CD Guide](/guides/cicd) for GitHub Actions setup.
+</Tip>
+
+---
+
 ## Next Steps
 
 <CardGroup cols={2}>

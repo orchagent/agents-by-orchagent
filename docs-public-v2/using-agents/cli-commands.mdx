@@ -70,6 +70,7 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch pull <agent>` | Reconstruct a local project from a published agent | - |
 | `orch fork <agent>` | Fork a public agent into your workspace | - |
 | `orch metrics` | Show agent performance metrics | - |
+| `orch dag <run-id>` | Visualize orchestration call graph | - |
 | `orch billing balance` | Check credit balance | - |
 
 ### When to Use What
@@ -1170,6 +1171,73 @@ review-agent                  50      88%     2.5s     8.0s       6  LLM_RATE_LI
 ```
 
 The same metrics are available on the web dashboard at `orchagent.io/metrics` with interactive charts for run activity, latency trends, and success rate over time.
+
+### dag
+
+Visualize the orchestration call graph (DAG) for a run. Shows all agents in the chain as an ASCII tree with real-time status, cost, duration, and trace summaries per node.
+
+```bash
+# View DAG for a run
+orch dag a1b2c3d4-e5f6-7890-abcd-ef1234567890
+
+# View DAG using a short run ID prefix
+orch dag a1b2c3d4
+
+# Live mode — polls for updates while the run is active
+orch dag a1b2c3d4 --live
+
+# Custom poll interval (default: 2 seconds)
+orch dag a1b2c3d4 --live --interval 5
+
+# JSON output
+orch dag a1b2c3d4 --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--live` | Keep polling for updates while the run is active |
+| `--interval <seconds>` | Poll interval in seconds for live mode (default: 2) |
+| `--json` | Output as JSON |
+
+**Example output:**
+
+```
+Orchestration DAG [LIVE]
+  Root:     a1b2c3d4...
+  Agents:   3
+  Duration: 8.0s
+  Cost:     $0.0150
+  Status:   2 completed, 1 active
+  Costly:   orchestrator
+
+  ✓ orchestrator v1
+    completed | 8.0s | $0.0050 | claude-sonnet-4-20250514 (2 LLM, 1 tool, 1.2K tok)
+    └── ✓ audit-agent v2
+          completed | 5.0s | $0.0060 | claude-haiku-4-5-20251001 (1 LLM, 1 tool, 950 tok)
+          └── ✓ scanner-tool v1
+                completed | 3.0s | $0.0040 (2 tool, 600 tok)
+
+View trace:  orch trace a1b2c3d4
+View logs:   orch logs a1b2c3d4
+```
+
+**What it shows per node:**
+
+- Status icon (`✓` completed, `✗` failed, `◉` running, `○` queued)
+- Agent name and version
+- Status, duration, self cost, LLM model
+- Trace summary: LLM call count, tool call count, error count, total tokens
+
+**Live mode** clears the screen and re-renders the full DAG on each poll until the execution completes. Press `Ctrl+C` to stop.
+
+The same DAG visualization is available on the web dashboard's run detail page, rendered as an interactive graph with SVG edges and clickable nodes.
+
+<Tip>
+Use `orch dag` during multi-agent orchestration runs to monitor which agents are active, see cost distribution across the chain, and quickly identify failed nodes.
+</Tip>
 
 ---
 

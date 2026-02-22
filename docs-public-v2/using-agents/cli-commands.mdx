@@ -42,10 +42,21 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch run --local <agent>` | Download and execute agent locally | Your machine |
 | `orch install <agent>` | Export agent as sub-agent | Local files (for AI tools) |
 | `orch skill install <skill>` | Download skill files | Local files (for AI tools) |
+| `orch list` | List locally installed agents | - |
+| `orch agents` | List your published agents | - |
+| `orch info <agent>` | Show agent details and schemas | - |
+| `orch tree <agent>` | Show agent dependency tree | - |
+| `orch transfer <agent>` | Transfer agent to another workspace | Cloud |
 | `orch dev` | Start local dev server with hot-reload | Your machine |
 | `orch test` | Run agent tests locally | Your machine |
 | `orch update` | Update installed agents | - |
 | `orch formats` | List available export formats | - |
+| `orch secrets list/set/delete` | Manage workspace secrets | Cloud |
+| `orch agent-keys list/create/delete` | Manage agent service keys | Cloud |
+| `orch env list/create/delete` | Manage custom Docker environments | Cloud |
+| `orch github connect/import/scan` | GitHub integration | Cloud |
+| `orch logs [target]` | View execution logs | - |
+| `orch security test <agent>` | Run vulnerability scan | Cloud |
 | `orch schedule create` | Create cron or webhook schedule | Cloud |
 | `orch schedule list` | List schedules | - |
 | `orch schedule trigger` | Manually trigger a schedule | Cloud |
@@ -71,7 +82,10 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch fork <agent>` | Fork a public agent into your workspace | - |
 | `orch metrics` | Show agent performance metrics | - |
 | `orch dag <run-id>` | Visualize orchestration call graph | - |
-| `orch billing balance` | Check credit balance | - |
+| `orch status` | Check platform service status | - |
+| `orch docs [topic]` | Open documentation in browser | - |
+| `orch logout` | Log out and revoke API key | - |
+| `orch billing` | Open billing portal | - |
 
 ### When to Use What
 
@@ -94,6 +108,27 @@ Want to RECONSTRUCT a local project?
 
 Want to CUSTOMIZE an existing agent?
   \-- Copy into your workspace --> orch fork
+
+Managing agents?
+  |-- List your agents       --> orch agents
+  |-- Inspect details        --> orch info / orch tree
+  \-- Move between workspaces --> orch transfer
+
+Managing secrets & keys?
+  |-- Workspace secrets      --> orch secrets
+  \-- Agent service keys     --> orch agent-keys
+
+Connecting GitHub?
+  \-- Import from repos      --> orch github
+
+Debugging a run?
+  |-- View execution logs    --> orch logs
+  |-- Replay a failed run    --> orch replay
+  |-- Inspect trace timeline --> orch trace
+  \-- View call graph        --> orch dag
+
+Checking platform health?
+  \-- Service status         --> orch status
 ```
 
 ---
@@ -171,27 +206,114 @@ orch run joe/summarizer --data '{"text":"..."}' --provider openai --model gpt-4o
 **Dependency handling:** If an agent has dependencies, the CLI prompts you to choose between server execution or downloading available dependencies. Use `--with-deps` to auto-download.
 </Note>
 
-### call (deprecated)
+---
 
-<Note>
-The `call` command has been merged into `run`. Cloud execution is now the default behavior of `orch run`. All `orch call` invocations should be replaced with `orch run`. For local execution, use `orch run --local`.
-</Note>
+## Agent Management
+
+### agents
+
+List your published agents.
 
 ```bash
-# Old (deprecated):
-# orch call acme/invoice-scanner invoice.pdf
+# List latest version of each agent
+orch agents
 
-# New (equivalent):
-orch run acme/invoice-scanner invoice.pdf
+# Filter by name
+orch agents --filter scanner
 
-# Old (deprecated):
-# orch call acme/text-extractor --data '{"text":"hello world"}'
+# Show all versions
+orch agents --all-versions
 
-# New (equivalent):
-orch run acme/text-extractor --data '{"text":"hello world"}'
+# JSON output
+orch agents --json
 ```
 
-All flags that worked with `call` now work with `run` (e.g., `--data`, `--file`, `--file-field`, `--endpoint`, `--output`, `--json`, `--skills`, `--provider`, `--model`).
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--filter <text>` | Filter agents by name |
+| `--all-versions` | Show all versions (default: latest only) |
+| `--json` | Output raw JSON |
+
+By default, shows only the latest version of each agent grouped by name. Displays a table with columns: Agent, Version, Type, Description. When in latest-only mode, the version column shows the count (e.g., `v3 (5 total)`). Respects workspace context.
+
+### info
+
+Show agent details including schemas, dependencies, and configuration.
+
+```bash
+# Show agent info
+orch info joe/code-reviewer
+
+# Show specific version
+orch info joe/code-reviewer@v2
+
+# JSON output
+orch info joe/code-reviewer --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+
+Displays: type, callable status, supported providers, server URL (for tool types), source URL, run command, local-ready status, input/output schemas, dependencies, skills, custom tools, and environment pinning. For GitHub-linked agents, fetches and displays the repository README.
+
+### tree
+
+Show the dependency tree for an agent, including skills and nested sub-agents.
+
+```bash
+# Show dependency tree
+orch tree joe/security-review
+
+# JSON output
+orch tree joe/security-review --json
+
+# Disable colors
+orch tree joe/security-review --no-color
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+| `--no-color` | Disable colored output |
+
+Renders an ASCII tree showing the agent, its skills (tagged with `(skill)`), and nested dependency agents. Inaccessible nodes are dimmed. Locked skills show a lock icon. Summary line shows total agents, total skills, and max depth.
+
+### transfer
+
+Transfer an agent to another workspace. Moves all versions, revokes existing grants, and disables schedules.
+
+```bash
+# Transfer agent to another workspace
+orch transfer my-agent --to team-workspace
+
+# Transfer from a specific source workspace
+orch transfer my-agent --to team-workspace --workspace my-team
+
+# Preview what would happen
+orch transfer my-agent --to team-workspace --dry-run
+
+# Skip confirmation prompt
+orch transfer my-agent --to team-workspace --yes
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--to <workspace-slug>` | **(Required)** Target workspace slug |
+| `-w, --workspace <slug>` | Source workspace (default: active workspace) |
+| `-y, --yes` | Skip confirmation prompt |
+| `--dry-run` | Preview transfer without making changes |
+| `--json` | Output result as JSON |
+
+The pre-transfer check shows: version count, grants to revoke, keys to delete, schedules to disable, warnings, and blockers. In interactive mode, you must type the agent name to confirm.
 
 ---
 
@@ -316,6 +438,34 @@ Use with: orch install <agent> --format <id>
 Set default: orch config set default-format <ids>
 ```
 
+### list
+
+List locally installed agents and skills.
+
+```bash
+# List installed agents
+orch list
+
+# Show format details for each installation
+orch list --verbose
+
+# Clean up orphaned entries (tracked files that no longer exist)
+orch list --verify
+
+# JSON output
+orch list --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `-v, --verbose` | Show format and path details for each installation |
+| `--verify` | Check tracked files exist and remove orphaned entries |
+| `--json` | Output as JSON |
+
+Also available as `orch ls`.
+
 ---
 
 ## Working with Skills
@@ -390,6 +540,16 @@ orch login --key sk_live_xxx
 <Warning>
 The `--key` flag exposes the key in shell history. For CI/CD, use the `ORCHAGENT_API_KEY` environment variable instead.
 </Warning>
+
+### logout
+
+Log out of orchagent. Revokes the API key server-side and clears local credentials.
+
+```bash
+orch logout
+```
+
+Preserves user preferences (default formats, scope) while clearing authentication fields. If the `ORCHAGENT_API_KEY` environment variable is set, a warning is printed since the env var will continue to authenticate requests.
 
 ### whoami
 
@@ -988,6 +1148,330 @@ The second argument can be just a version string (e.g., `v2`) — the org and ag
 
 ---
 
+## Secrets & Keys
+
+### secrets
+
+Manage workspace secrets. Secrets are injected as environment variables into agent sandboxes and always-on services.
+
+```bash
+# List secrets (names and metadata, never values)
+orch secrets list
+
+# List secrets in a specific workspace
+orch secrets list --workspace acme-team
+
+# JSON output
+orch secrets list --json
+
+# Create or update a secret
+orch secrets set ANTHROPIC_API_KEY sk-ant-xxx
+
+# Set with a description
+orch secrets set STRIPE_SECRET_KEY sk_live_xxx --description "Production Stripe key"
+
+# Delete a secret
+orch secrets delete OLD_API_KEY
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `secrets list` | List secrets (names and metadata, never values) |
+| `secrets set <name> <value>` | Create or update a secret |
+| `secrets delete <name>` | Delete a secret |
+
+**Options for `list`:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--json` | Output as JSON |
+
+**Options for `set`:**
+
+| Flag | Description |
+|------|-------------|
+| `--description <text>` | Description of what this secret is for |
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+
+**Options for `delete`:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+
+Secret names must start with an uppercase letter, contain only uppercase letters, digits, and underscores, and be 1-128 characters (e.g., `STRIPE_SECRET_KEY`, `DISCORD_TOKEN`).
+
+<Note>
+When you update a secret that is used by running always-on services, those services are automatically restarted.
+</Note>
+
+### agent-keys
+
+Manage agent service keys for programmatic access to your agents.
+
+```bash
+# List keys for an agent
+orch agent-keys list my-agent
+
+# Create a new key
+orch agent-keys create my-agent
+
+# Delete a key
+orch agent-keys delete my-agent key_abc123
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `agent-keys list <agent>` | List service keys for an agent |
+| `agent-keys create <agent>` | Create a new service key |
+| `agent-keys delete <agent> <key-id>` | Delete a service key |
+
+The `list` output shows: ID, PREFIX, CREATED, LAST USED, and whether the key is SAVED locally (`~/.orchagent/keys/`).
+
+<Note>
+Service keys are shown only once at creation time. The CLI saves them to `~/.orchagent/keys/` automatically, but if that fails, copy the key immediately — it cannot be retrieved later.
+</Note>
+
+---
+
+## Custom Environments
+
+Manage custom Docker environments for tool-type agents. See the [Custom Environments](/building-agents/environments) guide for details.
+
+### env
+
+```bash
+# List environments in your workspace
+orch env list
+
+# JSON output
+orch env list --json
+
+# Check build status
+orch env status <environment-id>
+
+# Create from Dockerfile
+orch env create --file ./Dockerfile --name my-env
+
+# Delete an environment
+orch env delete <environment-id>
+
+# Set workspace default environment
+orch env set-default <environment-id>
+
+# Clear workspace default (revert to base image)
+orch env clear-default
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `env list` | List environments in workspace |
+| `env status <id>` | Check environment build status |
+| `env create` | Create environment from Dockerfile |
+| `env delete <id>` | Delete an environment |
+| `env set-default <id>` | Set workspace default environment |
+| `env clear-default` | Clear workspace default environment |
+
+**Options for `list`:**
+
+| Flag | Description |
+|------|-------------|
+| `-w, --workspace <slug>` | Workspace slug |
+| `--json` | Output as JSON |
+
+**Options for `status`:**
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output as JSON |
+
+**Options for `create`:**
+
+| Flag | Description |
+|------|-------------|
+| `-f, --file <path>` | **(Required)** Path to Dockerfile |
+| `-n, --name <name>` | **(Required)** Environment name |
+
+**Options for `set-default` / `clear-default`:**
+
+| Flag | Description |
+|------|-------------|
+| `-w, --workspace <slug>` | Workspace slug |
+
+The `list` output shows: Name, Status, Agents, Type, ID. Status is color-coded: green (ready), yellow (building), red (failed), gray (pending). The default environment is marked with `(default)`.
+
+---
+
+## GitHub Integration
+
+### github
+
+Connect your GitHub account and import agents directly from repositories.
+
+```bash
+# Install the GitHub App
+orch github connect
+
+# Remove GitHub connection
+orch github disconnect
+
+# Check connection status
+orch github status
+orch github status --json
+
+# Scan a repo for agents and skills
+orch github scan owner/repo
+orch github scan owner/repo --json
+
+# Import an agent from GitHub
+orch github import owner/repo
+orch github import owner/repo --path agents/my-agent
+orch github import owner/repo --name custom-name --json
+
+# View or update sync configuration
+orch github sync-config <agent-id>
+orch github sync-config <agent-id> --set-auto-publish true
+
+# Approve a pending sync
+orch github approve <agent-id>
+```
+
+**Subcommands:**
+
+| Subcommand | Description |
+|------------|-------------|
+| `github connect` | Install the GitHub App to connect your account |
+| `github disconnect` | Remove GitHub App installation |
+| `github status` | Show GitHub connection status |
+| `github scan <repo>` | Scan a repository for agents and skills |
+| `github import <repo>` | Import an agent or skill from GitHub |
+| `github sync-config <agent>` | View or update sync configuration |
+| `github approve <agent-id>` | Approve a pending GitHub sync |
+
+**Options for `scan`:**
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output raw JSON |
+
+**Options for `import`:**
+
+| Flag | Description |
+|------|-------------|
+| `--path <path>` | Path to manifest within repo (scans first if not specified) |
+| `--name <name>` | Override agent name |
+| `--json` | Output raw JSON |
+
+**Options for `sync-config`:**
+
+| Flag | Description |
+|------|-------------|
+| `--set-auto-publish <value>` | Set auto_publish (`true` or `false`) |
+| `--json` | Output raw JSON |
+
+<Tip>
+When importing from a repo with multiple agents, omit `--path` to scan first. If only one item is found, it imports automatically. If multiple are found, you'll get an interactive selection prompt.
+</Tip>
+
+---
+
+## Execution Logs
+
+### logs
+
+View execution logs. Use with no arguments to list recent runs, an agent name to filter, or a run ID for full detail.
+
+```bash
+# List recent runs
+orch logs
+
+# Filter by agent name
+orch logs scanner
+
+# Filter by status
+orch logs --status failed
+
+# View detailed logs for a specific run
+orch logs a1b2c3d4-e5f6-7890-abcd-ef1234567890
+
+# View logs using a short run ID prefix (7+ hex chars)
+orch logs a1b2c3d
+
+# Limit results
+orch logs --limit 50
+
+# JSON output
+orch logs --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--status <status>` | Filter by status: `running`, `completed`, `failed`, `timeout` |
+| `--limit <n>` | Number of runs to show (default: 20, max: 200) |
+| `--json` | Output as JSON |
+
+**Modes:**
+
+| Target | Behavior |
+|--------|----------|
+| *(none)* or agent name | Lists recent runs in a table: Run ID, Agent, Status, Duration, Source, Started, Error |
+| Full UUID | Shows detailed logs: agent info, status, duration, exit code, input/output data, stdout, stderr |
+| Short UUID prefix (7+ hex chars) | Resolves to full run ID via prefix matching, then shows detailed logs |
+
+---
+
+## Security
+
+### security test
+
+Run a dynamic vulnerability scan against a deployed agent. Tests for prompt injection, persona roleplay, logic traps, and other attack categories.
+
+```bash
+# Run security test
+orch security test my-org/my-agent@latest
+
+# Filter by attack categories
+orch security test my-org/my-agent@v1 --categories persona_roleplay logic_trap
+
+# Filter by severity
+orch security test my-org/my-agent@v1 --severities critical high
+
+# Limit number of attacks
+orch security test my-org/my-agent@v1 --max-attacks 10
+
+# Output as markdown report
+orch security test my-org/my-agent@v1 --output markdown --output-file report.md
+
+# JSON output
+orch security test my-org/my-agent@v1 --output json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--categories <cats...>` | Filter by attack categories |
+| `--severities <sevs...>` | Filter by severities: `critical`, `high`, `medium`, `low` |
+| `--max-attacks <n>` | Limit number of attacks |
+| `--output <format>` | Output format: `json`, `markdown`, `summary` (default: `summary`) |
+| `--output-file <path>` | Write report to file |
+| `--key <key>` | LLM API key (requires `--provider`) |
+| `--provider <provider>` | LLM provider: `openai`, `anthropic`, `gemini` |
+
+Summary output includes: risk level banner, attacks tested, vulnerabilities found, breakdown by severity and category, and top 5 issues.
+
+---
+
 ## Debugging
 
 ### replay
@@ -1264,14 +1748,6 @@ orch config get default-format
 orch config list
 ```
 
-### llm-config
-
-Set default LLM configuration for server-side execution.
-
-```bash
-orch llm-config --endpoint https://api.openai.com/v1 --model gpt-4o-mini --api-key sk-...
-```
-
 ### Config File
 
 The CLI stores configuration at `~/.orchagent/config.json`:
@@ -1411,6 +1887,55 @@ orch health acme/my-agent --timeout 60000
 <Tip>
 Use `orch health` in CI/CD pipelines after deploying a new agent version to verify it's working. The `--json` flag and exit code (`0` = pass, `1` = fail) make it easy to integrate with any CI system.
 </Tip>
+
+### status
+
+Check orchagent platform service status.
+
+```bash
+# Check service status
+orch status
+
+# JSON output
+orch status --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output raw JSON |
+
+Displays overall platform status (All Systems Operational / Partial Outage / Service Outage) and per-service status with latency. Also verifies actual API connectivity and warns if the status page and API disagree.
+
+### docs
+
+Open orchagent documentation in your browser.
+
+```bash
+# Open docs homepage
+orch docs
+
+# Open specific topic
+orch docs cli
+orch docs agents
+orch docs skills
+orch docs sdk
+orch docs api
+orch docs quickstart
+```
+
+**Topics:**
+
+| Topic | Opens |
+|-------|-------|
+| *(none)* | Documentation homepage |
+| `cli` | CLI commands reference |
+| `agents` | Agent types guide |
+| `skills` | Orchestration guide |
+| `sdk` | SDK reference |
+| `api` | API reference |
+| `quickstart` | Quickstart guide |
 
 ---
 
@@ -1840,34 +2365,17 @@ orch service secret remove my-bot OLD_API_KEY
 
 ---
 
-## Billing & Credits
+## Billing
 
-Manage platform credits and usage.
+### billing
 
-### billing balance
-
-Check your current credit balance.
+Open the Stripe billing portal in your browser to manage your subscription, payment methods, and invoices.
 
 ```bash
-orch billing balance
+orch billing
 ```
 
-### billing add
-
-Add credits to your account via Stripe Checkout.
-
-```bash
-# Add $10 in credits (minimum $5)
-orch billing add 10
-```
-
-### billing history
-
-View your credit transaction history (top-ups, charges, refunds).
-
-```bash
-orch billing history
-```
+The command opens your billing portal URL directly. If the browser doesn't open automatically, the URL is printed to stdout so you can copy it.
 
 ---
 

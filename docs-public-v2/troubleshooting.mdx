@@ -26,7 +26,7 @@ The agent process terminated without producing any output. Common causes:
 - **Agent crashed before writing output** - Check for exceptions in your code
 
 **Solutions:**
-1. Run with `--verbose` flag for more details: `orch run myagent --verbose`
+1. Run with `--verbose` flag to see sandbox stdout/stderr in real-time: `orch run myagent --verbose`
 2. Test locally: `python sandbox_main.py < input.json`
 3. Check agent logs in the [dashboard](https://orchagent.io/dashboard)
 

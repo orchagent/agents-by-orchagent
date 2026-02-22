@@ -62,6 +62,8 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch service env list` | List env vars on a service | - |
 | `orch service secret add` | Attach workspace secrets | Cloud |
 | `orch service secret remove` | Detach workspace secrets | Cloud |
+| `orch replay <run-id>` | Re-execute a previous run from snapshot | Cloud |
+| `orch trace <run-id>` | View execution trace timeline | - |
 | `orch health <agent>` | Smoke test an agent | Cloud |
 | `orch estimate <agent>` | Show estimated run cost | - |
 | `orch diff <ref1> [ref2]` | Compare two agent versions | - |
@@ -981,6 +983,133 @@ Schema and prompt changes show field-level diffs with added/removed lines.
 **Version shorthand:**
 
 The second argument can be just a version string (e.g., `v2`) — the org and agent name are inherited from the first argument. If the second argument is omitted, the first version is compared against `latest`.
+
+---
+
+## Debugging
+
+### replay
+
+Re-execute a previous run using the original input and configuration captured in its snapshot. Useful for reproducing bugs, testing fixes with policy overrides, or retrying failed runs.
+
+```bash
+# Replay a run and wait for results
+orch replay a1b2c3d4-e5f6-7890-abcd-ef1234567890
+
+# Replay using a short run ID prefix
+orch replay a1b2c3d4
+
+# Queue the replay and return immediately
+orch replay a1b2c3d4 --no-wait
+
+# Replay with a reason (stored in audit log)
+orch replay a1b2c3d4 --reason "debugging timeout issue"
+
+# Replay with a different provider policy
+orch replay a1b2c3d4 --override-policy policy-abc
+
+# JSON output
+orch replay a1b2c3d4 --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--reason <text>` | Reason for replay (stored in audit log) |
+| `--override-policy <id>` | Override provider policy ID for this replay |
+| `--no-wait` | Queue the replay and return immediately |
+| `--json` | Output as JSON |
+
+**What happens:**
+
+1. CLI resolves the run ID (supports short prefix matching)
+2. Submits a replay request — the gateway re-executes using the original snapshot (input data, execution config, agent version)
+3. By default, polls for completion and displays the result (agent name, version, status, output, stdout/stderr, duration)
+4. With `--no-wait`, returns immediately with the new run ID and job ID
+
+**Example output:**
+
+```
+Replay bbbbbbbb-cccc-dddd-eeee-ffffffffffff
+  Agent:    joe/scanner@v2
+  Status:   completed
+  Duration: 1.5s
+
+── Output ─────────────────────────────────
+{"findings": [], "summary": "No issues found."}
+
+── Stdout ─────────────────────────────────
+Scanning repository...
+Done.
+
+View trace: orch trace bbbbbbbb-cccc-dddd-eeee-ffffffffffff
+```
+
+<Tip>
+After a replay completes, use `orch trace` on the new run ID to inspect the full execution timeline — LLM calls, tool calls, token usage, and cost breakdown.
+</Tip>
+
+### trace
+
+View the execution trace for a run. Shows a timeline of LLM calls, tool calls, decisions, fallbacks, policy violations, and errors — with token counts, costs, and durations.
+
+```bash
+# View trace for a run
+orch trace a1b2c3d4-e5f6-7890-abcd-ef1234567890
+
+# View trace using a short run ID prefix
+orch trace a1b2c3d4
+
+# JSON output (includes full event details)
+orch trace a1b2c3d4 --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--workspace <slug>` | Workspace slug (default: current workspace) |
+| `--json` | Output as JSON (includes raw trace header and all events) |
+
+**Event types shown:**
+
+| Event | What It Shows |
+|-------|---------------|
+| `llm_call_succeeded` | Provider, model, input/output tokens, cost, duration |
+| `llm_call_failed` | Provider, model, error message, duration |
+| `tool_call_succeeded` | Tool name, duration |
+| `tool_call_failed` | Tool name, error message, duration |
+| `decision` | Agent decision description |
+| `fallback_transition` | Provider fallback (from → to, reason) |
+| `policy_violation` | Policy violation type and detail |
+| `error` | Error type and message |
+
+**Example output:**
+
+```
+Trace for a1b2c3d4-e5f6-...
+  Agent:    joe/scanner@v2
+  Status:   completed
+  Duration: 3.2s
+
+── Timeline ─────────────────────────────────
+  # 1  ✔ LLM  anthropic / claude-haiku-4-5-20251001 │ 1,200 in, 350 out │ $0.0004 │ 1.2s
+  # 2  ✔ Tool scan-repo │ 1.5s
+  # 3  ✔ LLM  anthropic / claude-haiku-4-5-20251001 │ 2,100 in, 180 out │ $0.0005 │ 0.8s
+
+── Summary ─────────────────────────────────
+  LLM calls:  2
+  Tool calls: 1
+  Tokens:     3,300 in, 530 out
+  Cost:       $0.0009
+  Providers:  anthropic
+```
+
+<Tip>
+Use `orch replay` to re-execute a run, then `orch trace` on the new run to compare execution traces side-by-side.
+</Tip>
 
 ---
 

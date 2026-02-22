@@ -61,6 +61,7 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch service env list` | List env vars on a service | - |
 | `orch service secret add` | Attach workspace secrets | Cloud |
 | `orch service secret remove` | Detach workspace secrets | Cloud |
+| `orch diff <ref1> [ref2]` | Compare two agent versions | - |
 | `orch pull <agent>` | Reconstruct a local project from a published agent | - |
 | `orch fork <agent>` | Fork a public agent into your workspace | - |
 | `orch billing balance` | Check credit balance | - |
@@ -743,6 +744,44 @@ For direct LLM agents, create fixture files in `tests/` to test your prompts aga
 <Tip>
 Watch mode works on all platforms (macOS, Linux, Windows) and automatically picks up new test files as you create them.
 </Tip>
+
+### diff
+
+Compare two versions of an agent side-by-side. Shows changes in type, description, schemas, providers, dependencies, skills, custom tools, prompt, and configuration fields.
+
+```bash
+# Compare two specific versions
+orch diff yourorg/my-agent@v1 v2
+
+# Compare against latest
+orch diff yourorg/my-agent@v1
+
+# Compare two different agents
+orch diff yourorg/agent-a@v1 otherorg/agent-b@v1
+
+# JSON output for scripting
+orch diff yourorg/my-agent@v1 v2 --json
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output diff as JSON with `from`, `to`, `identical`, and `changes` fields |
+
+**Output format:**
+
+Changes are shown with prefixes indicating the type of change:
+
+- `+` — field was added
+- `-` — field was removed
+- `~` — field was changed (shows old and new values)
+
+Schema and prompt changes show field-level diffs with added/removed lines.
+
+**Version shorthand:**
+
+The second argument can be just a version string (e.g., `v2`) — the org and agent name are inherited from the first argument. If the second argument is omitted, the first version is compared against `latest`.
 
 ---
 

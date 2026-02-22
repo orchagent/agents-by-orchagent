@@ -42,6 +42,7 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch run --local <agent>` | Download and execute agent locally | Your machine |
 | `orch install <agent>` | Export agent as sub-agent | Local files (for AI tools) |
 | `orch skill install <skill>` | Download skill files | Local files (for AI tools) |
+| `orch dev` | Start local dev server with hot-reload | Your machine |
 | `orch test` | Run agent tests locally | Your machine |
 | `orch update` | Update installed agents | - |
 | `orch formats` | List available export formats | - |
@@ -79,6 +80,9 @@ Want AI to KNOW something?
 
 Want to DELEGATE to sub-agents?
   \-- Export for AI tools    --> orch install
+
+Building an agent locally?
+  \-- HTTP dev server        --> orch dev
 
 Want to RECONSTRUCT a local project?
   \-- Pull published source    --> orch pull
@@ -786,6 +790,86 @@ Mocked orchestration tests are ideal for CI — they test the full LLM reasoning
 
 <Tip>
 Watch mode works on all platforms (macOS, Linux, Windows) and automatically picks up new test files as you create them.
+</Tip>
+
+### dev
+
+Start a local HTTP development server with hot-reload. The server accepts JSON input via HTTP and runs your agent locally, reloading automatically when files change.
+
+```bash
+# Start dev server in current directory
+orch dev
+
+# Start dev server for agent in a specific directory
+orch dev ./my-agent
+
+# Use a custom port
+orch dev --port 3001
+
+# Show detailed execution output
+orch dev --verbose
+
+# Disable file watching (no hot-reload)
+orch dev --no-watch
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `-p, --port <port>` | Server port (default: `4900`) |
+| `-v, --verbose` | Show detailed execution output (stderr, LLM provider info) |
+| `--no-watch` | Disable file watching (no automatic reload on changes) |
+
+**Endpoints:**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/run` | Execute agent with JSON body as input |
+| `POST` | `/` | Alias for `/run` |
+| `GET` | `/health` | Agent configuration info (name, version, engine) |
+| `GET` | `/` | Usage instructions |
+
+**Example:**
+
+```bash
+# Terminal 1: Start the dev server
+orch dev
+
+# Terminal 2: Send requests
+curl -X POST http://localhost:4900/run \
+  -H "Content-Type: application/json" \
+  -d '{"task": "summarize this text", "text": "..."}'
+```
+
+**How it works:**
+
+1. Reads `orchagent.json` from the agent directory
+2. Starts an HTTP server on the specified port
+3. Watches for file changes (orchagent.json, prompt.md, schema.json, source files)
+4. On each POST request, executes the agent locally and returns the JSON result
+5. On file change, reloads the agent configuration automatically
+
+The dev server supports all three execution engines:
+
+| Engine | How it runs |
+|--------|------------|
+| **code_runtime** | Spawns entrypoint (main.py/main.js) with input as stdin |
+| **direct_llm** | Calls LLM with prompt.md + input data |
+| **managed_loop** | Runs agent_runner.py with prompt, tools, and LLM |
+
+**Requirements:**
+
+- `orchagent.json` in the target directory
+- For LLM-based agents: API key in environment or `.env` file
+- For code runtime agents: Python 3 or Node.js installed
+
+<Tip>
+The dev server enables CORS, so you can send requests from browser-based tools or frontend apps during development.
+</Tip>
+
+<Tip>
+Use `orch dev` alongside `orch test --watch` for a full development loop: the dev server handles HTTP requests while test watch validates on every save.
 </Tip>
 
 ### diff

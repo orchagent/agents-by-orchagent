@@ -9,6 +9,7 @@ orchagent offers three ways to use agents:
 |---------|---------|---------------|
 | `orch run` | Execute agent now | Cloud (E2B sandbox) by default |
 | `orch run --local` | Execute agent now | Your machine |
+| `orch dev` | HTTP dev server with hot-reload | Your machine |
 | `orch install` | Export for AI tools | Creates local files |
 | `orch service deploy` | Deploy always-on service | Cloud (Cloud Run) |
 
@@ -223,6 +224,7 @@ See [Always-On Services](/using-agents/services) for full documentation.
 |---------|------|-------------|
 | `orch run` | Cloud | Run on orchagent servers (default) |
 | `orch run --local` | Local | Run with installed CLI |
+| `orch dev` | Local | HTTP dev server with hot-reload |
 | `npx orchagent run --local` | Local | Run without installing CLI |
 | `orch run --local --download-only` | Local | Just download, don't execute |
 | `orch run --local --with-deps` | Local | Auto-download dependencies |
@@ -233,10 +235,10 @@ See [Always-On Services](/using-agents/services) for full documentation.
 
 ## Choosing the Right Mode
 
-### Use Local (`--local`) When
+### Use Local (`--local` or `orch dev`) When
 
 - You want to keep data on your machine
-- You're developing or debugging an agent
+- You're developing or debugging an agent (use `orch dev` for hot-reload)
 - You want to try an agent without an account
 - The agent doesn't have complex dependencies
 - The agent author has enabled `allow_local_download`
@@ -250,12 +252,40 @@ See [Always-On Services](/using-agents/services) for full documentation.
 - The agent does not allow local download
 - You want usage tracking and logs
 
-## Mixed Mode
+## Development Server (`orch dev`)
 
-You can use both modes in your workflow:
+For active development, use `orch dev` to start a local HTTP server with hot-reload:
 
 ```bash
-# Develop locally
+orch dev
+```
+
+This starts a server on `http://localhost:4900` that:
+- Accepts POST requests with JSON input and runs your agent locally
+- Watches for file changes and reloads automatically
+- Works with all agent types (prompt, tool, agent)
+
+```bash
+# Terminal 1: Start dev server
+orch dev
+
+# Terminal 2: Send test requests
+curl -X POST http://localhost:4900/run \
+  -H "Content-Type: application/json" \
+  -d '{"task": "hello world"}'
+```
+
+See [CLI Commands — dev](/using-agents/cli-commands#dev) for full options.
+
+## Mixed Mode
+
+You can use all modes in your development workflow:
+
+```bash
+# Active development with hot-reload
+orch dev
+
+# One-off local test
 orch run --local my-agent --input '{"test": true}'
 
 # Test on cloud

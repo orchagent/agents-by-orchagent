@@ -1,1 +1,0 @@
-"""Invoice scanner agent package."""

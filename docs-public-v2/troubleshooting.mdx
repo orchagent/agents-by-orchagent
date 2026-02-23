@@ -1,176 +1,672 @@
 ---
 title: "Troubleshooting"
-description: "Common issues and solutions"
+description: "Common errors and how to fix them"
 ---
 
 ## First Step: Run Doctor
 
-Before diving into specific errors, run the diagnostic command:
+Before diving into specific errors, run the built-in diagnostic:
 
 ```bash
-orchagent doctor
+orch doctor
 ```
 
 This checks your environment, configuration, connectivity, authentication, and LLM setup. Most issues are caught here with actionable fix suggestions.
 
----
+Add `--verbose` for extra detail:
 
-## CLI Errors
-
-### "Agent exited with code X (no output)"
-
-The agent process terminated without producing any output. Common causes:
-
-- **Missing dependency** - Check your `requirements.txt` has all required packages
-- **Syntax error in entrypoint** - Python couldn't parse your code
-- **Agent crashed before writing output** - Check for exceptions in your code
-
-**Solutions:**
-1. Run with `--verbose` flag to see sandbox stdout/stderr in real-time: `orch run myagent --verbose`
-2. Test locally: `python sandbox_main.py < input.json`
-3. Check agent logs in the [dashboard](https://orchagent.io/dashboard)
-
-### "Failed to extract bundle"
-
-The downloaded agent bundle couldn't be extracted. This usually means:
-- The bundle file is corrupted
-- The agent was published incorrectly
-
-**Solution:** Re-publish the agent with `orch publish`
-
-### "No LLM key found"
-
-The agent requires an LLM provider but no API key is available.
-
-**Solutions:**
-- **For local execution (`orch run --local`)**: Set environment variable:
-  ```bash
-  export OPENAI_API_KEY=sk-...
-  # or
-  export ANTHROPIC_API_KEY=sk-ant-...
-  ```
-- **For cloud execution (`orch run`, the default)**: Add key in [Settings → LLM Keys](https://orchagent.io/settings)
+```bash
+orch doctor --verbose
+```
 
 ---
 
-## API / Server Errors
+## Authentication & Login
 
-### "Sandbox execution failed" / "Code execution failed"
+### "Not logged in. Run `orchagent login` first."
 
-The E2B sandbox couldn't run your agent code.
+You're running a command that requires authentication but no API key is configured.
+
+**Fix:**
+
+```bash
+# Interactive login (opens browser)
+orch login
+
+# Non-interactive (CI/CD)
+orch login --key sk_live_xxx
+
+# Or set the environment variable
+export ORCHAGENT_API_KEY=sk_live_xxx
+```
+
+### "Authentication failed" (exit code 2)
+
+Your API key is invalid, expired, or revoked.
+
+**Causes:**
+- Key was deleted from the dashboard
+- Key was revoked via `orch logout`
+- Key is from a different environment (staging vs production)
+
+**Fix:**
+
+```bash
+orch logout
+orch login
+```
+
+### "Access denied" (403)
+
+Your API key doesn't have permission for this operation.
 
 **Common causes:**
-- Agent code has a syntax error
-- Missing dependencies in `requirements.txt`
-- Timeout exceeded (default: 60 seconds)
-- Agent crashed without output
+- Accessing a private agent you don't own
+- Operating on a workspace you're not a member of
+- Using an API key without the required scope
 
-**Solutions:**
-1. Test locally first with `orch run`
-2. Check agent logs in the [dashboard](https://orchagent.io/dashboard)
-3. Ensure all dependencies are in `requirements.txt`
+**Fix:**
+- Check you're using the right workspace: `orch workspace list`
+- Check you have access to the agent: `orch info org/agent`
+- For workspace-scoped operations with `--workspace`, use browser login (`orch login` without `--key`)
 
-### "Failed to decrypt LLM key"
+### Login hangs or times out
 
-Your stored LLM API key couldn't be decrypted. This can happen if the server's encryption key was rotated.
+The browser auth flow uses a local callback server. If it hangs:
 
-**Solution:** Delete and re-add your LLM key in [Settings → LLM API Keys](https://orchagent.io/settings)
+1. Check your firewall isn't blocking localhost ports
+2. Try a specific port: `orch login --port 8910`
+3. Fall back to key-based login: `orch login --key sk_live_xxx`
+4. Get a key from [Settings > API Keys](https://orchagent.io/settings)
+
+---
+
+## Running Agents
 
 ### "Agent not found" (404)
 
-The agent doesn't exist or you used the wrong format.
+The agent doesn't exist or you used the wrong reference format.
 
-**Solutions:**
-- Use full format: `orchagent/leak-finder` not just `leak-finder`
-- Check spelling and version: `orch info orchagent/leak-finder`
+**Fix:**
+- Use the full `org/agent` format: `orch run acme/my-agent`
+- Check spelling: `orch info acme/my-agent`
+- Check the version exists: `orch info acme/my-agent@v2`
+- If using a workspace, ensure the agent is published there: `orch agents`
 
-### "Authentication error" (401)
+### "Invalid agent reference"
 
-Your API key is invalid or expired.
+The agent reference format is wrong.
 
-**Solution:** Run `orch login` to re-authenticate
+**Valid formats:**
+```bash
+orch run my-agent           # Uses your default org
+orch run acme/my-agent      # Explicit org
+orch run acme/my-agent@v2   # Specific version
+```
+
+**Invalid formats:**
+```bash
+orch run acme/my-agent/v2   # Too many segments (use @ for version)
+```
+
+### "No LLM key found" / LLM_KEY_REQUIRED
+
+The agent needs an LLM provider key but none is available.
+
+**For cloud runs (default):**
+
+Add your key in [Settings > LLM Keys](https://orchagent.io/settings), or pass inline:
+
+```bash
+orch run acme/agent --key sk-... --provider openai
+```
+
+**For local runs (`--local`):**
+
+Set the environment variable for your provider:
+
+```bash
+export OPENAI_API_KEY=sk-...
+# or
+export ANTHROPIC_API_KEY=sk-ant-...
+# or
+export GEMINI_API_KEY=...
+```
+
+### "Agent exited with code X (no output)"
+
+The agent process terminated without producing output.
+
+**Common causes:**
+- Missing dependency in `requirements.txt`
+- Python syntax error
+- Unhandled exception before any output was written
+
+**Debug steps:**
+
+1. Run with verbose to see sandbox output:
+   ```bash
+   orch run acme/my-agent --verbose --data '{}'
+   ```
+2. Test locally:
+   ```bash
+   echo '{}' | python main.py
+   ```
+3. Check logs in the [dashboard](https://orchagent.io/dashboard) or via CLI:
+   ```bash
+   orch logs
+   ```
+
+### SANDBOX_ERROR (code_error)
+
+Your agent code crashed during execution. The error output is from your code, not the platform.
+
+**Fix:**
+1. Read the error message — it's your agent's stderr (truncated to 500 chars)
+2. Check for missing dependencies in `requirements.txt`
+3. Test locally: `orch run --local acme/my-agent --data '{}'`
+4. Check full logs: `orch logs <run-id>`
+
+### SANDBOX_ERROR (setup_error)
+
+The sandbox failed during setup, before your code ran.
+
+**Common causes:**
+- `pip install` failed for a dependency
+- Incompatible package versions
+- Package requires system libraries not in the sandbox
+
+**Fix:**
+1. Verify `requirements.txt` installs cleanly: `pip install -r requirements.txt`
+2. Pin specific versions to avoid conflicts
+3. For system dependencies, use a [custom environment](/building-agents/environments)
+
+### SANDBOX_TIMEOUT
+
+The agent didn't finish within its timeout limit.
+
+**Fix:**
+- Simplify the input or reduce the dataset
+- Increase the timeout in `orchagent.json`:
+  ```json
+  { "timeout_seconds": 120 }
+  ```
+- Check if you're on the Free tier (30s tool / 2 min agent limit) — [upgrade](https://orchagent.io/plans) for longer timeouts
+- For orchestrators, check if a sub-agent is slow: `orch dag <run-id>`
+
+### "This agent is server-only and cannot be downloaded" (DOWNLOAD_DISABLED)
+
+The agent author has disabled local execution to protect their code.
+
+**Fix:** Run on the cloud (the default):
+
+```bash
+orch run acme/agent --data '{}'
+```
+
+Remove the `--local` flag if you were using it.
 
 ### "Rate limit exceeded" (429)
 
-You've exceeded the API rate limit.
+You've hit a platform rate limit.
 
-**Solution:** Wait a moment and retry. See [Rate Limits](/concepts/rate-limits) for details.
+**Fix:**
+- Wait and retry — the error includes a `suggested_wait_time`
+- Check your usage: `orch billing balance`
+- [Upgrade your plan](https://orchagent.io/plans) for higher limits
+- See [Rate Limits](/concepts/rate-limits) for per-tier limits
 
----
+### LLM_RATE_LIMITED
 
-## Service Errors
+Your LLM provider (OpenAI, Anthropic, Gemini) is rate-limiting your API key. This is **not** an orchagent limit.
 
-### Service stuck in provisioning
+**Fix:**
+- Wait and retry
+- Switch providers: `orch run acme/agent --provider gemini`
+- Check your provider dashboard for usage limits
+- The error message shows which alternative providers the agent supports
 
-The Cloud Run service hasn't become healthy yet.
+### "Budget limit reached" (BUDGET_EXCEEDED)
 
-**Solutions:**
-1. Check the events timeline: `orch service info <service-id>`
-2. Verify your agent has a `runtime.command` or `loop` config with a published code bundle (direct LLM agents cannot be deployed as services)
-3. Check logs for dependency installation failures: `orch service logs <service-id>`
+Your workspace hard budget limit has been reached for the current billing window.
 
-### Service keeps restarting
-
-The agent process is crashing repeatedly.
-
-**Solutions:**
-1. Check the logs for crash output: `orch service logs <service-id>`
-2. Look at the last error: `orch service info <service-id>`
-3. Ensure all required secrets are configured in your workspace
-4. Verify your entrypoint process doesn't exit immediately
-5. Your code must **not** bind to port 8080 — the health server uses it
-
-### CRASH-LOOP badge showing
-
-The service was auto-paused after exceeding the consecutive failure threshold.
-
-**Solutions:**
-1. Fix the root cause (code bug, missing secret, dependency issue)
-2. Restart the service: `orch service restart <service-id>`
-3. Check the events timeline: `orch service info <service-id>`
-
-### "No entrypoint found" error
-
-The service runner couldn't detect which file to run.
-
-**Solutions:**
-- Add a `main.py` or `index.js` to your project root
-- Or set a `run_command` in your `orchagent.json`
-- Or use `--command` when deploying
+**Fix:**
+- Wait for the budget window to reset
+- Increase the budget in [Settings > Billing](https://orchagent.io/settings)
+- Check usage: `orch billing balance`
 
 ---
 
-## Schedule Errors
+## JSON Input Errors
+
+### "Invalid JSON in --data option"
+
+Shell special characters are breaking your JSON.
+
+**Fix — use single quotes (Bash/Zsh):**
+
+```bash
+orch run acme/agent --data '{"text": "hello"}'
+```
+
+**Fix — use a file instead:**
+
+```bash
+echo '{"text": "hello"}' > input.json
+orch run acme/agent --data @input.json
+```
+
+**Fix — use stdin:**
+
+```bash
+echo '{"text": "hello"}' | orch run acme/agent --data @-
+```
+
+**PowerShell fix:**
+
+```powershell
+orch run acme/agent --data "{\"text\": \"hello\"}"
+```
+
+### "Missing required field"
+
+The agent's input schema requires a field you didn't provide.
+
+**Fix:**
+1. Check the schema: `orch info acme/agent`
+2. Provide all required fields in your `--data` JSON
+
+---
+
+## Publishing
+
+### "No orchagent.json found"
+
+You're running `orch publish` outside an agent directory.
+
+**Fix:**
+- `cd` into your agent directory first
+- Or create a new agent: `orch init my-agent`
+
+### "No prompt.md found"
+
+Prompt-based and managed-loop agents need a `prompt.md` file.
+
+**Fix:** Create `prompt.md` in your agent directory with your prompt template. The `"prompt"` field in `orchagent.json` is **not** used — the CLI reads `prompt.md`.
+
+### Agent name validation errors
+
+Agent names must follow these rules:
+- 2-50 characters
+- Lowercase only
+- Letters, numbers, and hyphens only
+- Must start and end with a letter or number
+- No consecutive hyphens
+
+```bash
+# Good
+orch init my-agent
+orch init code-reviewer-2
+
+# Bad
+orch init My-Agent        # uppercase
+orch init a               # too short
+orch init my--agent       # consecutive hyphens
+```
+
+### "runtime.command and loop cannot both be set"
+
+Your `orchagent.json` has both `runtime.command` (code runtime) and `loop` (managed loop) configured. These are mutually exclusive execution modes.
+
+**Fix:** Remove one:
+- Keep `runtime.command` if your code handles everything (tool-type)
+- Keep `loop` if you want the platform-managed LLM tool-use loop (agent-type)
+
+### "Unpublished dependencies"
+
+Your agent's manifest references other agents that haven't been published yet.
+
+**Fix:** Publish dependencies first (leaf-first order), or use batch publish:
+
+```bash
+# From parent directory containing all agents
+orch publish --all
+```
+
+This automatically resolves dependency order.
+
+### "Publish blocked by security scan" (SECURITY_BLOCKED)
+
+The security scanner detected dangerous patterns in your skill content (shell injection, data exfiltration, etc.).
+
+**Fix:** Review the detected patterns listed in the error output. If they're false positives, restructure your skill content to avoid the flagged patterns.
+
+### Schema mismatch warning
+
+Your `prompt.md` template variables don't match your `schema.json` fields.
+
+**Fix:** Ensure every `{{variable}}` in `prompt.md` has a corresponding field in `schema.json`, and vice versa.
+
+---
+
+## Workspaces
+
+### "No workspace specified"
+
+A command that requires workspace context doesn't know which workspace to use.
+
+**Fix:**
+
+```bash
+# Set a default workspace
+orch workspace use my-team
+
+# Or pass it per-command
+orch logs --workspace my-team
+orch secrets list --workspace my-team
+```
+
+### "Workspace not found"
+
+The workspace slug doesn't match any workspace you have access to.
+
+**Fix:**
+1. List your workspaces: `orch workspace list`
+2. Check the slug spelling
+3. If you were invited, accept the invite first
+
+### "Not a member of this workspace"
+
+You're trying to access a workspace you haven't joined.
+
+**Fix:**
+- Ask the workspace owner to invite you: `orch workspace invite you@email.com`
+- Check your workspace list: `orch workspace list`
+
+---
+
+## Secrets
+
+### Secret name validation
+
+Secret names must follow this format: `^[A-Z][A-Z0-9_]*$`
+
+```bash
+# Good
+orch secrets set STRIPE_SECRET_KEY sk_live_xxx
+orch secrets set MY_API_KEY_2 xxx
+
+# Bad
+orch secrets set stripe-key xxx       # lowercase, hyphens
+orch secrets set 2_THING xxx          # starts with number
+```
+
+### "Missing secrets" (MISSING_SECRETS)
+
+Your agent requires secrets that aren't set in the workspace.
+
+**Fix:**
+
+```bash
+# List what's configured
+orch secrets list
+
+# Add the missing secret
+orch secrets set SECRET_NAME value
+```
+
+The agent's `required_secrets` in `orchagent.json` declares which secrets it needs.
+
+---
+
+## Schedules
 
 ### Schedule not executing
 
-**Solutions:**
-- Check that the schedule is enabled: `orch schedule list`
-- Verify your LLM keys are configured in the workspace
-- Try a manual trigger to see the error: `orch schedule trigger <id>`
+**Checklist:**
+1. Is it enabled? `orch schedule list`
+2. Are LLM keys configured in the workspace?
+3. Test manually: `orch schedule trigger <id>`
+4. Check recent runs: `orch schedule runs <id>`
 
 ### Schedule auto-disabled
 
 The schedule hit its consecutive failure threshold and was automatically paused.
 
-**Solutions:**
+**Fix:**
 1. Check recent failures: `orch schedule info <id>`
-2. Fix the root cause
+2. Fix the root cause (missing secrets, agent error, timeout)
 3. Re-enable: `orch schedule update <id> --enable`
 
+### "No schedule found matching"
+
+The schedule ID prefix is too short or doesn't match any schedule.
+
+**Fix:** Use a longer prefix, or list schedules to find the ID:
+
+```bash
+orch schedule list
+```
+
 ---
 
-## Dashboard Errors
+## Services (Always-On)
 
-If you see an error toast in the dashboard:
-- The toast message shows the actual error from the server
-- Common issues: network connectivity, expired session, invalid input
+### Service stuck in provisioning
 
-**Solution:** Try refreshing the page. If the issue persists, check the browser console for details.
+**Fix:**
+1. Check events: `orch service info <service-id>`
+2. Verify the agent has `runtime.command` or `loop` config — direct LLM agents cannot be deployed as services
+3. Check logs for dependency failures: `orch service logs <service-id>`
+
+### Service keeps restarting
+
+**Fix:**
+1. Check crash logs: `orch service logs <service-id>`
+2. Ensure all required secrets are attached: `orch service secret add <id> SECRET_NAME`
+3. Verify your process doesn't exit immediately — it must stay running
+4. Your code must **not** bind to port 8080 — the health server uses it
+
+### CRASH-LOOP status
+
+The service was auto-paused after repeated failures.
+
+**Fix:**
+1. Fix the root cause (check logs)
+2. Restart: `orch service restart <service-id>`
+
+### "No entrypoint found"
+
+The service runner can't detect which file to run.
+
+**Fix:**
+- Add a `main.py` or `index.js` to your project root
+- Or set `runtime.command` in `orchagent.json`:
+  ```json
+  { "runtime": { "command": "python main.py" } }
+  ```
 
 ---
 
-## Still stuck?
+## LLM Provider Errors
 
+### "Invalid OpenAI/Anthropic/Gemini API key"
+
+Your stored LLM key is invalid.
+
+**Fix:**
+- **Cloud runs:** Update your key in [Settings > LLM Keys](https://orchagent.io/settings)
+- **Local runs:** Update the environment variable (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`)
+
+### "Failed to decrypt LLM key"
+
+Your stored key couldn't be decrypted (server-side encryption key may have rotated).
+
+**Fix:** Delete and re-add your key in [Settings > LLM Keys](https://orchagent.io/settings).
+
+### Provider-specific errors
+
+| Error | Meaning | Fix |
+|-------|---------|-----|
+| OpenAI 429 | Rate limited | Wait, or switch: `--provider anthropic` |
+| Anthropic 529 | Overloaded | Wait, or switch: `--provider openai` |
+| Gemini 403 | Access denied | Check API key permissions in Google Cloud |
+| Ollama 404 | Model not found | Run `ollama pull <model>` locally |
+| Ollama 502 | Connection failed | Start Ollama: `ollama serve` |
+
+---
+
+## Orchestration
+
+### "Dependency not declared in manifest"
+
+An agent tried to call another agent that isn't listed in its `manifest.dependencies`.
+
+**Fix:** Add the dependency to `orchagent.json`:
+
+```json
+{
+  "manifest": {
+    "dependencies": {
+      "scanner": "acme/scanner@latest"
+    }
+  }
+}
+```
+
+Then republish.
+
+### "Agent is not callable" (AGENT_NOT_CALLABLE)
+
+The target agent has `callable: false` and can't be invoked by other agents.
+
+**Fix:** The target agent needs to be republished with callable enabled:
+
+```bash
+# In the target agent's orchagent.json
+{ "callable": true }
+```
+
+### "Max hops exceeded"
+
+The orchestration chain is too deep.
+
+**Fix:** Increase `max_hops` in the caller's manifest, or simplify the agent chain. Check the chain depth with:
+
+```bash
+orch tree acme/my-orchestrator
+```
+
+---
+
+## Network & Connectivity
+
+### "Unable to connect" / Network errors (exit code 9)
+
+The CLI can't reach the orchagent API.
+
+**Causes:**
+- No internet connection
+- Firewall/proxy blocking `api.orchagent.io`
+- Platform outage
+
+**Fix:**
+1. Check your connection: `curl https://api.orchagent.io/health`
+2. Check platform status: `orch status`
+3. If behind a proxy, configure `HTTPS_PROXY` environment variable
+
+### Server errors (5xx, exit code 8)
+
+A platform error occurred.
+
+**Fix:** Wait a moment and retry. If it persists, check [platform status](https://status.orchagent.io) or contact support with the `request_id` from the error output.
+
+---
+
+## Local Execution
+
+### "Python 3 is required for local agent execution"
+
+Local agent execution needs Python 3 installed.
+
+**Fix:** Install Python 3 from [python.org/downloads](https://python.org/downloads)
+
+### "Failed to install dependencies"
+
+`pip install` failed during local sandbox setup.
+
+**Fix:**
+1. Check your `requirements.txt` installs cleanly: `pip install -r requirements.txt`
+2. Ensure you have the right Python version
+3. For system-level dependencies, install them manually first
+
+### "Failed to run unzip"
+
+The CLI needs `unzip` to extract agent bundles.
+
+**Fix:**
+```bash
+# macOS (included by default)
+# Linux
+sudo apt install unzip
+# or
+sudo yum install unzip
+```
+
+---
+
+## Exit Code Reference
+
+| Code | Meaning | Common Fix |
+|------|---------|------------|
+| `0` | Success | — |
+| `1` | General error | Read the error message |
+| `2` | Auth error (401) | Run `orch login` |
+| `3` | Permission denied (403) | Check workspace/agent access |
+| `4` | Not found (404) | Check agent reference format |
+| `5` | Invalid input | Check your JSON/flags |
+| `6` | Rate limited (429) | Wait and retry, or [upgrade](https://orchagent.io/plans) |
+| `7` | Timeout | Simplify input or increase timeout |
+| `8` | Server error (5xx) | Retry, check [status](https://status.orchagent.io) |
+| `9` | Network error | Check connectivity |
+
+Use exit codes in scripts:
+
+```bash
+orch run acme/agent --data '{}' --json 2>/dev/null
+if [ $? -eq 6 ]; then
+  echo "Rate limited, retrying in 60s..."
+  sleep 60
+fi
+```
+
+---
+
+## Error Response Format
+
+API errors return a structured JSON response:
+
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable error description",
+    "is_retryable": true,
+    "suggested_wait_time": 30
+  },
+  "metadata": {
+    "request_id": "req_abc123"
+  }
+}
+```
+
+When contacting support, include the `request_id` — it helps us locate your exact request in our logs.
+
+---
+
+## Still Stuck?
+
+- Run `orch doctor --verbose` for a full diagnostic
 - Check the [Discord community](https://discord.gg/orchagent) for help
 - Open an issue on [GitHub](https://github.com/orchagent/orchagent/issues)
+- Email [support@orchagent.io](mailto:support@orchagent.io) with the `request_id` from your error

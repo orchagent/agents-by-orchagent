@@ -52,6 +52,7 @@ Additional agent fields:
 - [Local vs Server](https://docs.orchagent.io/concepts/local-vs-server): orch run (cloud vs --local)
 - [Rate Limits](https://docs.orchagent.io/concepts/rate-limits): Platform limits
 - [Billing & Credits](https://docs.orchagent.io/concepts/billing): Platform credits and usage
+- [Troubleshooting](https://docs.orchagent.io/troubleshooting): Common errors and solutions (auth, running, publishing, workspaces, services, LLM providers)
 
 ## API
 

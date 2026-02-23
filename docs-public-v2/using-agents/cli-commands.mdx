@@ -40,6 +40,7 @@ Before diving into commands, understand the two types of content on orchagent:
 |---------|--------------|---------------|
 | `orch run <agent>` | Execute agent | Cloud (E2B sandbox) by default |
 | `orch run --local <agent>` | Download and execute agent locally | Your machine |
+| `orch scaffold orchestration <agents...>` | Generate an orchestrator scaffold from existing agents | Local files |
 | `orch install <agent>` | Export agent as sub-agent | Local files (for AI tools) |
 | `orch skill install <skill>` | Download skill files | Local files (for AI tools) |
 | `orch list` | List locally installed agents | - |
@@ -715,6 +716,39 @@ The generated `orchagent.json` always uses `"type": "agent"` with the canonical 
 <Note>
 `--language javascript` is supported for tool/code-runtime agents. Managed loop agents (agent-type with `loop` config) currently require Python — the managed loop runner is Python-only.
 </Note>
+
+### scaffold orchestration
+
+Generate a managed-loop orchestrator scaffold from existing dependency agents.
+
+```bash
+# Scaffold in current directory
+orch scaffold orchestration acme/scanner acme/auditor@v2
+
+# Scaffold into a new directory with an explicit orchestrator name
+orch scaffold orchestration acme/scanner --output ./security-orch --name security-orchestrator
+
+# Overwrite existing scaffold files
+orch scaffold orchestration acme/scanner --force
+```
+
+**What it generates:**
+
+- `orchagent.json` with:
+  - `manifest.dependencies` pinned to concrete versions
+  - `custom_tools` commands wired to `orch_call.py`
+  - managed-loop defaults (`max_turns`, provider + orchestration settings)
+- `prompt.md` starter prompt with dependency tool catalog
+- `schema.json` starter input/output schema
+
+**Validation behavior:**
+
+- Resolves each dependency ref and pins `latest` to a concrete version
+- Rejects dependencies that are skills or `callable: false`
+- Detects conflicting versions for the same dependency
+- Deduplicates repeated dependency refs
+
+Use this command when you already have worker agents and want a ready-to-publish orchestrator quickly.
 
 ### publish
 

@@ -58,29 +58,56 @@ You don't choose an execution engine — the platform infers it from what you de
 
 ## Which Pattern Should I Use?
 
+Ask yourself one question: **what does your agent need to do?**
+
 ```
-I want to build something on orchagent
-  |
-  |-- Does it need an LLM to think and decide?
-  |   |
-  |   |-- Yes
-  |   |   |
-  |   |   |-- Simple (one call, no tools) --> prompt + schema (direct_llm)
-  |   |   |   "Just an LLM call with your prompt and schema"
-  |   |   |
-  |   |   \-- Complex (tools, iteration, sandbox) --> loop config (managed_loop)
-  |   |       "Give it a prompt + tools, platform runs the loop"
-  |   |
-  |   \-- No --> runtime.command (code_runtime)
-  |       "Your code, our sandbox. Deterministic, fast, cheap."
-  |
-  \-- I want to share knowledge --> Skill
-      "Markdown instructions that enhance any agent"
+What are you building?
+│
+├─ "LLM answers a question / generates content"
+│   └─ Direct LLM (prompt + schema)
+│      e.g. sentiment analyzer, summarizer, translator, code explainer
+│
+├─ "LLM figures things out using tools"
+│   └─ Managed loop (loop config)
+│      e.g. test fixer, code reviewer, research agent, deploy assistant
+│
+├─ "My code does the work (maybe calls an LLM inside)"
+│   └─ Code runtime (runtime.command)
+│      e.g. security scanner, data pipeline, file converter, API integration
+│
+└─ "I want to share knowledge with agents or AI tools"
+    └─ Skill
+       e.g. coding standards, security rules, brand guidelines
 ```
 
 <Tip>
 **Start with the simplest pattern that works.** Most use cases need only a prompt and schema. If you need tools, add a `loop` config. Only reach for `runtime.command` when you need full programmatic control or don't need an LLM.
 </Tip>
+
+### Common Use Cases
+
+Not sure which pattern fits? Find your use case below:
+
+| I want to... | Use | Why |
+|---|---|---|
+| Analyze sentiment or classify text | Direct LLM | One LLM call, structured JSON output |
+| Summarize or translate documents | Direct LLM | One LLM call, no tools needed |
+| Generate marketing copy or emails | Direct LLM | Prompt engineering, structured output |
+| Extract data from text (names, dates, etc.) | Direct LLM | One LLM call with output schema |
+| Fix code until tests pass | Managed loop | LLM reads code, runs tests, iterates |
+| Review pull requests or audit code | Managed loop | LLM navigates files, checks patterns |
+| Research a topic and write a report | Managed loop | LLM searches, reads, synthesizes |
+| Scan repos for secrets or vulnerabilities | Code runtime | Deterministic logic, fast, no LLM needed |
+| Process uploaded files (PDF, CSV, images) | Code runtime | File I/O, custom parsing logic |
+| Call external APIs and transform data | Code runtime | Full HTTP control, auth, error handling |
+| Run a multi-model pipeline (different LLMs per step) | Code runtime | You control which LLM handles each step |
+| Build a Discord bot or webhook listener | Code runtime | Persistent service, event-driven |
+| Share coding standards with your team | Skill | Passive knowledge, works with any AI tool |
+| Package domain expertise (legal, medical, etc.) | Skill | Reusable across multiple agents |
+
+<Info>
+**Still unsure?** Start with a direct LLM agent. If you find yourself thinking "I wish it could run a command" or "it needs to iterate," upgrade to a managed loop. If you need full control, switch to code runtime. You can always change later — the agent type is just a manifest declaration.
+</Info>
 
 ---
 
@@ -555,12 +582,15 @@ Managed loop agents (those with a `loop` config) currently only support `"anthro
 
 ## Choosing the Right Pattern
 
-| Create a **Skill** when... | Create a **direct LLM** agent when... | Create a **managed loop** agent when... | Create a **code runtime** agent when... |
-|---------------------------|----------------------------------|------------------------------------|---------------------------------|
-| You have knowledge to share | A single LLM call is enough | The LLM needs to use tools and iterate | You need full programmatic control |
-| Content is reusable across contexts | No sandbox or file access needed | You'd otherwise write boilerplate orchestration | Your use case doesn't need an LLM |
-| No structured I/O needed | Input/output is straightforward | The task involves running commands or editing files | You need multi-model orchestration |
-| Instructions could help any agent | No retry logic needed | You want the LLM to figure out the steps | You have existing code to wrap |
+| | **Direct LLM** | **Managed Loop** | **Code Runtime** | **Skill** |
+|---|---|---|---|---|
+| **Best for** | Single-step LLM tasks | Multi-step LLM reasoning | Your own code logic | Sharing knowledge |
+| **LLM involved?** | Yes (one call) | Yes (iterative loop) | Optional (you decide) | No |
+| **Sandbox?** | No | Yes (E2B) | Yes (E2B) | No |
+| **Providers** | Any (OpenAI, Anthropic, Gemini) | Anthropic only (for now) | Any (you call the API) | N/A |
+| **Typical latency** | 2-5 seconds | 10-120 seconds | 1-60 seconds | Instant (install) |
+| **Example** | Sentiment analyzer, translator | Test fixer, code reviewer | Security scanner, PDF parser | React best practices |
+| **You write** | prompt.md + schema.json | prompt.md + orchagent.json (loop config) | main.py or main.js | SKILL.md |
 
 ---
 

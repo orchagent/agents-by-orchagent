@@ -6,7 +6,7 @@ description: "The orchagent.json configuration schema"
 Every agent needs an `orchagent.json` file that defines its configuration, dependencies, and runtime limits.
 
 <Note>
-**Skills use a different format.** Skills use a `SKILL.md` file with YAML frontmatter instead of `orchagent.json`. See [Agents & Skills](/building-agents/agent-types#skills) for the SKILL.md format.
+**Skills use a different format.** Skills use a `SKILL.md` file with YAML frontmatter instead of `orchagent.json`. See [Agent Types](/building-agents/agent-types#skill-type-type-skill) for the SKILL.md format.
 </Note>
 
 ## Basic Structure
@@ -14,7 +14,7 @@ Every agent needs an `orchagent.json` file that defines its configuration, depen
 ```json
 {
   "name": "my-agent",
-  "type": "agent",
+  "type": "prompt",
   "description": "What my agent does",
   "supported_providers": ["openai", "anthropic"],
   "default_endpoint": "analyze",
@@ -31,13 +31,13 @@ Every agent needs an `orchagent.json` file that defines its configuration, depen
 | Field | Type | Description |
 |-------|------|-------------|
 | `name` | string | Agent name (lowercase, hyphens allowed) |
-| `type` | string | `"agent"` (default) or `"skill"` |
+| `type` | string | `"prompt"` (default), `"tool"`, `"agent"`, or `"skill"`. Legacy values `code` and `agentic` are accepted. |
 | `description` | string | Short description of what the agent does |
-| `supported_providers` | array | LLM providers: `["openai", "anthropic", "gemini", "any"]`. Managed loop agents must use `["anthropic"]`. |
+| `supported_providers` | array | LLM providers: `["openai", "anthropic", "gemini", "any"]`. `agent` types (managed loop) must use `["anthropic"]`. |
 
 ## Behavior Fields
 
-These fields control **how** and **when** the agent runs. The platform infers the execution engine automatically from what you declare.
+These fields control **how** and **when** the agent runs. The `type` field sets the default execution engine, but these declarations can override it.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -47,7 +47,7 @@ These fields control **how** and **when** the agent runs. The platform infers th
 | `callable` | boolean | `false` | When `true`, other agents can call this agent as a dependency. |
 
 <Warning>
-`runtime` and `loop` are mutually exclusive — you cannot declare both. If neither is declared, the platform infers `direct_llm` (single LLM call with your prompt).
+`runtime` and `loop` are mutually exclusive — you cannot declare both. The `type` field sets the default execution engine: `prompt` → `direct_llm`, `tool` → `code_runtime`, `agent` → `managed_loop`. These declarations override the type default when present.
 </Warning>
 
 ### runtime
@@ -102,7 +102,7 @@ Control which LLM model runs your agent by default for each provider. The `defau
 ```json
 {
   "name": "my-agent",
-  "type": "agent",
+  "type": "prompt",
   "supported_providers": ["anthropic", "openai", "gemini"],
   "default_models": {
     "anthropic": "claude-sonnet-4-20250514",
@@ -142,7 +142,7 @@ Declare the environment variables your agent needs at runtime using `required_se
 ```json
 {
   "name": "discord-bot",
-  "type": "agent",
+  "type": "tool",
   "required_secrets": ["DISCORD_BOT_TOKEN", "DATABASE_URL"]
 }
 ```
@@ -173,9 +173,9 @@ Prompt and skill types are exempt.
 **Do not add `ORCHAGENT_SERVICE_KEY` to `required_secrets`.** The gateway auto-injects a temporary service key for agents with manifest dependencies. Adding your own overrides it and breaks orchestration.
 </Warning>
 
-## Code Runtime Fields
+## Tool Type Fields
 
-Additional fields for agents with `runtime.command`:
+Additional fields for `tool` types (code runtime — `runtime.command`):
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -207,7 +207,7 @@ Control what files are included in your code bundle:
 ```json
 {
   "name": "leak-finder",
-  "type": "agent",
+  "type": "tool",
   "description": "Finds leaked secrets in codebases",
   "supported_providers": ["gemini"],
   "runtime": {
@@ -224,9 +224,9 @@ Control what files are included in your code bundle:
 For E2B sandbox execution (recommended), only `runtime.command` (or `entrypoint`) is needed. The `source_url` and `run_command` fields are for local execution support.
 </Note>
 
-## Direct LLM Fields
+## Prompt Type Fields
 
-Additional fields for agents without `runtime` or `loop` (direct LLM agents):
+Additional fields for `prompt` types (direct LLM — no `runtime` or `loop`):
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -239,7 +239,7 @@ Additional fields for agents without `runtime` or `loop` (direct LLM agents):
 ```json
 {
   "name": "summarizer",
-  "type": "agent",
+  "type": "prompt",
   "description": "Summarizes text content",
   "supported_providers": ["openai", "anthropic"],
   "prompt_template": "Summarize the following text in {{style}} style:\n\n{{text}}",
@@ -261,9 +261,9 @@ Additional fields for agents without `runtime` or `loop` (direct LLM agents):
 }
 ```
 
-## Managed Loop Fields
+## Agent Type Fields
 
-Additional fields for agents with a `loop` config:
+Additional fields for `agent` types (managed loop):
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -316,7 +316,7 @@ Each custom tool has:
 ```
 
 <Note>
-Managed loop agents also get built-in tools automatically: `bash`, `read_file`, `write_file`, `list_files`, and `submit_result`. You don't need to define these. See [Agents & Skills](/building-agents/agent-types#built-in-tools) for details.
+Agent types also get built-in tools automatically: `bash`, `read_file`, `write_file`, `list_files`, and `submit_result`. You don't need to define these. See [Agent Types](/building-agents/agent-types#built-in-tools) for details.
 </Note>
 
 ## Skill Composition
@@ -326,7 +326,7 @@ Agents can include skills by default using the `default_skills` field. Skills ar
 ```json
 {
   "name": "code-reviewer",
-  "type": "agent",
+  "type": "prompt",
   "description": "Reviews code with best practices",
   "supported_providers": ["anthropic", "openai"],
   "default_skills": [
@@ -364,7 +364,7 @@ Agents that call other agents need a `manifest` section:
 ```json
 {
   "name": "security-review",
-  "type": "agent",
+  "type": "tool",
   "description": "Comprehensive security review",
   "runtime": {
     "command": "python main.py"
@@ -419,12 +419,12 @@ The platform validates manifests on publish:
 
 ## Complete Examples
 
-### Always-On Code Runtime Agent
+### Always-On Tool Type
 
 ```json
 {
   "name": "discord-bot",
-  "type": "agent",
+  "type": "tool",
   "description": "Discord moderation bot",
   "supported_providers": ["any"],
   "run_mode": "always_on",
@@ -438,7 +438,7 @@ The platform validates manifests on publish:
 }
 ```
 
-### On-Demand Managed Loop Agent
+### On-Demand Agent Type (Managed Loop)
 
 ```json
 {
@@ -463,12 +463,12 @@ The platform validates manifests on publish:
 }
 ```
 
-### On-Demand Direct LLM Agent
+### On-Demand Prompt Type (Direct LLM)
 
 ```json
 {
   "name": "summarizer",
-  "type": "agent",
+  "type": "prompt",
   "description": "Summarizes documents",
   "supported_providers": ["openai", "anthropic", "gemini"],
   "run_mode": "on_demand",
@@ -476,12 +476,12 @@ The platform validates manifests on publish:
 }
 ```
 
-### Orchestrator Agent
+### Orchestrator (Tool Type)
 
 ```json
 {
   "name": "security-review",
-  "type": "agent",
+  "type": "tool",
   "description": "Comprehensive security review combining multiple scanners",
   "supported_providers": ["any"],
   "runtime": {

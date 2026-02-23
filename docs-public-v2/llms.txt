@@ -19,18 +19,18 @@ orchagent is a deployment platform where developers build, deploy, and run AI ag
 
 ## Object Types
 
-orchagent has two object types: **agents** (deployable executors) and **skills** (passive knowledge).
+orchagent has four canonical types:
 
-**Agents** (`type: "agent"`) are the primary deployable artifact. The platform infers execution behavior from what you declare:
-- **Direct LLM**: prompt + schema only → single LLM call (execution engine: `direct_llm`)
-- **Managed Loop**: `loop` config + custom tools → LLM tool-use loop in a sandbox (execution engine: `managed_loop`)
-- **Code Runtime**: `runtime.command` → your code runs in a sandbox (execution engine: `code_runtime`)
+- **Prompt** (`type: "prompt"`) — Prompt template + schema → single LLM call (execution engine: `direct_llm`)
+- **Tool** (`type: "tool"`) — Python or JavaScript code runs in a sandbox (execution engine: `code_runtime`)
+- **Agent** (`type: "agent"`) — LLM tool-use loop with custom tools in a sandbox (execution engine: `managed_loop`, Anthropic only)
+- **Skill** (`type: "skill"`) — Passive knowledge (markdown) that enhances other types. Not runnable.
 
-Additional agent fields:
+Additional fields for executable types (prompt, tool, agent):
 - `run_mode`: `on_demand` (default) or `always_on` (for services)
 - `callable`: `true` to expose as a dependency for other agents
 
-**Skills** (`type: "skill"`) are passive knowledge (markdown) that enhances agents.
+Legacy type values `code` and `agentic` are accepted as aliases for `tool` and `agent` respectively.
 
 ## Docs
 
@@ -39,7 +39,7 @@ Additional agent fields:
 - [API Reference](https://docs.orchagent.io/using-agents/api-reference): Authentication, endpoints, errors
 - [CLI Commands](https://docs.orchagent.io/using-agents/cli-commands): orch login, run, publish
 - [Code Snippets](https://docs.orchagent.io/using-agents/code-snippets): curl, Python, JavaScript, TypeScript examples
-- [Agents & Skills](https://docs.orchagent.io/building-agents/agent-types): Agent model (type, run_mode, execution engine)
+- [Agent Types](https://docs.orchagent.io/building-agents/agent-types): The four types (prompt, tool, agent, skill) and execution engines
 - [Manifest Format](https://docs.orchagent.io/building-agents/manifest-format): orchagent.json schema
 - [Publishing](https://docs.orchagent.io/building-agents/publishing): Deploy your agent
 - [Orchestration](https://docs.orchagent.io/building-agents/orchestration): Agent-to-agent calls
@@ -104,11 +104,10 @@ curl -X POST https://api.orchagent.io/acme/summarizer/v1/analyze \
 
 | Term | Definition |
 |------|------------|
-| Agent | A deployed unit that performs a task (`type: "agent"`) |
-| Skill | Passive knowledge (markdown) that enhances agents (`type: "skill"`) |
-| Direct LLM | Agent with just prompt + schema; single LLM call (`execution_engine: direct_llm`) |
-| Managed Loop | Agent with `loop` config; LLM tool-use loop in sandbox (`execution_engine: managed_loop`) |
-| Code Runtime | Agent with `runtime.command`; your code runs in sandbox (`execution_engine: code_runtime`) |
+| Prompt | Prompt template + schema → single LLM call (`type: "prompt"`, engine: `direct_llm`) |
+| Tool | Your Python/JS code runs in a sandbox (`type: "tool"`, engine: `code_runtime`) |
+| Agent | LLM tool-use loop with custom tools in sandbox (`type: "agent"`, engine: `managed_loop`) |
+| Skill | Passive knowledge (markdown) that enhances other types (`type: "skill"`) |
 | run_mode | `on_demand` (default) or `always_on` (for persistent services) |
 | callable | When `true`, other agents can call this agent as a dependency |
 | Orchestrator | An agent that calls other agents |

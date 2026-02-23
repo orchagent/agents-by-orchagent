@@ -1,9 +1,9 @@
 ---
-title: "Agents & Skills"
-description: "Understanding the two object types on orchagent"
+title: "Agent Types"
+description: "Understanding the four agent types on orchagent"
 ---
 
-orchagent hosts two object types: **agents** that execute tasks, and **skills** that provide reusable knowledge.
+orchagent has four canonical types: **prompt**, **tool**, **agent**, and **skill**.
 
 <Tip>
 **Building with an AI coding assistant?** Install the agent-builder skill to give your AI the complete platform reference — sandbox contracts, boilerplate code, environment details, and debugging patterns:
@@ -15,28 +15,30 @@ orch skill install orchagent/agent-builder
 This works with Claude Code, Cursor, Amp, and other AI tools. Your AI will have everything it needs to build agents on orchagent without trial and error.
 </Tip>
 
-## Agents vs Skills: The Simple Rule
+## The Four Types
 
-| | Agents | Skills |
-|---|--------|--------|
-| **What they do** | **DO** things (execute tasks) | **TEACH** things (provide knowledge) |
-| **Nature** | Active executors | Passive knowledge |
-| **Commands** | `orch run`, `orch install` | `orch skill install` |
-| **Output** | Structured results | Context files for AI tools |
+| Type | What it is | Default execution engine |
+|------|-----------|--------------------------|
+| **`prompt`** | Prompt template + schema → single LLM call | `direct_llm` |
+| **`tool`** | Python or JavaScript code runs in a sandbox | `code_runtime` |
+| **`agent`** | LLM tool-use loop with custom tools | `managed_loop` (Anthropic only) |
+| **`skill`** | Passive knowledge (markdown) — not runnable | N/A |
+
+The first three are executable. Skills are passive knowledge that enhances other types.
 
 <Info>
-**Quick distinction:** Agents *do* things. Skills *inform* agents how to do things better.
+**Quick distinction:** `prompt` types answer questions. `tool` types run your code. `agent` types reason and iterate with tools. `skill` types teach other agents.
 </Info>
 
-## The Agent Model
+### Type determines execution engine
 
-Every agent on orchagent is `type: "agent"`. What varies is **how** the agent executes — and the platform figures that out automatically from your manifest declarations.
+The `type` field sets sensible defaults for how your agent executes. You can still override with explicit declarations:
 
-| You declare... | Platform infers | What happens |
-|----------------|-----------------|-------------|
-| Nothing (just prompt + schema) | `direct_llm` | Single LLM call with your prompt |
-| `loop` config | `managed_loop` | LLM tool-use loop in a sandbox |
-| `runtime.command` | `code_runtime` | Your code runs in a sandbox |
+| Override | Effect |
+|----------|--------|
+| Adding `runtime.command` to any type | Forces `code_runtime` |
+| Adding `loop` config to any type | Forces `managed_loop` |
+| Neither declared on a `prompt` type | Uses `direct_llm` (the default) |
 
 You also control **when** the agent runs:
 
@@ -53,10 +55,10 @@ And whether the agent is **callable** by other agents:
 | `true` | Other agents can call this agent as a dependency |
 
 <Tip>
-You don't choose an execution engine — the platform infers it from what you declare in your manifest. Just describe what your agent needs, and orchagent handles the rest.
+**Start with the type that matches your use case.** The type provides the right execution defaults automatically. You only need to override with `runtime` or `loop` declarations if you're doing something non-standard.
 </Tip>
 
-## Which Pattern Should I Use?
+## Which Type Should I Use?
 
 Ask yourself one question: **what does your agent need to do?**
 
@@ -64,56 +66,56 @@ Ask yourself one question: **what does your agent need to do?**
 What are you building?
 │
 ├─ "LLM answers a question / generates content"
-│   └─ Direct LLM (prompt + schema)
+│   └─ type: "prompt"
 │      e.g. sentiment analyzer, summarizer, translator, code explainer
 │
-├─ "LLM figures things out using tools"
-│   └─ Managed loop (loop config)
-│      e.g. test fixer, code reviewer, research agent, deploy assistant
-│
 ├─ "My code does the work (maybe calls an LLM inside)"
-│   └─ Code runtime (runtime.command)
+│   └─ type: "tool"
 │      e.g. security scanner, data pipeline, file converter, API integration
 │
+├─ "LLM figures things out using tools"
+│   └─ type: "agent"
+│      e.g. test fixer, code reviewer, research agent, deploy assistant
+│
 └─ "I want to share knowledge with agents or AI tools"
-    └─ Skill
+    └─ type: "skill"
        e.g. coding standards, security rules, brand guidelines
 ```
 
 <Tip>
-**Start with the simplest pattern that works.** Most use cases need only a prompt and schema. If you need tools, add a `loop` config. Only reach for `runtime.command` when you need full programmatic control or don't need an LLM.
+**Start with the simplest type that works.** Most use cases need only a `prompt` (prompt + schema). If you need the LLM to iterate with tools, use `agent`. Only reach for `tool` when you need full programmatic control or don't need an LLM.
 </Tip>
 
 ### Common Use Cases
 
 Not sure which pattern fits? Find your use case below:
 
-| I want to... | Use | Why |
+| I want to... | Type | Why |
 |---|---|---|
-| Analyze sentiment or classify text | Direct LLM | One LLM call, structured JSON output |
-| Summarize or translate documents | Direct LLM | One LLM call, no tools needed |
-| Generate marketing copy or emails | Direct LLM | Prompt engineering, structured output |
-| Extract data from text (names, dates, etc.) | Direct LLM | One LLM call with output schema |
-| Fix code until tests pass | Managed loop | LLM reads code, runs tests, iterates |
-| Review pull requests or audit code | Managed loop | LLM navigates files, checks patterns |
-| Research a topic and write a report | Managed loop | LLM searches, reads, synthesizes |
-| Scan repos for secrets or vulnerabilities | Code runtime | Deterministic logic, fast, no LLM needed |
-| Process uploaded files (PDF, CSV, images) | Code runtime | File I/O, custom parsing logic |
-| Call external APIs and transform data | Code runtime | Full HTTP control, auth, error handling |
-| Run a multi-model pipeline (different LLMs per step) | Code runtime | You control which LLM handles each step |
-| Build a Discord bot or webhook listener | Code runtime | Persistent service, event-driven |
-| Share coding standards with your team | Skill | Passive knowledge, works with any AI tool |
-| Package domain expertise (legal, medical, etc.) | Skill | Reusable across multiple agents |
+| Analyze sentiment or classify text | `prompt` | One LLM call, structured JSON output |
+| Summarize or translate documents | `prompt` | One LLM call, no tools needed |
+| Generate marketing copy or emails | `prompt` | Prompt engineering, structured output |
+| Extract data from text (names, dates, etc.) | `prompt` | One LLM call with output schema |
+| Fix code until tests pass | `agent` | LLM reads code, runs tests, iterates |
+| Review pull requests or audit code | `agent` | LLM navigates files, checks patterns |
+| Research a topic and write a report | `agent` | LLM searches, reads, synthesizes |
+| Scan repos for secrets or vulnerabilities | `tool` | Deterministic logic, fast, no LLM needed |
+| Process uploaded files (PDF, CSV, images) | `tool` | File I/O, custom parsing logic |
+| Call external APIs and transform data | `tool` | Full HTTP control, auth, error handling |
+| Run a multi-model pipeline (different LLMs per step) | `tool` | You control which LLM handles each step |
+| Build a Discord bot or webhook listener | `tool` | Persistent service, event-driven |
+| Share coding standards with your team | `skill` | Passive knowledge, works with any AI tool |
+| Package domain expertise (legal, medical, etc.) | `skill` | Reusable across multiple agents |
 
 <Info>
-**Still unsure?** Start with a direct LLM agent. If you find yourself thinking "I wish it could run a command" or "it needs to iterate," upgrade to a managed loop. If you need full control, switch to code runtime. You can always change later — the agent type is just a manifest declaration.
+**Still unsure?** Start with `type: "prompt"`. If you find yourself thinking "I wish it could run a command" or "it needs to iterate," switch to `type: "agent"`. If you need full control, use `type: "tool"`. You can always change later — just update the `type` field.
 </Info>
 
 ---
 
-## Direct LLM Agents (Prompt + Schema)
+## Prompt Type (`type: "prompt"`)
 
-The simplest pattern. You provide a prompt template with variable placeholders, and orchagent handles the LLM call.
+The simplest type. You provide a prompt template with variable placeholders, and orchagent handles the LLM call. Execution engine: `direct_llm`.
 
 **When to use:**
 - Single LLM call is sufficient
@@ -123,7 +125,7 @@ The simplest pattern. You provide a prompt template with variable placeholders, 
 **What you provide:**
 ```
 my-agent/
-+-- orchagent.json      # Manifest (type: "agent")
++-- orchagent.json      # Manifest (type: "prompt")
 +-- prompt.md           # Your prompt template
 +-- schema.json         # Input/output schemas (optional)
 \-- README.md           # Documentation (optional)
@@ -135,7 +137,7 @@ my-agent/
 ```json
 {
   "name": "sentiment-analyzer",
-  "type": "agent",
+  "type": "prompt",
   "description": "Analyze sentiment of text",
   "supported_providers": ["openai", "anthropic"]
 }
@@ -185,9 +187,9 @@ Variables are replaced with input values at runtime. All template variables must
 
 ---
 
-## Managed Loop Agents (LLM + Tools)
+## Agent Type (`type: "agent"`)
 
-Managed loop agents give the LLM a **tool-use loop inside a sandbox**. Think of it as "Claude Code in a container, configured by you." The platform provides built-in tools (bash, file read/write, list files) and you can define custom command-wrapper tools. The LLM iterates autonomously until it solves the task and submits a result.
+Agent types give the LLM a **tool-use loop inside a sandbox**. Think of it as "Claude Code in a container, configured by you." The platform provides built-in tools (bash, file read/write, list files) and you can define custom command-wrapper tools. The LLM iterates autonomously until it solves the task and submits a result. Execution engine: `managed_loop`.
 
 **When to use:**
 - The task requires running commands, reading/writing files, or iterating
@@ -298,16 +300,16 @@ Multi-provider support for managed loop is on the roadmap. In the meantime, if y
 
 ---
 
-## Code Runtime Agents (Your Code)
+## Tool Type (`type: "tool"`)
 
-Code runtime agents run your Python or JavaScript in **E2B sandboxes** — secure, isolated environments. Each call spins up a fresh sandbox, runs your script, and returns the result. You have full control over everything.
+Tool types run your Python or JavaScript in **E2B sandboxes** — secure, isolated environments. Each call spins up a fresh sandbox, runs your script, and returns the result. You have full control over everything. Execution engine: `code_runtime`.
 
 **When to use:**
 - You need full programmatic control over the execution flow
 - Your use case doesn't need an LLM at all (pure data processing, file conversion, etc.)
 - You need multi-model orchestration (calling different LLMs for different steps)
 - You have an existing codebase you want to wrap as an agent
-- Managed loop agents don't give you enough control
+- Agent types don't give you enough control
 
 **What you declare in the manifest:**
 
@@ -316,7 +318,7 @@ Code runtime agents run your Python or JavaScript in **E2B sandboxes** — secur
     ```json
     {
       "name": "leak-finder",
-      "type": "agent",
+      "type": "tool",
       "description": "Finds leaked secrets in codebases",
       "supported_providers": ["gemini"],
       "runtime": {
@@ -329,7 +331,7 @@ Code runtime agents run your Python or JavaScript in **E2B sandboxes** — secur
     ```json
     {
       "name": "leak-finder",
-      "type": "agent",
+      "type": "tool",
       "description": "Finds leaked secrets in codebases",
       "supported_providers": ["gemini"],
       "runtime": {
@@ -448,9 +450,9 @@ The CLI auto-detects entrypoints: `main.py`, `app.py`, `index.py`, `main.js`, `i
 {"entrypoint": "run.py"}
 ```
 
-### Skills in Code Runtime Agents
+### Skills in Tool Types
 
-Code runtime agents can access skills at runtime. When skills are passed via the `--skills` flag or `X-Orchagent-Skills` header, they are mounted as files in your sandbox:
+Tool types can access skills at runtime. When skills are passed via the `--skills` flag or `X-Orchagent-Skills` header, they are mounted as files in your sandbox:
 
 ```python
 import os
@@ -476,9 +478,9 @@ Skills are written to `/home/user/orchagent/skills/` with filenames like `org_na
 
 ---
 
-## Skills
+## Skill Type (`type: "skill"`)
 
-Skills are passive knowledge — markdown files containing instructions, rules, or expertise that enhance agents.
+Skills are passive knowledge — markdown files containing instructions, rules, or expertise that enhance agents. They are not runnable.
 
 **Use cases:**
 - Coding standards (React patterns, security rules)
@@ -575,14 +577,14 @@ Use `"any"` if your agent works with any provider:
 ```
 
 <Note>
-Managed loop agents (those with a `loop` config) currently only support `"anthropic"`. This will be expanded in the future.
+`agent` types (managed loop) currently only support `"anthropic"`. This will be expanded in the future.
 </Note>
 
 ---
 
-## Choosing the Right Pattern
+## Choosing the Right Type
 
-| | **Direct LLM** | **Managed Loop** | **Code Runtime** | **Skill** |
+| | **`prompt`** | **`agent`** | **`tool`** | **`skill`** |
 |---|---|---|---|---|
 | **Best for** | Single-step LLM tasks | Multi-step LLM reasoning | Your own code logic | Sharing knowledge |
 | **LLM involved?** | Yes (one call) | Yes (iterative loop) | Optional (you decide) | No |
@@ -597,15 +599,12 @@ Managed loop agents (those with a `loop` config) currently only support `"anthro
 ## Migration Note
 
 <Info>
-**February 11, 2026:** The agent model has been simplified. Legacy type values (`prompt`, `tool`, `code`, `agentic`) are still accepted by the API and CLI for backward compatibility, but canonical values (`agent`, `skill`) are required for all new documentation and recommended for new projects.
+**February 2026:** orchagent uses four canonical types: `prompt`, `tool`, `agent`, `skill`. Legacy type values `code` and `agentic` are still accepted by the API and CLI for backward compatibility:
 
-Legacy types map as follows:
-- `prompt` → `agent` (execution engine: `direct_llm`)
-- `tool` / `code` → `agent` (execution engine: `code_runtime`)
+- `code` → `tool` (execution engine: `code_runtime`)
 - `agentic` → `agent` (execution engine: `managed_loop`)
-- `skill` → `skill`
 
-The `execution_engine` field (`direct_llm`, `managed_loop`, `code_runtime`) is an internal implementation detail inferred at publish time from your manifest declarations. You do not need to set it manually.
+The `execution_engine` field (`direct_llm`, `managed_loop`, `code_runtime`) is inferred from your `type` at publish time. You do not need to set it manually — the type provides the right default.
 </Info>
 
 ## Next Steps

@@ -6,7 +6,7 @@ description: "Deploy your first agent in minutes"
 Build an agent, deploy it, and run it — all from your terminal.
 
 <Tip>
-orchagent hosts both **agents** (active executors) and **skills** (passive knowledge). The commands below work for both. See [Agents & Skills](/building-agents/agent-types) for the difference.
+orchagent has four types: **prompt**, **tool**, **agent**, and **skill**. The commands below work for all of them. See [Agent Types](/building-agents/agent-types) for the differences.
 </Tip>
 
 ## Prerequisites
@@ -55,14 +55,14 @@ cd my-agent
 ```
 
 This creates:
-- `orchagent.json` — agent manifest (type: `"agent"`)
+- `orchagent.json` — agent manifest (type: `"prompt"` by default)
 - `prompt.md` — your prompt template
 - `schema.json` — input/output schemas
 
 Edit `prompt.md` with your prompt and `schema.json` with your input/output definitions.
 
 <Tip>
-**Building a code runtime agent?** Use `--language javascript` to scaffold a JavaScript project with `main.js` and `package.json`, or use `--template discord-js` for a JavaScript Discord bot. See [CLI Commands](/using-agents/cli-commands#init) for all options.
+**Building a tool type?** Use `orch init my-tool --type tool` to scaffold a code runtime project. Add `--language javascript` for JavaScript with `main.js` and `package.json`, or use `--template discord-js` for a JavaScript Discord bot. See [CLI Commands](/using-agents/cli-commands#init) for all options.
 </Tip>
 
 <Tip>
@@ -76,7 +76,7 @@ Your AI assistant will know the exact sandbox contracts, boilerplate patterns, a
 </Tip>
 
 <Tip>
-By default, `orch init` creates a direct LLM agent (prompt + schema). Use `orch init my-agent --type agent` with `--run-mode` to customize behavior. See [CLI Commands](/using-agents/cli-commands#init) for all options.
+By default, `orch init` creates a `prompt` type (prompt + schema → single LLM call). Use `--type tool` for code runtime or `--type agent` for a managed LLM loop. See [CLI Commands](/using-agents/cli-commands#init) for all options.
 </Tip>
 
 ## Step 3: Test Locally
@@ -194,8 +194,8 @@ orchagent run acme/text-extractor --data @input.json
   <Card title="CLI Commands" icon="terminal" href="/using-agents/cli-commands">
     All CLI commands explained
   </Card>
-  <Card title="Build" icon="hammer" href="/building-agents/agent-types">
-    Create an agent or skill
+  <Card title="Agent Types" icon="hammer" href="/building-agents/agent-types">
+    The four types — prompt, tool, agent, skill
   </Card>
   <Card title="Code Examples" icon="brackets-curly" href="/using-agents/code-snippets">
     Python, JavaScript, curl examples

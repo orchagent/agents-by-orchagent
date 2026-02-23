@@ -41,7 +41,7 @@ cd leak-finder
 ```json
 {
   "name": "leak-finder",
-  "type": "agent",
+  "type": "tool",
   "description": "Scans a GitHub repo URL for hardcoded secrets and API keys",
   "supported_providers": ["anthropic", "openai"],
   "callable": true,
@@ -126,7 +126,7 @@ cd vuln-scanner
 ```json
 {
   "name": "vuln-scanner",
-  "type": "agent",
+  "type": "prompt",
   "description": "Analyzes code snippets for common security vulnerabilities",
   "supported_providers": ["anthropic", "openai"],
   "callable": true
@@ -154,7 +154,7 @@ cd ..
 ## Step 2: Create the Orchestrator
 
 ```bash
-orch init security-review --type agent
+orch init security-review --type tool
 cd security-review
 ```
 
@@ -162,7 +162,7 @@ cd security-review
 ```json
 {
   "name": "security-review",
-  "type": "agent",
+  "type": "tool",
   "description": "Comprehensive security review combining leak detection and vulnerability scanning",
   "supported_providers": ["anthropic", "openai"],
   "runtime": {

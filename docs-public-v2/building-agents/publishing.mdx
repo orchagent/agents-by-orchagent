@@ -129,10 +129,10 @@ orch init my-skill --type skill
 cd my-agent
 ```
 
-This creates a directory with the basic structure: `orchagent.json`, `prompt.md`, and `schema.json`. For code runtime agents with `--language javascript`, it creates `main.js` and `package.json` instead. The manifest uses `"type": "agent"` with canonical fields.
+This creates a directory with the basic structure: `orchagent.json`, `prompt.md`, and `schema.json`. For tool types with `--language javascript`, it creates `main.js` and `package.json` instead. The manifest uses the specified type (defaulting to `"prompt"`) with canonical fields.
 
 <Tip>
-The execution engine is inferred from your manifest at publish time. Add `runtime.command` for code execution, `loop` for a managed LLM loop, or leave both out for a direct LLM call. See [Manifest Format](/building-agents/manifest-format#behavior-fields) for details.
+The execution engine is determined by your `type` field: `prompt` → `direct_llm`, `tool` → `code_runtime`, `agent` → `managed_loop`. Explicit `runtime.command` or `loop` declarations override the type default. See [Manifest Format](/building-agents/manifest-format#behavior-fields) for details.
 </Tip>
 
 ### Step 2: Configure Your Manifest
@@ -142,7 +142,7 @@ Edit `orchagent.json` with your agent's configuration:
 ```json
 {
   "name": "my-agent",
-  "type": "agent",
+  "type": "prompt",
   "description": "What my agent does",
   "supported_providers": ["openai", "anthropic"],
   "required_secrets": ["ANTHROPIC_API_KEY"]

@@ -57,7 +57,7 @@ orch service deploy <org/agent[@version]> \
 | `--json` | Output as JSON | — |
 
 <Note>
-Only agents with a `runtime.command` (code runtime) or `loop` config (managed loop) and a published code bundle are eligible for service deployment. Direct LLM agents (prompt + schema only) cannot be deployed as services.
+Only `tool` and `agent` types (those with `runtime.command` or `loop` config) with a published code bundle are eligible for service deployment. `prompt` types (direct LLM) cannot be deployed as services.
 </Note>
 
 ### Example
@@ -390,7 +390,7 @@ If your entrypoint doesn't match any of these names, use the `--command` flag or
 ```json
 {
   "name": "my-agent",
-  "type": "agent",
+  "type": "tool",
   "runtime": {
     "command": "python src/start.py"
   }

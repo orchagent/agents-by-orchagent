@@ -27,32 +27,25 @@ orchagent is an **AI agent deployment platform**. Build agents in Python, JavaSc
 4. Results displayed, logged, and tracked
 ```
 
-## Agents vs Skills
+## The Four Types
 
-orchagent hosts two types of things:
+orchagent has four canonical types:
 
-| | Agents | Skills |
-|---|--------|--------|
-| **What they do** | **DO** things (execute tasks) | **TEACH** things (provide knowledge) |
-| **Nature** | Active executors | Passive knowledge |
-| **Output** | Structured results | Context for AI tools |
+| Type | What it does | Example |
+|------|-------------|---------|
+| **`prompt`** | Single LLM call with your prompt + schema | Sentiment analyzer, summarizer, translator |
+| **`tool`** | Your Python/JS code runs in a sandbox | Security scanner, PDF parser, Discord bot |
+| **`agent`** | LLM tool-use loop with custom tools | Test fixer, code reviewer, research agent |
+| **`skill`** | Passive knowledge (markdown) — not runnable | Coding standards, security rules |
 
 **Simple rule:**
-- Want AI to **DO** something? Use an **agent** (`orch run`)
-- Want AI to **KNOW** something? Use a **skill** (`orch skill install`)
+- Want a single LLM answer? Use `type: "prompt"` (`orch run`)
+- Want your code to execute? Use `type: "tool"` (`orch run`)
+- Want the LLM to iterate with tools? Use `type: "agent"` (`orch run`)
+- Want to share knowledge? Use `type: "skill"` (`orch skill install`)
 - Want to **DELEGATE** to sub-agents? Export agents (`orch install`)
 
-### Agent Behavior
-
-The platform infers how to run your agent from what you declare:
-
-| You Declare | What Happens | Best For |
-|-------------|-------------|----------|
-| Prompt + schema (nothing else) | Single LLM call | Extraction, summarization, classification |
-| `loop` config + custom tools | LLM tool-use loop in a sandbox | Multi-step workflows, code fixing, iteration |
-| `runtime.command` | Your code runs in a sandbox | Full control, non-LLM tasks, multi-model orchestration |
-
-Agents are:
+Executable types (prompt, tool, agent) are:
 
 - **On-demand or always-on** (`run_mode`) — each call is independent, or [deploy as a service](/using-agents/services)
 - **Specific** - one task, done well
@@ -100,8 +93,8 @@ API keys are separate from subscriptions (Claude Pro/Max, ChatGPT Plus). You'll 
   <Card title="CLI Commands" icon="terminal" href="/using-agents/cli-commands">
     orch login, run, publish
   </Card>
-  <Card title="Build" icon="hammer" href="/building-agents/agent-types">
-    Create an agent or skill — learn the model
+  <Card title="Agent Types" icon="hammer" href="/building-agents/agent-types">
+    The four types — prompt, tool, agent, skill
   </Card>
   <Card title="Scheduling" icon="clock" href="/using-agents/scheduling">
     Cron schedules and webhooks

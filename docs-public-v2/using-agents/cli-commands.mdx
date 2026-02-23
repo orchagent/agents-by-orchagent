@@ -17,20 +17,22 @@ The CLI also installs `orch` as a shorthand alias. All commands work with either
 
 ---
 
-## Understanding Agents vs Skills
+## Understanding the Four Types
 
-Before diving into commands, understand the two types of content on orchagent:
+Before diving into commands, understand the four types on orchagent:
 
-| | Agents | Skills |
-|---|--------|--------|
-| **What they are** | Active executors that DO things | Passive knowledge that TEACHES things |
-| **Purpose** | Execute tasks and return results | Provide context, rules, guidelines |
-| **Example** | `code-reviewer` analyzes your code | `react-best-practices` teaches React patterns |
-| **How to use** | `run` or `install` | `skill install` |
+| Type | What it does | How to use |
+|------|-------------|------------|
+| **`prompt`** | Single LLM call (prompt + schema) | `orch run` |
+| **`tool`** | Your code runs in a sandbox | `orch run` |
+| **`agent`** | LLM tool-use loop with custom tools | `orch run` |
+| **`skill`** | Passive knowledge (markdown) | `orch skill install` |
 
 **Simple rule:**
-- Want AI to **DO** something? Use an **agent**
-- Want AI to **KNOW** something? Use a **skill**
+- Want a single LLM answer? Use `type: "prompt"`
+- Want your code to execute? Use `type: "tool"`
+- Want the LLM to iterate with tools? Use `type: "agent"`
+- Want to share knowledge? Use `type: "skill"`
 
 ---
 
@@ -704,17 +706,17 @@ orch init
 
 | Flag | Description |
 |------|-------------|
-| `--type <type>` | `agent` (default) or `skill`. Legacy values `prompt`, `tool`, `agentic` are accepted for compatibility. |
+| `--type <type>` | `prompt` (default), `tool`, `agent`, or `skill`. Legacy values `code` and `agentic` are accepted for compatibility. |
 | `--run-mode <mode>` | `on_demand` (default) or `always_on` |
 | `--language <lang>` | `python` (default) or `javascript`. Scaffolds `main.js` + `package.json` instead of `main.py` + `requirements.txt`. |
 | `--template <name>` | Start from a template: `support-agent`, `discord`, `discord-js`, `github-weekly-summary` |
 
 When a name is provided, `init` creates a subdirectory with that name and writes all files there. Without a name, files are written to the current directory.
 
-The generated `orchagent.json` always uses `"type": "agent"` with the canonical `run_mode` field.
+The generated `orchagent.json` uses the specified type (defaulting to `"prompt"`) with the canonical `run_mode` field.
 
 <Note>
-`--language javascript` is supported for tool/code-runtime agents. Managed loop agents (agent-type with `loop` config) currently require Python — the managed loop runner is Python-only.
+`--language javascript` is supported for `tool` types. `agent` types (managed loop) currently require Python — the managed loop runner is Python-only.
 </Note>
 
 ### scaffold orchestration
@@ -774,7 +776,7 @@ orch publish --skills yourorg/style@v1,yourorg/rules@v1
 orch publish --local-download
 ```
 
-The publish command canonicalizes the manifest type, infers the `execution_engine` from your `runtime`/`loop` declarations, and validates all fields. The dry-run output shows: Type, Run mode, Execution engine, Callable, Providers, and Visibility.
+The publish command validates the `type` field, infers the `execution_engine` from the type (with optional `runtime`/`loop` overrides), and validates all fields. The dry-run output shows: Type, Run mode, Execution engine, Callable, Providers, and Visibility.
 
 The `--all` flag scans immediate subdirectories for `orchagent.json` or `SKILL.md` files, builds a dependency graph from `manifest.dependencies` and `custom_tools` references, and publishes in topological order (leaf-first). If any agent fails to publish, the batch stops to prevent publishing agents whose dependencies are missing.
 

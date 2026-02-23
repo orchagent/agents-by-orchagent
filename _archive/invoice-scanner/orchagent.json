@@ -1,0 +1,8 @@
+{
+  "name": "invoice-scanner",
+  "version": "v1",
+  "type": "tool",
+  "runtime": {"command": "python main.py"},
+  "required_secrets": ["GEMINI_API_KEY"],
+  "tags": ["stocksure", "invoice", "scanning"]
+}

@@ -24,7 +24,24 @@ orch publish
 
 ## Publishing Skills
 
-Skills use a simpler format than agents. Create a `SKILL.md` file:
+Skills use a different workflow from agents. Instead of `orchagent.json`, skills are defined as a single `SKILL.md` file with YAML frontmatter.
+
+### Step 1: Create the Skill
+
+Use `orch skill create` to scaffold a new skill:
+
+```bash
+# Create a skill in the current directory
+orch skill create my-coding-standards
+
+# Or create manually — just make a SKILL.md file
+```
+
+This creates a `SKILL.md` file with the template structure.
+
+### Step 2: Write Your SKILL.md
+
+The `SKILL.md` file has two parts: YAML frontmatter (metadata) and markdown body (the skill content).
 
 ```markdown
 ---
@@ -35,21 +52,55 @@ metadata:
   author: yourname
 ---
 
-## Rules
+## React Best Practices
 
+### Component Design
 - Use functional components over class components
 - Memoize expensive computations with useMemo
-- ...
+- Use useCallback for event handlers passed to child components
+
+### Performance
+- Avoid creating objects/arrays in render
+- Use React.memo for components that render often with the same props
+- Lazy-load routes and heavy components with React.lazy
 ```
 
-Then publish:
+**Frontmatter fields:**
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Skill name (lowercase, hyphens allowed) |
+| `description` | Yes | What this skill teaches — also used as the trigger description for AI tools |
+| `license` | No | License identifier (e.g., `MIT`, `Apache-2.0`) |
+| `metadata` | No | Arbitrary key-value pairs (author, version notes, etc.) |
+
+The markdown body is the actual skill content — instructions, rules, examples, and guidelines that get injected into agent prompts at runtime.
+
+### Step 3: Publish
 
 ```bash
-cd my-skill
 orch publish
 ```
 
-The CLI auto-detects `SKILL.md` and publishes as a skill. See [Agent Types](/building-agents/agent-types#skills) for the full SKILL.md format.
+The CLI auto-detects `SKILL.md` (no `orchagent.json` needed) and publishes as a skill.
+
+### Skills vs Agents: Key Differences
+
+| | Skills | Agents |
+|---|--------|--------|
+| **Config file** | `SKILL.md` (YAML frontmatter + markdown) | `orchagent.json` + `prompt.md` + `schema.json` |
+| **What it is** | Passive knowledge injected into prompts | Active executor that runs code or calls LLMs |
+| **Create command** | `orch skill create <name>` | `orch init <name>` |
+| **Install command** | `orch skill install org/name` | `orch install org/name` |
+| **Runnable** | No — skills teach, agents do | Yes — `orch run org/name` |
+
+<Warning>
+**Do not mix formats.** If your directory has an `orchagent.json` with `type: "skill"`, the CLI will reject it. Skills must use the `SKILL.md` format. Use `orch skill create` to set up the correct structure.
+</Warning>
+
+<Tip>
+Skills are composable — agents can declare `default_skills` in their manifest to automatically include skill content in their prompts. See [Manifest Format — Skill Composition](/building-agents/manifest-format#skill-composition) for details.
+</Tip>
 
 ---
 

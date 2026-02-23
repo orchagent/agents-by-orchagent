@@ -86,6 +86,7 @@ Before diving into commands, understand the two types of content on orchagent:
 | `orch docs [topic]` | Open documentation in browser | - |
 | `orch logout` | Log out and revoke API key | - |
 | `orch billing` | Open billing portal | - |
+| `orch completion <shell>` | Generate shell completion script (bash, zsh, fish) | - |
 
 ### When to Use What
 
@@ -175,6 +176,15 @@ orch run joe/summarizer --data '{"text":"..."}' --provider openai --model gpt-4o
 | `--estimate` | Show cost estimate before running and ask for confirmation |
 | `--no-stream` | Disable real-time streaming for sandbox runs |
 | `--skills <refs>` | Add skills (comma-separated) |
+| `--skills-only <refs>` | Use ONLY these skills (replaces agent's default_skills) |
+| `--no-skills` | Ignore all default skills |
+| `--key <key>` | LLM API key (overrides env vars) |
+| `--tenant <id>` | Tenant identifier for multi-tenant callers (cloud only) |
+| `--mount <field=dir>` | Mount a local directory as a JSON field map (repeatable) |
+| `--path <dir>` | Shorthand for `--data '{"path": "<dir>"}'` (local only) |
+| `--here` | Scan current directory as input (local only) |
+| `--metadata <json>` | JSON metadata to send with file uploads (cloud only) |
+| `--input <json>` | Alias for `--data` |
 
 **What happens (cloud, default):**
 
@@ -488,7 +498,27 @@ orch skill install yourorg/react-best-practices@v2
 
 # Specify format(s)
 orch skill install yourorg/react-best-practices --format claude-code,cursor
+
+# Install to all supported AI tool directories
+orch skill install yourorg/react-best-practices --all-formats
+
+# Preview what would be installed
+orch skill install yourorg/react-best-practices --dry-run
+
+# JSON output for scripting
+orch skill install yourorg/react-best-practices --json
 ```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--global` | Install to home directory (default: current directory) |
+| `--scope <scope>` | Install scope: `user` or `project` |
+| `--format <formats>` | Comma-separated format IDs (e.g., `claude-code,cursor`) |
+| `--all-formats` | Install to all supported AI tool directories |
+| `--dry-run` | Show what would be installed without making changes |
+| `--json` | Output result as JSON |
 
 **Install locations (current directory):**
 ```
@@ -1937,6 +1967,43 @@ orch docs quickstart
 | `api` | API reference |
 | `quickstart` | Quickstart guide |
 
+### completion
+
+Generate shell completion scripts for tab-completion of commands, subcommands, and flags.
+
+```bash
+# Generate completions for your shell
+orch completion bash
+orch completion zsh
+orch completion fish
+```
+
+**Setup:**
+
+```bash
+# Bash — add to ~/.bashrc
+eval "$(orch completion bash)"
+
+# Zsh — add to ~/.zshrc
+eval "$(orch completion zsh)"
+
+# Fish — add to config.fish
+orch completion fish | source
+```
+
+**Persistent install (alternative):**
+
+```bash
+# Bash
+orch completion bash > ~/.local/share/bash-completion/completions/orch
+
+# Zsh
+orch completion zsh > "${fpath[1]}/_orch"
+
+# Fish
+orch completion fish > ~/.config/fish/completions/orch.fish
+```
+
 ---
 
 ## Scheduling
@@ -1997,6 +2064,9 @@ orch schedule create acme/github-processor --webhook
 | `--timezone <tz>` | Timezone for cron (default: `UTC`) |
 | `--input <json>` | Input data as JSON string |
 | `--provider <provider>` | LLM provider: `anthropic`, `openai`, `gemini` |
+| `--pin-version` | Pin to current agent version (disable auto-update on publish) |
+| `--alert-webhook <url>` | Webhook URL to POST on failure (HTTPS required) |
+| `--alert-on-failure-count <n>` | Consecutive failures before alerting (default: 3) |
 | `--workspace <slug>` | Workspace slug (default: current workspace) |
 
 <Note>
@@ -2033,6 +2103,10 @@ orch schedule update <schedule-id> \
 | `--provider <provider>` | New LLM provider |
 | `--enable` | Enable the schedule |
 | `--disable` | Disable the schedule |
+| `--pin-version` | Pin to current agent version (disable auto-update) |
+| `--alert-webhook <url>` | Webhook URL to POST on failure (HTTPS required) |
+| `--alert-on-failure-count <n>` | Consecutive failures before alerting |
+| `--clear-alert-webhook` | Remove the alert webhook URL |
 | `--workspace <slug>` | Workspace slug (default: current workspace) |
 
 ### schedule delete
@@ -2040,11 +2114,16 @@ orch schedule update <schedule-id> \
 Delete a schedule permanently.
 
 ```bash
+# Delete a schedule (prompts for confirmation)
 orch schedule delete <schedule-id>
+
+# Skip confirmation prompt
+orch schedule delete <schedule-id> --yes
 ```
 
 | Flag | Description |
 |------|-------------|
+| `-y, --yes` | Skip confirmation prompt |
 | `--workspace <slug>` | Workspace slug (default: current workspace) |
 
 ### schedule trigger

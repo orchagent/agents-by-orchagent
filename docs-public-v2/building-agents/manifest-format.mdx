@@ -90,9 +90,50 @@ Declares that the agent uses a managed LLM tool-use loop:
 | `timeout_seconds` | number | `60` | Request timeout |
 | `tags` | array | `[]` | Searchable tags |
 | `is_public` | boolean | `true` | Public (free) or private (Pro plan required) |
+| `default_models` | object | `{}` | Per-provider model defaults. See [Default Models](#default-models) below. |
 | `default_skills` | array | `[]` | Skills to inject into agent prompts (e.g., `["yourorg/writing-style"]`) |
 | `skills_locked` | boolean | `false` | When true, callers cannot override default_skills via flags (immutable after publish) |
 | `required_secrets` | array | `[]` | Env var names your agent needs at runtime. See [Workspace Secrets](#workspace-secrets) below. **Required for `tool` and `agent` types.** |
+
+## Default Models
+
+Control which LLM model runs your agent by default for each provider. The `default_models` field is an object mapping provider names to model IDs:
+
+```json
+{
+  "name": "my-agent",
+  "type": "agent",
+  "supported_providers": ["anthropic", "openai", "gemini"],
+  "default_models": {
+    "anthropic": "claude-sonnet-4-20250514",
+    "openai": "gpt-4o",
+    "gemini": "gemini-2.5-pro"
+  }
+}
+```
+
+### Model Resolution Order
+
+When your agent runs, the model is resolved in this order:
+
+1. **Caller override** — `orch run --model <model>` (highest priority)
+2. **Agent default** — `default_models[provider]` from your manifest
+3. **Platform default** — built-in defaults per provider
+
+| Provider | Platform Default |
+|----------|-----------------|
+| `anthropic` | `claude-opus-4-5-20251101` |
+| `openai` | `gpt-5.2` |
+| `gemini` | `gemini-2.5-pro` |
+| `ollama` | `llama3.2` |
+
+<Warning>
+**Use `default_models` (plural object), not `model` (singular string).** A common mistake is writing `"model": "claude-sonnet-4-20250514"` — this field is ignored. The correct format is `"default_models": { "anthropic": "claude-sonnet-4-20250514" }`.
+</Warning>
+
+<Tip>
+Set `default_models` to control costs. For example, use a smaller model like `claude-haiku-4-5-20251001` for simple tasks, and let callers override with `--model` when they need a more capable model.
+</Tip>
 
 ## Workspace Secrets
 

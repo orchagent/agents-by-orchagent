@@ -664,6 +664,36 @@ When contacting support, include the `request_id` — it helps us locate your ex
 
 ---
 
+## FAQ
+
+### What's the difference between `pull`, `install`, and `fork`?
+
+These three commands do very different things:
+
+| Command | What it does | What it writes to disk |
+|---------|-------------|----------------------|
+| `orch install` | Wires an agent into your IDE as a sub-agent | **Only IDE config files** (e.g. `.claude/agents/my-agent.md`, `.cursor/rules/my-agent.mdc`) |
+| `orch pull` | Downloads the agent's full source project | **Source files**: `orchagent.json`, `prompt.md`, `schema.json`, code bundle |
+| `orch fork` | Copies the agent into your workspace on the server | **Nothing locally** — creates a server-side copy you own |
+
+**Key point:** `orch install` does **not** put the agent's source code on your machine. It generates a config file that tells your AI tool (Claude Code, Cursor, etc.) how to delegate to that agent. The agent's prompt, manifest, schemas, and code are not written as separate files.
+
+### When should I use each one?
+
+- **`orch install`** — You want Claude Code or Cursor to be able to call this agent as a sub-agent. You don't need the source.
+- **`orch pull`** — You want the source files so you can edit, customize, and republish your own version.
+- **`orch fork`** — You want your own server-side copy of a public agent in your workspace, which you can then customize via `orch pull`, edit, and republish.
+
+### Do I need to fork before pulling?
+
+No. If the agent is public and has local download enabled, you can `orch pull` it directly. Forking is only needed if you want a private server-side copy in your workspace that you can deploy independently.
+
+### Can I `orch install` any public agent?
+
+Yes. `orch install` fetches the agent's metadata and converts it to an IDE config file. It works for any public agent regardless of the `allow_local_download` setting, because it only needs metadata — not the full source.
+
+---
+
 ## Still Stuck?
 
 - Run `orch doctor --verbose` for a full diagnostic

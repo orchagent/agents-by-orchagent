@@ -334,7 +334,11 @@ The pre-transfer check shows: version count, grants to revoke, keys to delete, s
 
 ### install
 
-Export an agent as a sub-agent for AI coding tools (Claude Code, Cursor, etc.). This writes configuration files that your AI tool reads.
+Export an agent as a sub-agent for AI coding tools (Claude Code, Cursor, etc.). This writes configuration files that your AI tool reads — **not** the agent's source code.
+
+<Warning>
+**`install` ≠ `pull`.** `orch install` writes a single IDE config file (e.g. `.claude/agents/my-agent.md`). It does **not** write `orchagent.json`, `prompt.md`, `schema.json`, or code bundles. If you want the agent's source files, use `orch pull` instead. See the [FAQ](/troubleshooting#whats-the-difference-between-pull-install-and-fork) for a full comparison.
+</Warning>
 
 ```bash
 # Install to home directory (available in all projects)
@@ -782,7 +786,11 @@ The `--all` flag scans immediate subdirectories for `orchagent.json` or `SKILL.m
 
 ### pull
 
-Reconstruct a local agent project from a published version. This is the reverse of `orch publish` — it downloads agent metadata and reconstructs `orchagent.json`, `prompt.md`, `schema.json`, and code bundle files into a local directory.
+Reconstruct a local agent project from a published version. This is the reverse of `orch publish` — it downloads the full agent source and reconstructs `orchagent.json`, `prompt.md`, `schema.json`, and code bundle files into a local directory.
+
+<Tip>
+**`pull` gives you source files. `install` gives you IDE config.** Use `pull` when you want to edit and republish an agent. Use `install` when you just want your AI tool to delegate to it. See the [FAQ](/troubleshooting#whats-the-difference-between-pull-install-and-fork).
+</Tip>
 
 ```bash
 # Pull an agent into a local directory

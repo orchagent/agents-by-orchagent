@@ -3,19 +3,23 @@
   "type": "agent",
   "description": "Comprehensive security audit. Scans for secrets, vulnerable dependencies, and dangerous code patterns, then reads your code to trace data flows, assess exploitability, and suggest fixes.",
   "supported_providers": ["anthropic", "openai", "gemini"],
-  "max_turns": 50,
+  "max_turns": 15,
   "timeout_seconds": 600,
   "manifest": {
+    "manifest_version": 1,
+    "max_hops": 2,
+    "per_call_downstream_cap": 1,
+    "timeout_ms": 600000,
     "dependencies": [
-      {"id": "orchagent/leak-finder", "version": "v1"},
-      {"id": "orchagent/dep-scanner", "version": "v1"}
+      {"id": "orchagent-public/leak-finder", "version": "v1"},
+      {"id": "orchagent-public/dep-scanner", "version": "v1"}
     ]
   },
   "custom_tools": [
     {
       "name": "scan_secrets",
       "description": "Scan for exposed secrets, API keys, tokens, and credentials using regex patterns for 23+ secret types. Returns findings with file paths, line numbers, severity, and recommendations.",
-      "command": "python3 /home/user/helpers/orch_call.py orchagent/leak-finder@v1",
+      "command": "python3 /home/user/helpers/orch_call.py orchagent-public/leak-finder@v1",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -34,7 +38,7 @@
     {
       "name": "scan_dependencies",
       "description": "Audit package dependencies for known CVEs. Auto-detects npm, pip, cargo, maven, bundler, composer. Returns vulnerabilities with CVE IDs, severity, and fix versions.",
-      "command": "python3 /home/user/helpers/orch_call.py orchagent/dep-scanner@v1",
+      "command": "python3 /home/user/helpers/orch_call.py orchagent-public/dep-scanner@v1",
       "input_schema": {
         "type": "object",
         "properties": {

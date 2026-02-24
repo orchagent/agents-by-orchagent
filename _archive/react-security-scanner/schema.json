@@ -1,0 +1,36 @@
+{
+  "input": {
+    "type": "object",
+    "properties": {
+      "repo_url": {
+        "type": "string",
+        "description": "URL of the git repository to scan (use this OR path)"
+      },
+      "path": {
+        "type": "string",
+        "description": "Local directory path to scan (use this OR repo_url)"
+      },
+      "scan_mode": {
+        "type": "string",
+        "enum": [
+          "full",
+          "deps-only",
+          "patterns-only"
+        ],
+        "default": "full",
+        "description": "What to scan: full (everything), deps-only (CVEs), or patterns-only (code patterns)"
+      },
+      "framework": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "nextjs",
+          "react",
+          "remix"
+        ],
+        "default": "auto",
+        "description": "Framework to target (auto-detected if not specified)"
+      }
+    }
+  }
+}

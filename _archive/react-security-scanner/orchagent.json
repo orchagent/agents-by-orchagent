@@ -1,6 +1,6 @@
 {
   "name": "react-security-scanner",
-  "type": "code",
+  "type": "tool",
   "is_public": true,
   "description": "Inspired by u/abd3ll4tif (https://www.reddit.com/r/reactjs/comments/1pfvsvh/). Scans React and Next.js projects for security vulnerabilities — CVEs in dependencies, insecure React Server Component endpoints, exposed server actions, environment variable leaks, and dangerous patterns like dangerouslySetInnerHTML with user input. Built from a real post-mortem of a breach affecting 10+ apps via React Server Components RCE.",
   "supported_providers": ["any"],
@@ -12,7 +12,7 @@
     "manifest_version": 1,
     "dependencies": [
       {
-        "id": "orchagent/dep-scanner",
+        "id": "orchagent-public/dep-scanner",
         "version": "v1"
       }
     ],

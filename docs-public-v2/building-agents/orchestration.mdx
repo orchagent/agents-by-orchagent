@@ -408,11 +408,96 @@ A→B→C→A detected.
 
 **Fix:** Restructure your agents to avoid circular dependencies.
 
+### STRICT_MODE_BASH_DISABLED
+
+Your orchestrator tried to use `bash` but is running in strict mode.
+
+**Fix:** Use your custom tools (dependency agents) instead. If you need bash, set `orchestration_mode: "flexible"` in your manifest and republish.
+
+### STRICT_MODE_DEPENDENCY_REQUIRED
+
+Your orchestrator tried to submit results without calling any dependency.
+
+**Fix:** Call at least one custom tool before submitting. In strict mode, the agent must delegate to its declared dependencies.
+
 ### TIMEOUT
 
 Request exceeded deadline.
 
 **Fix:** Increase `timeout_ms` or optimize your agent's logic.
+
+## Strict vs Flexible Mode
+
+Managed-loop orchestrators with dependencies run in one of two orchestration modes: **strict** or **flexible**. This controls whether the agent must delegate to its declared dependencies or can solve tasks directly with built-in tools.
+
+### Strict Mode (Default)
+
+New publishes with dependencies default to strict mode. In strict mode:
+
+- **`bash` is not available** — removed from the tool list entirely
+- **Dependency calls are required** — the agent must call at least one custom tool (dependency) before submitting results
+- Built-in file tools (`read_file`, `write_file`, `list_files`) remain available
+
+This ensures the declared dependency graph matches runtime behavior — if you declare dependencies, the platform enforces that they're actually used.
+
+### Flexible Mode
+
+Opt in to flexible mode when your orchestrator needs the freedom to solve some tasks directly:
+
+```json
+{
+  "manifest": {
+    "orchestration_mode": "flexible",
+    "dependencies": [{ "id": "yourorg/scanner", "version": "v1" }]
+  }
+}
+```
+
+In flexible mode, all built-in tools (including `bash`) remain available. The agent can choose to use dependencies or solve tasks directly. Dependency allowlist enforcement still applies — the agent can only call agents listed in `dependencies`.
+
+### When to Use Each
+
+| Use strict when... | Use flexible when... |
+|---|---|
+| Your agent exists to coordinate other agents | Your agent sometimes needs bash for lightweight tasks |
+| You want predictable dependency-path execution | Dependencies are optional enhancements, not core workflow |
+| You need the runtime DAG to match declared dependencies | You're prototyping and want maximum freedom |
+
+### Chain Inheritance
+
+In multi-agent chains, strict mode propagates **one-way downward**:
+
+```
+strict parent → strict child   (always — child cannot downgrade)
+flexible parent → child's own mode applies
+```
+
+If a strict orchestrator calls a child that is configured as flexible, that child **runs as strict** for that execution. A child can never downgrade to flexible when called from a strict parent.
+
+This means a top-level strict orchestrator guarantees dependency-path execution through the entire chain.
+
+### Error Codes
+
+If your agent violates strict mode rules, you'll see these errors in the agent's output:
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `STRICT_MODE_BASH_DISABLED` | Agent attempted to use `bash` in strict mode | Use custom tools (dependencies) instead, or set `orchestration_mode: "flexible"` |
+| `STRICT_MODE_DEPENDENCY_REQUIRED` | Agent tried to submit results without calling any dependency | Call at least one custom tool before submitting |
+
+### Checking Your Mode
+
+When you publish, the CLI echoes the effective orchestration mode:
+
+```bash
+$ orch publish
+Published yourorg/security-review@v3
+  orchestration_mode: strict (defaulted — set "flexible" to opt out)
+```
+
+If strict was applied by default and you didn't intend it, republish with `orchestration_mode: "flexible"` in your manifest.
+
+---
 
 ## Best Practices
 

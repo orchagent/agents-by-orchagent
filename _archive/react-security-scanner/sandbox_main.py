@@ -47,14 +47,14 @@ async def _call_dep_scanner(
     repo_url: str | None = None,
     path: str | None = None,
 ) -> dict[str, Any] | None:
-    """Call orchagent/dep-scanner for CVE scanning."""
+    """Call orchagent-public/dep-scanner for CVE scanning."""
     try:
         input_data: dict[str, Any] = {}
         if repo_url:
             input_data["repo_url"] = repo_url
         if path:
             input_data["path"] = path
-        return await client.call("orchagent/dep-scanner@v1", input_data)
+        return await client.call("orchagent-public/dep-scanner@v1", input_data)
     except Exception as e:
         logger.error(f"dep-scanner call failed: {e}")
         return None

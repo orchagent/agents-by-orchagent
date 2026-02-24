@@ -141,6 +141,7 @@ Create a directory with three files:
       { "id": "yourorg/leak-finder", "version": "v1" },
       { "id": "yourorg/dep-scanner", "version": "v1" }
     ],
+    "orchestration_mode": "strict",
     "max_hops": 2,
     "timeout_ms": 300000,
     "per_call_downstream_cap": 100
@@ -180,10 +181,15 @@ Create a directory with three files:
 |-------|---------|
 | `loop.max_turns` | Maximum LLM iterations before forcing a result (25 is generous for most tasks) |
 | `manifest.dependencies` | Agents this orchestrator is allowed to call — anything not listed is blocked |
+| `manifest.orchestration_mode` | `"strict"` (default) or `"flexible"`. Strict removes `bash` and requires dependency calls. See [Strict vs Flexible Mode](/building-agents/orchestration#strict-vs-flexible-mode). |
 | `manifest.max_hops` | Maximum call chain depth (2 = this agent can call agents that don't call other agents) |
 | `manifest.timeout_ms` | Total timeout for the entire execution including all dependency calls |
 | `manifest.per_call_downstream_cap` | Budget passed to each dependency call (limits child agent spending, not this agent's own calls) |
 | `custom_tools` | Tool definitions presented to the LLM — each `command` calls a dependency via the built-in `orch_call.py` helper |
+
+<Note>
+**Strict mode is the default.** When you publish an orchestrator with dependencies, `orchestration_mode` defaults to `"strict"` — bash is disabled and the agent must use its custom tools. If your orchestrator needs bash access, explicitly set `"orchestration_mode": "flexible"` in your manifest.
+</Note>
 
 <Warning>
 The `command` field must use the exact format: `python3 /home/user/helpers/orch_call.py org/agent@version`. This helper script is pre-installed in every managed loop sandbox. It reads the tool input, calls the dependency through the gateway, and returns the result.

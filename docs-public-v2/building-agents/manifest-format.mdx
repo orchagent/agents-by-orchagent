@@ -392,7 +392,7 @@ Agents that call other agents need a `manifest` section:
 | `max_hops` | Yes | Max call depth (>= 1 if you have deps) |
 | `timeout_ms` | Yes | Total timeout for your agent |
 | `per_call_downstream_cap` | Yes | Budget passed to each dependency call (limits child agent spending, not this agent's own calls) |
-| `orchestration_mode` | No | `"strict"` or `"flexible"`. Controls whether the agent must use dependency-path execution. See [Orchestration Mode](#orchestration-mode) below. Defaults to `"strict"` for new publishes with dependencies. |
+| `orchestration_mode` | No | `"strict"` or `"flexible"`. Controls whether the agent must use dependency-path execution. See [Orchestration Mode](#orchestration-mode) below. Defaults to `"strict"` when dependencies are declared. |
 | `min_required_hops` | No | Minimum hops caller must allow |
 | `region` | No | Deployment region |
 | `visibility` | No | `public` or `private` |
@@ -423,16 +423,16 @@ Controls whether a managed-loop orchestrator must delegate to its declared depen
 
 | Value | Behavior |
 |-------|----------|
-| `"strict"` | `bash` is removed from available tools. The agent must call at least one dependency before submitting results. This is the **default for new publishes** with dependencies. |
+| `"strict"` | `bash` is removed from available tools. The agent must call at least one dependency before submitting results. This is the **default** when dependencies are declared. |
 | `"flexible"` | All built-in tools (including `bash`) remain available. The agent can solve tasks directly or via dependencies. |
 
 **Rules:**
 - Only applies to managed-loop agents (`type: "agent"` or `loop` declared) with `dependencies`.
 - If `dependencies` is empty or absent, the field is ignored.
-- New publishes with dependencies default to `"strict"` unless you explicitly set `"flexible"`.
+- Orchestrators with dependencies default to `"strict"` unless you explicitly set `"flexible"`.
 - In multi-agent chains, strict mode is **inherited downward** — a strict parent forces all downstream agents to run strict, regardless of their own setting.
 
-To opt out of strict mode:
+To use flexible mode instead:
 
 ```json
 {

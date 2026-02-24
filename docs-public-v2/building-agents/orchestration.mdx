@@ -432,7 +432,7 @@ Managed-loop orchestrators with dependencies run in one of two orchestration mod
 
 ### Strict Mode (Default)
 
-New publishes with dependencies default to strict mode. In strict mode:
+Orchestrators with dependencies default to strict mode. In strict mode:
 
 - **`bash` is not available** — removed from the tool list entirely
 - **Dependency calls are required** — the agent must call at least one custom tool (dependency) before submitting results
@@ -442,7 +442,7 @@ This ensures the declared dependency graph matches runtime behavior — if you d
 
 ### Flexible Mode
 
-Opt in to flexible mode when your orchestrator needs the freedom to solve some tasks directly:
+Use flexible mode when your orchestrator needs the freedom to solve some tasks directly:
 
 ```json
 {
@@ -495,7 +495,7 @@ Published yourorg/security-review@v3
   orchestration_mode: strict (defaulted — set "flexible" to opt out)
 ```
 
-If strict was applied by default and you didn't intend it, republish with `orchestration_mode: "flexible"` in your manifest.
+To use flexible mode, set `orchestration_mode: "flexible"` in your manifest and republish.
 
 ---
 

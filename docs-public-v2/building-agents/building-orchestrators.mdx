@@ -188,7 +188,7 @@ Create a directory with three files:
 | `custom_tools` | Tool definitions presented to the LLM — each `command` calls a dependency via the built-in `orch_call.py` helper |
 
 <Note>
-**Strict mode is the default.** When you publish an orchestrator with dependencies, `orchestration_mode` defaults to `"strict"` — bash is disabled and the agent must use its custom tools. If your orchestrator needs bash access, explicitly set `"orchestration_mode": "flexible"` in your manifest.
+**Strict mode is the default.** Orchestrators with dependencies default to `orchestration_mode: "strict"` — bash is disabled and the agent must use its custom tools. To keep bash available, set `"orchestration_mode": "flexible"` in your manifest.
 </Note>
 
 <Warning>

@@ -224,12 +224,15 @@ orch schedule update <schedule-id> --provider openai
 # Pin to current version (stop auto-updating)
 orch schedule update <schedule-id> --pin-version
 
+# Switch to a specific version
+orch schedule update <schedule-id> --agent-version v2
+
 # Re-enable auto-update
 orch schedule update <schedule-id> --auto-update
 ```
 
 <Note>
-Updating cron or timezone automatically recalculates the next execution time and updates the Cloud Scheduler job.
+Updating cron or timezone automatically recalculates the next execution time and updates the Cloud Scheduler job. Using `--agent-version` automatically disables auto-update (pins the schedule to the specified version).
 </Note>
 
 ### Delete a Schedule
@@ -305,6 +308,20 @@ Or pin an existing schedule:
 ```bash
 orch schedule update <schedule-id> --pin-version
 ```
+
+### Switching Versions
+
+You can switch a schedule to any available version of the same agent:
+
+```bash
+# Switch to a specific version
+orch schedule update <schedule-id> --agent-version v2
+
+# Switch to the latest version
+orch schedule update <schedule-id> --agent-version v5
+```
+
+Changing version via `--agent-version` automatically disables auto-update, since explicitly choosing a version implies you want to control which version runs. A `version_updated` event is logged in the schedule's event timeline.
 
 To re-enable auto-update later:
 

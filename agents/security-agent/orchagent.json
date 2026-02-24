@@ -10,12 +10,28 @@
     "max_hops": 2,
     "per_call_downstream_cap": 1,
     "timeout_ms": 600000,
+    "orchestration_mode": "strict",
     "dependencies": [
       {"id": "orchagent-public/leak-finder", "version": "v1"},
       {"id": "orchagent-public/dep-scanner", "version": "v1"}
     ]
   },
   "custom_tools": [
+    {
+      "name": "clone_repo",
+      "description": "Clone a git repository to /home/user/repo for scanning. Use this when the input provides a repo_url.",
+      "command": "git clone --depth 1 '{{repo_url}}' /home/user/repo 2>&1 && echo 'Cloned to /home/user/repo'",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "repo_url": {
+            "type": "string",
+            "description": "Git repository URL to clone"
+          }
+        },
+        "required": ["repo_url"]
+      }
+    },
     {
       "name": "scan_secrets",
       "description": "Scan for exposed secrets, API keys, tokens, and credentials using regex patterns for 23+ secret types. Returns findings with file paths, line numbers, severity, and recommendations.",

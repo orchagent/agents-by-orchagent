@@ -139,6 +139,10 @@
       "destination": "/building-agents/orchestration"
     },
     {
+      "source": "/orchestration",
+      "destination": "/building-agents/orchestration"
+    },
+    {
       "source": "/sdk",
       "destination": "/building-agents/sdk"
     },

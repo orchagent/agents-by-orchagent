@@ -319,6 +319,10 @@ Each custom tool has:
 Agent types also get built-in tools automatically: `bash`, `read_file`, `write_file`, `list_files`, and `submit_result`. You don't need to define these. See [Agent Types](/building-agents/agent-types#built-in-tools) for details.
 </Note>
 
+<Warning>
+**If your agent declares `manifest.dependencies`, you must also define matching `custom_tools`.** Without `custom_tools`, the LLM has no way to invoke dependencies — it will waste turns exploring the sandbox filesystem instead. Use `orch scaffold orchestration` to auto-generate `custom_tools` from your dependency list. This only applies to managed-loop agents; `code_runtime` agents call dependencies via the SDK directly.
+</Warning>
+
 ## Skill Composition
 
 Agents can include skills by default using the `default_skills` field. Skills are injected into the agent's prompt at runtime.

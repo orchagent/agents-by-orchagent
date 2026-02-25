@@ -192,6 +192,10 @@ Create a directory with three files:
 </Note>
 
 <Warning>
+**`custom_tools` is required for managed-loop orchestrators.** If you declare `manifest.dependencies` but don't add matching `custom_tools`, the LLM has no way to call your dependencies. It will waste all turns exploring the filesystem instead. Use `orch scaffold orchestration` to auto-generate the correct `custom_tools` from your dependencies.
+</Warning>
+
+<Warning>
 The `command` field must use the exact format: `python3 /home/user/helpers/orch_call.py org/agent@version`. This helper script is pre-installed in every managed loop sandbox. It reads the tool input, calls the dependency through the gateway, and returns the result.
 </Warning>
 

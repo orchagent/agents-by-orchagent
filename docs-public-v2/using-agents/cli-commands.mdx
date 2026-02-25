@@ -51,7 +51,8 @@ Before diving into commands, understand the four types on orchagent:
 | `orch tree <agent>` | Show agent dependency tree | - |
 | `orch transfer <agent>` | Transfer agent to another workspace | Cloud |
 | `orch dev` | Start local dev server with hot-reload | Your machine |
-| `orch test` | Run agent tests locally | Your machine |
+| `orch validate` | Validate agent configuration only | Your machine |
+| `orch test` | Validate configuration and run test suite | Your machine |
 | `orch update` | Update installed agents | - |
 | `orch formats` | List available export formats | - |
 | `orch secrets list/set/delete` | Manage workspace secrets | Cloud |
@@ -934,12 +935,44 @@ The fork copies everything needed to customize and deploy: name, description, ta
 If a name collision occurs in the target workspace, the server auto-increments the version number.
 </Note>
 
-### test
+### validate
 
-Run tests for your agent locally. Supports Python (pytest), JavaScript/TypeScript (vitest/npm test), and fixture-based testing for direct LLM agents.
+Validate your agent's configuration without publishing or running tests. Quick check to catch config issues before publishing.
 
 ```bash
-# Run tests in current directory
+# Validate agent in current directory
+orch validate
+
+# Validate with server-side checks (requires auth)
+orch validate --server
+
+# Output as JSON (for CI/CD)
+orch validate --json
+
+# Validate with custom profile
+orch validate --profile myprofile
+```
+
+**What it checks:**
+- `orchagent.json` structure and required fields
+- `prompt.md` exists for prompt/agent types
+- `schema.json` format (if present)
+- Type and execution engine configuration
+- Dependencies are published and callable (with `--server`)
+
+**Use cases:**
+- Quick validation before publishing
+- CI/CD pipelines to catch config issues early
+- Checking if all required files are in place
+
+---
+
+### test
+
+Validate configuration AND run your agent's test suite. Supports Python (pytest), JavaScript/TypeScript (vitest/npm test), and fixture-based testing.
+
+```bash
+# Validate configuration + run tests
 orch test
 
 # Run tests in a specific directory
@@ -950,7 +983,19 @@ orch test --verbose
 
 # Watch mode - re-run on file changes
 orch test --watch
+
+# Validation only (same as: orch validate)
+orch test --validate-only
+
+# Run agent once with data (manual testing)
+orch test --run --data '{"task": "hello"}'
 ```
+
+**What it does:**
+1. Validates `orchagent.json`, `prompt.md`, `schema.json` (same as `orch validate`)
+2. Runs Python tests: `test_*.py`, `*_test.py` (using pytest)
+3. Runs JS/TS tests: `*.test.ts`, `*.spec.ts` (using vitest)
+4. Runs fixture tests: `tests/fixture-*.json`
 
 **Options:**
 
@@ -958,6 +1003,19 @@ orch test --watch
 |------|-------------|
 | `-v, --verbose` | Show detailed test output |
 | `-w, --watch` | Watch for file changes and re-run tests |
+| `--validate-only` | Run validation only (skip tests) — same as `orch validate` |
+| `-r, --run` | Run agent once with input (combine with `--data`) |
+| `-d, --data <json>` | JSON input for `--run` mode |
+
+**When to use `validate` vs `test`:**
+
+| Use Case | Command | Why |
+|----------|---------|-----|
+| **Quick config check before publishing** | `orch validate` | Fast, config-only validation |
+| **Full quality gate before committing** | `orch test` | Catches config issues + test failures |
+| **CI/CD pre-publish check** | `orch validate --json` | Lightweight, JSON output for scripting |
+| **CI/CD full test suite** | `orch test` | Comprehensive validation + tests |
+| **Just validation, no tests** | `orch test --validate-only` | Same as `orch validate` |
 
 **Test Discovery:**
 

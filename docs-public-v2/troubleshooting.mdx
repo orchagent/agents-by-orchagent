@@ -13,11 +13,13 @@ orch doctor
 
 This checks your environment, configuration, connectivity, authentication, and LLM setup. Most issues are caught here with actionable fix suggestions.
 
-Add `--verbose` for extra detail:
+Add `--verbose` to see detailed information about each check:
 
 ```bash
 orch doctor --verbose
 ```
+
+The verbose mode shows configuration paths, environment variable values, and detailed status for each LLM provider — essential when debugging setup issues.
 
 ---
 

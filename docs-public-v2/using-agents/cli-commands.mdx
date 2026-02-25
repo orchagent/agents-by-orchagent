@@ -2034,26 +2034,57 @@ The CLI stores configuration at `~/.orchagent/config.json`:
 
 ### doctor
 
-Diagnose CLI setup issues.
+Diagnose CLI setup issues and verify your system configuration.
 
 ```bash
 # Check your setup
 orch doctor
 
-# Show extra details
+# Show detailed information about each check
 orch doctor --verbose
 
-# JSON output
+# JSON output for scripts/CI
 orch doctor --json
 ```
 
+**Flags:**
+
+- `--verbose` — Display configuration paths, environment variables, and detailed status for each provider
+- `--json` — Output results as JSON instead of human-readable format
+
 **Checks performed:**
 
-- Environment (Node.js, CLI version, Git)
-- Configuration (config file, permissions)
-- Connectivity (gateway reachable, latency)
-- Authentication (API key valid)
-- LLM Configuration (keys configured)
+- **Environment:** Node.js version (18+ required), CLI version, Git availability
+- **Configuration:** Config file exists, file permissions (600 for security)
+- **Connectivity:** Gateway reachable, response latency
+- **Authentication:** API key configured and valid
+- **LLM Configuration:** Server LLM keys and local environment variables
+
+**Example output:**
+
+```
+orchagent Doctor
+================
+
+Environment
+  ✓ Node.js v20.10.0 (required: 18+)
+  ✓ CLI v0.3.95
+
+Authentication
+  ✓ API key configured
+
+LLM Providers
+  ✓ anthropic    Configured (local)
+  ✓ openai       Configured (server)
+
+Summary: 5 passed
+
+Tip: Run with --verbose for detailed information about each check.
+```
+
+<Tip>
+Use `--verbose` when debugging setup issues to see configuration paths and detailed provider status.
+</Tip>
 
 ### health
 

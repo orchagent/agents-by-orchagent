@@ -1778,6 +1778,10 @@ Summary output includes: risk level banner, attacks tested, vulnerabilities foun
 
 Re-execute a previous run using the original input and configuration captured in its snapshot. Useful for reproducing bugs, testing fixes with policy overrides, or retrying failed runs.
 
+<Note>
+**How snapshots work:** Every cloud run automatically captures a snapshot of its input, configuration, secrets references, and agent version before execution begins. This enables deterministic replay — even if the agent has been updated since the original run. Local runs (`--local`) do not create snapshots and cannot be replayed. After a cloud run completes, the CLI footer shows `Snapshot saved` to confirm the run is replayable.
+</Note>
+
 ```bash
 # Replay a run and wait for results
 orch replay a1b2c3d4-e5f6-7890-abcd-ef1234567890

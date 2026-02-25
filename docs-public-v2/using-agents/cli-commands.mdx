@@ -220,6 +220,10 @@ orch run joe/summarizer --data '{"text":"..."}' --provider openai --model gpt-4o
 **Dependency handling:** If an agent has dependencies, the CLI prompts you to choose between server execution or downloading available dependencies. Use `--with-deps` to auto-download.
 </Note>
 
+<Tip>
+**Replay runs:** Every cloud run automatically captures a snapshot of its input and configuration. If something goes wrong, you can re-execute it with `orch replay <run-id>`. See [replay](#replay) for details.
+</Tip>
+
 ---
 
 ## Agent Management
@@ -1719,6 +1723,10 @@ orch logs --json
 | *(none)* or agent name | Lists recent runs in a table: Run ID, Agent, Status, Duration, Source, Started, Error |
 | Full UUID | Shows detailed logs: agent info, status, duration, exit code, input/output data, stdout, stderr |
 | Short UUID prefix (7+ hex chars) | Resolves to full run ID via prefix matching, then shows detailed logs |
+
+<Tip>
+**Failed run?** Use `orch replay <run-id>` to re-execute it with the same input and config. You can also override the provider policy to test a fix: `orch replay <run-id> --override-policy <policy-id>`.
+</Tip>
 
 ---
 

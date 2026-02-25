@@ -542,12 +542,7 @@ Then republish.
 
 The target agent has `callable: false` and can't be invoked by other agents.
 
-**Fix:** The target agent needs to be republished with callable enabled:
-
-```bash
-# In the target agent's orchagent.json
-{ "callable": true }
-```
+**Fix:** Agents are callable by default. If the target agent has `"callable": false` set explicitly, remove it (or set to `true`) and republish.
 
 ### "Max hops exceeded"
 

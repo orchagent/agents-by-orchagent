@@ -72,13 +72,12 @@ Here's a minimal tool agent that scans code for leaked secrets:
   "runtime": {
     "command": "python main.py"
   },
-  "required_secrets": ["ANTHROPIC_API_KEY"],
-  "callable": true
+  "required_secrets": ["ANTHROPIC_API_KEY"]
 }
 ```
 
 <Note>
-`"callable": true` is required — without it, other agents cannot call this agent as a dependency.
+Agents are callable by default (`callable: true`). You only need to set `"callable": false` to explicitly opt out (e.g., for always-on services like Discord bots).
 </Note>
 
 ### leak-finder/main.py
@@ -134,7 +133,6 @@ Create a directory with three files:
     "max_turns": 25
   },
   "timeout_seconds": 300,
-  "callable": true,
   "manifest": {
     "manifest_version": 1,
     "dependencies": [
@@ -257,7 +255,6 @@ A code runtime orchestrator runs your code directly. You control the execution f
       "runtime": {
         "command": "python main.py"
       },
-      "callable": true,
       "timeout_seconds": 180,
       "manifest": {
         "manifest_version": 1,
@@ -337,7 +334,6 @@ A code runtime orchestrator runs your code directly. You control the execution f
       "runtime": {
         "command": "node main.js"
       },
-      "callable": true,
       "timeout_seconds": 180,
       "manifest": {
         "manifest_version": 1,
@@ -548,7 +544,7 @@ All dependencies must be published before the orchestrator. Publish leaf agents 
 
 ### Agent runs but dependency calls return empty results
 
-Check that the dependency agent has `"callable": true` in its manifest. Without this, the gateway blocks agent-to-agent calls.
+Agents are callable by default. If the dependency has `"callable": false` set explicitly, remove it or set it to `true`. The gateway blocks agent-to-agent calls to non-callable agents.
 
 ### "MISSING_BILLING_ORG" error
 

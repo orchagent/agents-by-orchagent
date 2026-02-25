@@ -28,7 +28,7 @@ orchagent has four canonical types:
 
 Additional fields for executable types (prompt, tool, agent):
 - `run_mode`: `on_demand` (default) or `always_on` (for services)
-- `callable`: `true` to expose as a dependency for other agents
+- `callable`: `true` (default) — other agents can call this agent as a dependency. Set `false` to opt out.
 
 Legacy type values `code` and `agentic` are accepted as aliases for `tool` and `agent` respectively.
 
@@ -109,7 +109,7 @@ curl -X POST https://api.orchagent.io/acme/summarizer/v1/analyze \
 | Agent | LLM tool-use loop with custom tools in sandbox (`type: "agent"`, engine: `managed_loop`) |
 | Skill | Passive knowledge (markdown) that enhances other types (`type: "skill"`) |
 | run_mode | `on_demand` (default) or `always_on` (for persistent services) |
-| callable | When `true`, other agents can call this agent as a dependency |
+| callable | Whether other agents can call this agent as a dependency (default: `true`) |
 | Orchestrator | An agent that calls other agents |
 | Workspace | Team-scoped container for agents, members, and settings |
 | BYOK | Bring Your Own Key - users provide their own LLM API keys |

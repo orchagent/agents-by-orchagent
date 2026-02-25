@@ -1332,7 +1332,7 @@
           "run_mode": { "type": "string", "enum": ["on_demand", "always_on"], "default": "on_demand" },
           "runtime": { "type": "object", "properties": { "command": { "type": "string" } } },
           "loop": { "type": "object", "properties": { "max_turns": { "type": "integer" } } },
-          "callable": { "type": "boolean", "default": false },
+          "callable": { "type": "boolean", "default": true },
           "is_public": { "type": "boolean" },
           "description": { "type": "string" },
           "tags": { "type": "array", "items": { "type": "string" } },

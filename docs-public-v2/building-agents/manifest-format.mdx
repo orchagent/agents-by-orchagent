@@ -44,7 +44,7 @@ These fields control **how** and **when** the agent runs. The `type` field sets 
 | `run_mode` | string | `"on_demand"` | `"on_demand"` or `"always_on"`. Always-on agents can be deployed as [services](/using-agents/services). |
 | `runtime` | object | — | Declares code execution. Sets `execution_engine` to `code_runtime`. |
 | `loop` | object | — | Declares managed LLM loop. Sets `execution_engine` to `managed_loop`. |
-| `callable` | boolean | `false` | When `true`, other agents can call this agent as a dependency. |
+| `callable` | boolean | `true` | Whether other agents can call this agent as a dependency. Set to `false` for user-facing agents that shouldn't be invoked by orchestrators (e.g., always-on services). |
 
 <Warning>
 `runtime` and `loop` are mutually exclusive — you cannot declare both. The `type` field sets the default execution engine: `prompt` → `direct_llm`, `tool` → `code_runtime`, `agent` → `managed_loop`. These declarations override the type default when present.
@@ -373,7 +373,6 @@ Agents that call other agents need a `manifest` section:
   "runtime": {
     "command": "python main.py"
   },
-  "callable": true,
   "manifest": {
     "manifest_version": 1,
     "dependencies": [
@@ -494,7 +493,6 @@ The platform validates manifests on publish:
     "max_turns": 30
   },
   "required_secrets": ["ANTHROPIC_API_KEY"],
-  "callable": true,
   "timeout_seconds": 300,
   "custom_tools": [
     {
@@ -530,7 +528,6 @@ The platform validates manifests on publish:
   "runtime": {
     "command": "python main.py"
   },
-  "callable": true,
   "timeout_seconds": 180,
   "tags": ["security", "scanning", "orchestrator"],
   "manifest": {

@@ -94,6 +94,7 @@ Declares that the agent uses a managed LLM tool-use loop:
 | `default_skills` | array | `[]` | Skills to inject into agent prompts (e.g., `["yourorg/writing-style"]`) |
 | `skills_locked` | boolean | `false` | When true, callers cannot override default_skills via flags (immutable after publish) |
 | `required_secrets` | array | `[]` | Env var names your agent needs at runtime. See [Workspace Secrets](#workspace-secrets) below. **Required for `tool` and `agent` types.** |
+| `optional_secrets` | array | `[]` | Env var names that unlock additional features but aren't required. Shown in `orch info` for discoverability. |
 
 ## Default Models
 
@@ -137,13 +138,14 @@ Set `default_models` to control costs. For example, use a smaller model like `cl
 
 ## Workspace Secrets
 
-Declare the environment variables your agent needs at runtime using `required_secrets`. These are matched **by name** against your workspace secrets vault and injected as env vars into the sandbox.
+Declare the environment variables your agent needs at runtime using `required_secrets`, and variables that unlock additional features using `optional_secrets`. Both are matched **by name** against your workspace secrets vault and injected as env vars into the sandbox.
 
 ```json
 {
-  "name": "discord-bot",
-  "type": "tool",
-  "required_secrets": ["DISCORD_BOT_TOKEN", "DATABASE_URL"]
+  "name": "cto-agent",
+  "type": "agent",
+  "required_secrets": ["MONITOR_URLS", "ANTHROPIC_API_KEY"],
+  "optional_secrets": ["DISCORD_WEBHOOK_URL", "SLACK_WEBHOOK_URL", "BACKUP_S3_ENDPOINT"]
 }
 ```
 
@@ -151,23 +153,35 @@ At runtime, your code reads them as environment variables:
 
 ```python
 import os
-token = os.environ["DISCORD_BOT_TOKEN"]
+token = os.environ["ANTHROPIC_API_KEY"]
+webhook = os.environ.get("DISCORD_WEBHOOK_URL")  # optional — may not be set
 ```
 
 ### How it works
 
-1. You declare `required_secrets` in `orchagent.json`
+1. You declare `required_secrets` and `optional_secrets` in `orchagent.json`
 2. You add secrets to your workspace vault (dashboard or `orch secrets set`)
 3. At runtime, the platform matches secret names and injects them as env vars
-4. **On-demand runs** (`orch run`): returns a `400 MISSING_SECRETS` error if any declared secrets are missing from the vault
+4. **On-demand runs** (`orch run`): returns a `400 MISSING_SECRETS` error if any required secrets are missing from the vault. Optional secrets are injected if present, silently skipped if not.
 5. **Service deploys** (`orch service deploy`): auto-reads `required_secrets` and validates against the vault before deploying. No `--secret` flags needed.
-6. **Schedules**: same injection — secrets must exist in the vault at execution time
+6. **Schedules**: same injection — required secrets must exist in the vault at execution time
+7. **`orch info`**: shows both required and optional secrets so users can discover all available configuration
+
+### Optional secrets
+
+Use `optional_secrets` to declare env vars that aren't needed to run but unlock additional features — notification webhooks, backup integrations, model overrides, tuning parameters, etc. Without this field, users have no way to discover these options except by reading the README.
+
+```
+$ orch info orchagent/cto-agent-template
+Secrets (required): MONITOR_URLS, ANTHROPIC_API_KEY
+Secrets (optional): DISCORD_WEBHOOK_URL, SLACK_WEBHOOK_URL, BACKUP_S3_ENDPOINT, ...
+```
 
 ### Publish enforcement
 
 `orch publish` **blocks** tool and agent types that don't declare `required_secrets`. This ensures the Agent Requirements UI and service auto-resolution always have accurate data. Use `--no-required-secrets` to bypass this check if your agent genuinely needs no secrets.
 
-Prompt and skill types are exempt.
+Prompt and skill types are exempt. `optional_secrets` is never enforced — it's purely informational.
 
 <Warning>
 **Do not add `ORCHAGENT_SERVICE_KEY` to `required_secrets`.** The gateway auto-injects a temporary service key for agents with manifest dependencies. Adding your own overrides it and breaks orchestration.

@@ -261,7 +261,12 @@ result = await client.call("org/agent@v1", {"url": repo}, timeout=30.0)
 ### Error Handling
 
 ```python
-from orchagent import DependencyCallError, TimeoutExceededError, CallChainCycleError
+from orchagent import (
+    DependencyCallError,
+    TimeoutExceededError,
+    CallChainCycleError,
+    LocalExecutionError,
+)
 
 try:
     result = await client.call("org/agent@v1", input_data)
@@ -272,6 +277,8 @@ except TimeoutExceededError:
     print("Deadline exceeded")
 except CallChainCycleError:
     print("Cycle detected in call chain")
+except LocalExecutionError as e:
+    print(f"Local execution failed: exit {e.exit_code}")
 ```
 
 ## Common Patterns

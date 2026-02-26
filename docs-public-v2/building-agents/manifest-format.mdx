@@ -86,10 +86,10 @@ Declares that the agent uses a managed LLM tool-use loop:
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `default_endpoint` | string | `"analyze"` | Default endpoint for `orch run` |
-| `timeout_seconds` | number | `60` | Request timeout |
+| `default_endpoint` | string | `"run"` | Default endpoint for `orch run` |
+| `timeout_seconds` | number | `300` | Request timeout (seconds) |
 | `tags` | array | `[]` | Searchable tags |
-| `is_public` | boolean | `true` | Public (free) or private (Pro plan required) |
+| `is_public` | boolean | `false` | All agents are private by default |
 | `default_models` | object | `{}` | Per-provider model defaults. See [Default Models](#default-models) below. |
 | `default_skills` | array | `[]` | Skills to inject into agent prompts (e.g., `["yourorg/writing-style"]`) |
 | `skills_locked` | boolean | `false` | When true, callers cannot override default_skills via flags (immutable after publish) |
@@ -394,7 +394,7 @@ Agents that call other agents need a `manifest` section:
 | `dependencies` | Yes | Array of `{id, version}` for agents you'll call |
 | `max_hops` | Yes | Max call depth (>= 1 if you have deps) |
 | `timeout_ms` | Yes | Total timeout for your agent |
-| `per_call_downstream_cap` | Yes | Budget passed to each dependency call (limits child agent spending, not this agent's own calls) |
+| `per_call_downstream_cap` | No | Budget passed to each dependency call (default: `50`). Limits child agent spending, not this agent's own calls. |
 | `orchestration_mode` | No | `"strict"` or `"flexible"`. Controls whether the agent must use dependency-path execution. See [Orchestration Mode](#orchestration-mode) below. Defaults to `"strict"` when dependencies are declared. |
 | `min_required_hops` | No | Minimum hops caller must allow |
 | `region` | No | Deployment region |

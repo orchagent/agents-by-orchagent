@@ -21,7 +21,7 @@ This works with Claude Code, Cursor, Amp, and other AI tools. Your AI will have 
 |------|-----------|--------------------------|
 | **`prompt`** | Prompt template + schema → single LLM call | `direct_llm` |
 | **`tool`** | Python or JavaScript code runs in a sandbox | `code_runtime` |
-| **`agent`** | LLM tool-use loop with custom tools | `managed_loop` (Anthropic only) |
+| **`agent`** | LLM tool-use loop with custom tools | `managed_loop` |
 | **`skill`** | Passive knowledge (markdown) — not runnable | N/A |
 
 The first three are executable. Skills are passive knowledge that enhances other types.
@@ -51,8 +51,8 @@ And whether the agent is **callable** by other agents:
 
 | `callable` | Behavior |
 |------------|----------|
-| `false` (default) | Only users can call this agent |
-| `true` | Other agents can call this agent as a dependency |
+| `true` (default) | Other agents can call this agent as a dependency |
+| `false` | Only users can call this agent (e.g., always-on services) |
 
 <Tip>
 **Start with the type that matches your use case.** The type provides the right execution defaults automatically. You only need to override with `runtime` or `loop` declarations if you're doing something non-standard.
@@ -589,7 +589,7 @@ Use `"any"` if your agent works with any provider:
 | **Best for** | Single-step LLM tasks | Multi-step LLM reasoning | Your own code logic | Sharing knowledge |
 | **LLM involved?** | Yes (one call) | Yes (iterative loop) | Optional (you decide) | No |
 | **Sandbox?** | No | Yes (E2B) | Yes (E2B) | No |
-| **Providers** | Any (OpenAI, Anthropic, Gemini) | Anthropic only (for now) | Any (you call the API) | N/A |
+| **Providers** | Any (OpenAI, Anthropic, Gemini) | Any (OpenAI, Anthropic, Gemini) | Any (you call the API) | N/A |
 | **Typical latency** | 2-5 seconds | 10-120 seconds | 1-60 seconds | Instant (install) |
 | **Example** | Sentiment analyzer, translator | Test fixer, code reviewer | Security scanner, PDF parser | React best practices |
 | **You write** | prompt.md + schema.json | prompt.md + orchagent.json (loop config) | main.py or main.js | SKILL.md |

@@ -196,6 +196,10 @@ orch run joe/summarizer --data '{"text":"..."}' --provider openai --model gpt-4o
 | `--metadata <json>` | JSON metadata to send with file uploads (cloud only) |
 | `--input <json>` | Alias for `--data` |
 
+<Tip>
+`--input` and `--data` are interchangeable. Use whichever reads better — `--data` for raw payloads, `--input` for structured agent input.
+</Tip>
+
 **What happens (cloud, default):**
 
 1. CLI sends request to gateway (`api.orchagent.io`)
@@ -698,6 +702,9 @@ orch workspace leave
 Initialize a new agent or skill project.
 
 ```bash
+# Interactive wizard (recommended for new users)
+orch init
+
 # Create an agent (default: direct LLM, on-demand)
 orch init my-agent
 
@@ -712,10 +719,11 @@ orch init my-agent --run-mode always_on
 
 # Create a skill
 orch init my-skill --type skill
-
-# Initialize in the current directory (no subdirectory created)
-orch init
 ```
+
+<Tip>
+**Interactive wizard:** Running `orch init` with no arguments in a terminal launches a guided wizard that asks "What do you want to build?" and walks you through choosing a use case (prompt agent, tool, Discord bot, orchestrator, etc.), language (Python or JavaScript), and template. Great if you're not sure which type or template to pick.
+</Tip>
 
 **Options:**
 

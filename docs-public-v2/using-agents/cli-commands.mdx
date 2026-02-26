@@ -787,8 +787,8 @@ orch publish --all --dry-run
 # Publish with default skills
 orch publish --skills yourorg/style@v1,yourorg/rules@v1
 
-# Publish with local download enabled (allows orch run --local)
-orch publish --local-download
+# Publish as server-only (disables orch run --local)
+orch publish --no-local-download
 ```
 
 The publish command validates the `type` field, infers the `execution_engine` from the type (with optional `runtime`/`loop` overrides), and validates all fields. The dry-run output shows: Type, Run mode, Execution engine, Callable, Providers, and Visibility.

@@ -31,7 +31,7 @@ orchagent offers three ways to use agents:
 Production apps call the HTTP API directly from code. The CLI is useful for testing.
 
 <Note>
-**Local download is opt-in.** New agents and skills default to server-only (not locally downloadable). Authors must explicitly enable local download using the `--local-download` flag at publish time or the toggle in the web UI.
+**Local download is on by default.** New agents and skills are locally downloadable unless authors explicitly disable it using the `--no-local-download` flag at publish time or the toggle in the web UI.
 </Note>
 
 ## Cloud Execution (`orch run`)

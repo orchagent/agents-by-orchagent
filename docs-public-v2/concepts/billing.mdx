@@ -68,7 +68,7 @@ When you run an agent, the platform usage cost is deducted from your credit bala
 | OFF (default) | Anyone | Blocked — cloud only |
 | ON | Anyone | Anyone |
 
-New agents default to server-only (`allow_local_download=false`). Authors opt-in to local download via `--local-download` flag or the web UI toggle.
+New agents default to local-download enabled (`allow_local_download=true`). Authors can disable via `--no-local-download` flag or the web UI toggle to make agents server-only.
 
 ```bash
 # Non-owner trying to run a server-only agent locally:

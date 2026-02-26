@@ -244,7 +244,7 @@ Agents have two distribution modes that control what non-owners can see and do:
 
 | Mode | Prompt/code visible? | `orch run --local` | Badge |
 |------|---------------------|------------|-------|
-| **Source Available** (`--local-download`) | Yes | Yes | "Source Available" |
+| **Source Available** (default) | Yes | Yes | "Source Available" |
 | **Server Only** (default) | No — redacted | No — cloud only (`orch run`) | "Server Only" |
 
 **Server-only agents** (the default) redact the prompt, manifest, and skill files from public API responses. This protects your intellectual property while still letting users run the agent via `orch run` (cloud execution).
@@ -405,17 +405,15 @@ export ORCHAGENT_SERVICE_KEY="sk_agent_..."
 | `--entrypoint <file>` | Override entrypoint for tools |
 | `--skills <list>` | Default skills (comma-separated, e.g., `org/skill@v1,org/other@v1`) |
 | `--skills-locked` | Lock default skills (callers cannot override via flags) |
-| `--local-download` | Allow users to download and run locally. Without this flag, agents default to server-only. |
+| `--no-local-download` | Prevent users from downloading and running locally (server-only). Local download is enabled by default. |
 
 ## Distribution
 
-By default, new agents are **server-only** — users run them via `orch run` on orchagent's cloud servers. This is the recommended default for most agents.
-
-To allow users to download and run your agent locally with `orch run --local`:
+By default, new agents allow **local download** — users can download and run them with `orch run --local`. To make an agent server-only (cloud execution only):
 
 ```bash
-# Publish with local download enabled
-orch publish --local-download
+# Publish as server-only (disables local download)
+orch publish --no-local-download
 ```
 
 <Note>

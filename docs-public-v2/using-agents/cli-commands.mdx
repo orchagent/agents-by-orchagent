@@ -148,8 +148,14 @@ Execute an agent. By default, agents run on the cloud (E2B sandbox). Use `--loca
 # Run agent with a URL input
 orch run joe/leak-finder https://github.com/user/repo
 
-# Run with JSON input
+# Run with inline JSON
 orch run joe/summarizer --data '{"text": "..."}'
+
+# Run with JSON from file (recommended for complex inputs)
+orch run joe/summarizer --data @input.json
+
+# Read JSON from stdin
+echo '{"text": "..."}' | orch run joe/summarizer --data @-
 
 # Just download without running
 orch run joe/leak-finder --download-only

@@ -87,6 +87,16 @@ orch run . --local --input '{"text": "test input"}'
 
 This runs the agent on your machine using your local LLM keys.
 
+<Tip>
+**Tip: Use `@file` for complex inputs.** Shell special characters (`!`, `$`, backticks) can break inline JSON. Put your input in a file instead:
+
+```bash
+orch run . --local --data @input.json
+```
+
+This reads JSON from `input.json` — no escaping needed. Also supports `@-` for stdin.
+</Tip>
+
 ## Step 4: Publish
 
 ```bash
@@ -98,8 +108,11 @@ Your agent is now live and runnable by your team.
 ## Step 5: Run It
 
 ```bash
-# Via CLI
+# Via CLI — inline JSON
 orchagent run yourorg/my-agent --data '{"text": "hello world"}'
+
+# Via CLI — JSON from file (recommended for complex inputs)
+orchagent run yourorg/my-agent --data @input.json
 
 # Or your team can use the web UI at orchagent.io
 ```

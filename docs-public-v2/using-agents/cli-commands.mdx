@@ -947,33 +947,163 @@ If a name collision occurs in the target workspace, the server auto-increments t
 
 ### validate
 
-Validate your agent's configuration without publishing or running tests. Quick check to catch config issues before publishing.
+Validate agent or skill configuration without publishing. Runs pre-publish checks locally (syntax, required files, schemas, prompt, dependencies, code scanning) and optionally runs server-side validation. Useful before publishing or in CI/CD pipelines.
+
+**Alias:** `orch lint` works the same as `orch validate`.
 
 ```bash
-# Validate agent in current directory
+# Quick local validation (no network required)
 orch validate
 
-# Validate with server-side checks (requires auth)
-orch validate --server
-
-# Output as JSON (for CI/CD)
+# Show JSON output for CI/CD
 orch validate --json
 
-# Validate with custom profile
-orch validate --profile myprofile
+# Also run server-side checks (requires auth)
+orch validate --server
+
+# Validate with Dockerfile inclusion
+orch validate --docker
+
+# Validate a remote agent from URL
+orch validate --url https://github.com/acme/agent
+
+# Use a specific auth profile
+orch validate --profile work-account
 ```
 
-**What it checks:**
-- `orchagent.json` structure and required fields
-- `prompt.md` exists for prompt/agent types
-- `schema.json` format (if present)
-- Type and execution engine configuration
-- Dependencies are published and callable (with `--server`)
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--server` | Also run server-side validation (requires `orch login`) |
+| `--json` | Output validation result as JSON (for CI/CD integration) |
+| `--docker` | Include Dockerfile in validation analysis |
+| `--url <url>` | Validate an agent from a remote URL (for code-based agents without local code) |
+| `--profile <name>` | Use API key from named profile (for `--server` mode) |
+
+**Local Validation Checks:**
+
+The local validator checks:
+
+- `orchagent.json` syntax (valid JSON)
+- Required files exist (`prompt.md` for prompt agents, code files for tool agents)
+- `schema.json` is valid JSON Schema
+- `prompt.md` exists and is readable (for direct LLM agents)
+- Agent type is valid (`prompt`, `tool`, `agent`, `skill`)
+- Execution engine is properly configured
+- Custom tools reference valid commands (for orchestrators)
+- Dependencies are syntactically valid
+- Code bundle (if present) is valid and readable
+- SDK compatibility (if using `orchagent-sdk`)
+- Custom tool count and max turns (for managed-loop orchestrators)
+
+**Server-Side Validation Checks:**
+
+With `--server` flag (requires authentication):
+
+- All local checks
+- Dependency resolution — each listed dependency is published and callable
+- Dependency version pinning — marks unpublished deps or non-callable agents
+- Provider support validation — checks if selected providers are available
+- Manifest fields validation against canonical schema
+
+**Output Format:**
+
+By default, validation output is human-readable:
+
+```
+Validating agent: my-agent
+
+  Type: prompt (direct_llm), Run mode: on_demand
+
+  ✓ prompt.md found
+  ✓ schema.json found
+  ✓ SDK detected (Local Ready)
+
+✓ Validation passed (1 note)
+```
+
+If issues are found, they're categorized as:
+
+- **Errors** (red ✗) — Must be fixed before publishing
+- **Warnings** (yellow ⚠) — Should be addressed but publishing may still work
+- **Info** (blue ℹ) — Notes about the agent configuration
+
+**JSON Output:**
+
+With `--json` flag, output is structured for automation:
+
+```json
+{
+  "valid": true,
+  "errors": [],
+  "warnings": [
+    {
+      "message": "Type not specified, using default 'prompt'",
+      "file": "orchagent.json"
+    }
+  ],
+  "info": [],
+  "metadata": {
+    "name": "my-agent",
+    "type": "prompt",
+    "execution_engine": "direct_llm",
+    "run_mode": "on_demand",
+    "is_skill": false,
+    "has_prompt": true,
+    "has_schema": true,
+    "sdk_compatible": true,
+    "custom_tools": 0,
+    "max_turns": null,
+    "bundle_size_bytes": null,
+    "bundle_file_count": null
+  }
+}
+```
+
+**Exit Codes:**
+
+| Code | Meaning |
+|------|---------|
+| `0` | Validation passed (no errors) |
+| `1` | Validation failed (errors found) |
+
+**When to use `validate` vs `test`:**
+
+| Goal | Command | Time |
+|------|---------|------|
+| Quick syntax check before dev | `orch validate` | <1s (local) |
+| Quick syntax + server check | `orch validate --server` | ~2s (network) |
+| Run test fixtures & LLM tests | `orch test` | ~10s (runs fixtures) |
+| Full dev loop with changes | `orch test --watch` | Continuous |
 
 **Use cases:**
-- Quick validation before publishing
-- CI/CD pipelines to catch config issues early
-- Checking if all required files are in place
+
+- **Pre-publish check** — Run `orch validate --server` before `orch publish` to catch issues early
+- **CI/CD gate** — Use `orch validate --json` in your CI pipeline to gate on validation success
+- **Dependency verification** — With `--server`, ensure all dependencies are published and callable
+- **Docker container validation** — Use `--docker` to verify Dockerfile is included in bundle
+
+**Requirements:**
+
+- No special requirements for local validation
+- `orch login` required for `--server` flag
+
+**Example workflow:**
+
+```bash
+# 1. During development: quick syntax check
+orch validate
+
+# 2. Before publishing: full server validation
+orch validate --server
+
+# 3. In CI/CD: structured JSON output
+orch validate --json
+
+# 4. Then publish
+orch publish
+```
 
 ---
 
@@ -1179,166 +1309,6 @@ The dev server enables CORS, so you can send requests from browser-based tools o
 <Tip>
 Use `orch dev` alongside `orch test --watch` for a full development loop: the dev server handles HTTP requests while test watch validates on every save.
 </Tip>
-
-### validate
-
-Validate agent or skill configuration without publishing. Runs pre-publish checks locally (syntax, required files, schemas, prompt, dependencies, code scanning) and optionally runs server-side validation. Useful before publishing or in CI/CD pipelines.
-
-**Alias:** `orch lint` works the same as `orch validate`.
-
-```bash
-# Quick local validation (no network required)
-orch validate
-
-# Show JSON output for CI/CD
-orch validate --json
-
-# Also run server-side checks (requires auth)
-orch validate --server
-
-# Validate with Dockerfile inclusion
-orch validate --docker
-
-# Validate a remote agent from URL
-orch validate --url https://github.com/acme/agent
-
-# Use a specific auth profile
-orch validate --profile work-account
-```
-
-**Options:**
-
-| Flag | Description |
-|------|-------------|
-| `--server` | Also run server-side validation (requires `orch login`) |
-| `--json` | Output validation result as JSON (for CI/CD integration) |
-| `--docker` | Include Dockerfile in validation analysis |
-| `--url <url>` | Validate an agent from a remote URL (for code-based agents without local code) |
-| `--profile <name>` | Use API key from named profile (for `--server` mode) |
-
-**Local Validation Checks:**
-
-The local validator checks:
-
-- ✓ `orchagent.json` syntax (valid JSON)
-- ✓ Required files exist (`prompt.md` for prompt agents, code files for tool agents)
-- ✓ `schema.json` is valid JSON Schema
-- ✓ `prompt.md` exists and is readable (for direct LLM agents)
-- ✓ Agent type is valid (`prompt`, `tool`, `agent`, `skill`)
-- ✓ Execution engine is properly configured
-- ✓ Custom tools reference valid commands (for orchestrators)
-- ✓ Dependencies are syntactically valid
-- ✓ Code bundle (if present) is valid and readable
-- ✓ SDK compatibility (if using `orchagent-sdk`)
-- ✓ Custom tool count and max turns (for managed-loop orchestrators)
-
-**Server-Side Validation Checks:**
-
-With `--server` flag (requires authentication):
-
-- ✓ All local checks
-- ✓ Dependency resolution — each listed dependency is published and callable
-- ✓ Dependency version pinning — marks unpublished deps or non-callable agents
-- ✓ Provider support validation — checks if selected providers are available
-- ✓ Manifest fields validation against canonical schema
-
-**Output Format:**
-
-By default, validation output is human-readable:
-
-```
-Validating agent: my-agent
-
-  Type: prompt (direct_llm), Run mode: on_demand
-
-  ✓ prompt.md found
-  ✓ schema.json found
-  ✓ SDK detected (Local Ready)
-
-✓ Validation passed (1 note)
-```
-
-If issues are found, they're categorized as:
-
-- **Errors** (red ✗) — Must be fixed before publishing
-- **Warnings** (yellow ⚠) — Should be addressed but publishing may still work
-- **Info** (blue ℹ) — Notes about the agent configuration
-
-**JSON Output:**
-
-With `--json` flag, output is structured for automation:
-
-```json
-{
-  "valid": true,
-  "errors": [],
-  "warnings": [
-    {
-      "message": "Type not specified, using default 'prompt'",
-      "file": "orchagent.json"
-    }
-  ],
-  "info": [],
-  "metadata": {
-    "name": "my-agent",
-    "type": "prompt",
-    "execution_engine": "direct_llm",
-    "run_mode": "on_demand",
-    "is_skill": false,
-    "has_prompt": true,
-    "has_schema": true,
-    "sdk_compatible": true,
-    "custom_tools": 0,
-    "max_turns": null,
-    "bundle_size_bytes": null,
-    "bundle_file_count": null
-  }
-}
-```
-
-**Exit Codes:**
-
-| Code | Meaning |
-|------|---------|
-| `0` | Validation passed (no errors) |
-| `1` | Validation failed (errors found) |
-
-**When to use `validate` vs `test`:**
-
-| Goal | Command | Time |
-|------|---------|------|
-| Quick syntax check before dev | `orch validate` | <1s (local) |
-| Quick syntax + server check | `orch validate --server` | ~2s (network) |
-| Run test fixtures & LLM tests | `orch test` | ~10s (runs fixtures) |
-| Full dev loop with changes | `orch test --watch` | Continuous |
-
-**Use cases:**
-
-- **Pre-publish check** — Run `orch validate --server` before `orch publish` to catch issues early
-- **CI/CD gate** — Use `orch validate --json` in your CI pipeline to gate on validation success
-- **Dependency verification** — With `--server`, ensure all dependencies are published and callable
-- **Docker container validation** — Use `--docker` to verify Dockerfile is included in bundle
-
-**Requirements:**
-
-- No special requirements for local validation
-- `orch login` required for `--server` flag
-
-**Example workflow:**
-
-```bash
-# 1. During development: quick syntax check
-orch validate
-
-# 2. Before publishing: full server validation
-orch validate --server
-
-# 3. In CI/CD: structured JSON output
-orch validate --json
-
-# 4. Then publish
-orch publish
-```
 
 ### estimate
 

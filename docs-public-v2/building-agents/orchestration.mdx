@@ -156,24 +156,24 @@ The orchagent SDK is available for both **Python** and **JavaScript/TypeScript**
 <Tabs>
   <Tab title="Python">
     ```python
-    from fastapi import Request
+    import asyncio, json, sys
     from orchagent import AgentClient
 
-    @app.post("/review")
-    async def review(request: Request, input: ReviewInput):
-        # Create client from request (inherits call chain, deadline, etc.)
-        client = AgentClient.from_request(request)
+    async def main():
+        input_data = json.loads(sys.stdin.read())
+        client = AgentClient()  # Reads service key + context from env vars
 
         # Call dependencies
-        secrets = await client.call("joe/leak-finder@v1", {"url": input.repo_url})
-        vulns = await client.call("joe/vuln-scanner@v1", {"url": input.repo_url})
+        secrets = await client.call("joe/leak-finder@v1", {"url": input_data["repo_url"]})
+        vulns = await client.call("joe/vuln-scanner@v1", {"url": input_data["repo_url"]})
 
-        # Combine results
-        return {
+        print(json.dumps({
             "secrets": secrets,
             "vulnerabilities": vulns,
-            "summary": f"Found {len(secrets)} secrets, {len(vulns)} vulnerabilities"
-        }
+            "summary": f"Found {len(secrets)} secrets, {len(vulns)} vulnerabilities",
+        }))
+
+    asyncio.run(main())
     ```
 
     Install: `pip install orchagent-sdk`
@@ -212,6 +212,10 @@ The orchagent SDK is available for both **Python** and **JavaScript/TypeScript**
 - Deadline propagation
 - Max hops decrement
 - Error wrapping
+
+<Note>
+Most orchestrators use stdin/stdout with `AgentClient()`. If you're building a custom FastAPI server instead, use `AgentClient.from_request(request)` to propagate call chain and deadline from HTTP headers. See the [SDK Documentation](/building-agents/sdk) for details.
+</Note>
 
 <Tip>For complete SDK reference including error handling and environment variables, see the [SDK Documentation](/building-agents/sdk).</Tip>
 

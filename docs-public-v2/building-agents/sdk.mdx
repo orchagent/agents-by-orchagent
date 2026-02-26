@@ -24,31 +24,28 @@ The orchagent SDK provides a simple interface for building orchestrator agents t
 
 ## Basic Usage
 
-The SDK provides `AgentClient` for calling other agents from within your agent:
+The SDK provides `AgentClient` for calling other agents from within your agent. Most agents use stdin/stdout — create a client with no arguments and the SDK reads all context from environment variables:
 
 <Tabs>
   <Tab title="Python">
     ```python
-    from fastapi import Request
+    import json, sys
     from orchagent import AgentClient
 
-    @app.post("/analyze")
-    async def analyze(request: Request, input: AnalyzeInput):
-        # Create client from incoming request
-        client = AgentClient.from_request(request)
+    input_data = json.loads(sys.stdin.read())
+    client = AgentClient()  # Reads ORCHAGENT_SERVICE_KEY + context from env
 
-        # Call another agent
-        result = await client.call("joe/leak-finder@v1", {"url": input.repo_url})
-
-        return {"findings": result}
+    result = await client.call("joe/leak-finder@v1", {"url": input_data["repo_url"]})
+    print(json.dumps({"findings": result}))
     ```
   </Tab>
   <Tab title="JavaScript">
     ```javascript
     const { AgentClient } = require('orchagent-sdk');
+    const fs = require('fs');
 
     async function main() {
-      const input = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf-8'));
+      const input = JSON.parse(fs.readFileSync('/dev/stdin', 'utf-8'));
 
       const client = new AgentClient();
       const result = await client.call('joe/leak-finder@v1', { url: input.repo_url });
@@ -77,7 +74,7 @@ The SDK provides `AgentClient` for calling other agents from within your agent:
   </Tab>
 </Tabs>
 
-Both SDKs automatically extract context from the environment, including:
+The SDK automatically extracts context from environment variables (injected by the gateway):
 
 - Service key for authentication
 - Call chain for cycle detection
@@ -118,7 +115,11 @@ The main class for calling other agents.
     ```python
     from orchagent import AgentClient
 
-    # From an incoming request (recommended for orchestrators)
+    # From environment variables (recommended — reads ORCHAGENT_SERVICE_KEY etc.)
+    client = AgentClient()
+
+    # From an incoming HTTP request (advanced — for custom FastAPI servers)
+    # Propagates call chain, deadline, and billing context from headers
     client = AgentClient.from_request(request)
 
     # With explicit configuration
@@ -135,7 +136,7 @@ The main class for calling other agents.
     // From environment variables (recommended — reads ORCHAGENT_SERVICE_KEY etc.)
     const client = new AgentClient();
 
-    // From an HTTP request (Express, Koa, Fastify, etc.)
+    // From an incoming HTTP request (advanced — for custom Express/Koa/Fastify servers)
     const client = AgentClient.fromRequest(req);
 
     // With explicit configuration
@@ -355,7 +356,7 @@ When calling multiple agents, handle failures gracefully:
 
 ### Recommendations
 
-1. **Always use `from_request()` / `fromRequest()`** - This ensures proper context propagation (call chain, deadline, hops). For JS code-runtime agents that read stdin, `new AgentClient()` is fine — it reads context from environment variables.
+1. **Use `AgentClient()` / `new AgentClient()` for stdin/stdout agents** (the common case) — the SDK reads all context from environment variables injected by the gateway. **Use `from_request()` / `fromRequest()` only for custom HTTP servers** (FastAPI, Express, etc.) where you need to propagate call chain and deadline from incoming request headers.
 
 2. **Handle all exception types** - Don't let `DependencyCallError` crash your agent
 
@@ -404,7 +405,7 @@ When calling multiple agents, handle failures gracefully:
 
 ### Anti-patterns to Avoid
 
-- **Don't create clients manually** in orchestrators — use `from_request()` (Python) or `fromRequest()` (JS) to inherit context
+- **Don't hardcode service keys** — use `AgentClient()` (reads from env) or `from_request(request)` (reads from HTTP headers) to inherit context automatically
 - **Don't ignore the call chain** — it prevents cycles and tracks lineage
 - **Don't hardcode gateway URLs** — use the environment variable
 

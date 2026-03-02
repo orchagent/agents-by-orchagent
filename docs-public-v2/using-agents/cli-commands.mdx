@@ -1666,14 +1666,17 @@ When importing from a repo with multiple agents, omit `--path` to scan first. If
 
 ### logs
 
-View execution logs. Use with no arguments to list recent runs, an agent name to filter, or a run ID for full detail.
+View execution logs. Use with no arguments to list recent runs, an agent name to filter, or a run ID for full detail. When filtering by agent name, always-on service logs are automatically included if the agent has an active service.
 
 ```bash
 # List recent runs
 orch logs
 
-# Filter by agent name
+# Filter by agent name (also shows always-on service logs if deployed)
 orch logs scanner
+
+# View live logs from an always-on service (skips run history)
+orch logs scanner --live
 
 # Filter by status
 orch logs --status failed
@@ -1698,13 +1701,15 @@ orch logs --json
 | `--workspace <slug>` | Workspace slug (default: current workspace) |
 | `--status <status>` | Filter by status: `running`, `completed`, `failed`, `timeout` |
 | `--limit <n>` | Number of runs to show (default: 20, max: 200) |
+| `--live` | Show live logs from always-on service only (skips run history) |
 | `--json` | Output as JSON |
 
 **Modes:**
 
 | Target | Behavior |
 |--------|----------|
-| *(none)* or agent name | Lists recent runs in a table: Run ID, Agent, Status, Duration, Source, Started, Error |
+| *(none)* or agent name | Lists recent runs in a table. If filtering by agent name and an always-on service exists, service logs are shown below the runs table. |
+| Agent name with `--live` | Shows only the always-on service logs (no run history) |
 | Full UUID | Shows detailed logs: agent info, status, duration, exit code, input/output data, stdout, stderr |
 | Short UUID prefix (7+ hex chars) | Resolves to full run ID via prefix matching, then shows detailed logs |
 

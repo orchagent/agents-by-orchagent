@@ -87,11 +87,12 @@ View logs: orch service logs svc_abc123
 
 1. You publish an agent with `runtime.command` or `loop` config (`orch publish`)
 2. You run `orch service deploy org/agent`
-3. The platform creates a Cloud Run service with your configured instance count
+3. The platform provisions infrastructure with your configured instance count
 4. A service runner container downloads your agent bundle, installs dependencies (pip or npm), detects the entrypoint, and starts the process
-5. A health endpoint at `/health` returns `200` when the service is ready
-6. If the process crashes, Cloud Run automatically restarts it
-7. The agent's `required_secrets` (plus any `--secret` extras) are resolved from the workspace vault and injected as environment variables
+5. Your service gets a public HTTPS URL (visible in `orch service info`)
+6. A health endpoint at `/health` returns `200` when the service is ready
+7. If the process crashes, the platform automatically restarts it
+8. The agent's `required_secrets` (plus any `--secret` extras) are resolved from the workspace vault and injected as environment variables
 
 ---
 
@@ -125,13 +126,27 @@ Shows detailed information including:
 - Current state and health status
 - Restart count and consecutive failure count
 - Instance configuration (min/max)
-- Cloud Run service name
+- Public service URL
 - Deploy and last restart timestamps
 - Last error message (if any)
 - Alert webhook URL (if configured)
 - Recent events timeline
 
 ### View Logs
+
+The easiest way to view logs for an always-on service is through `orch logs`:
+
+```bash
+# View run history + live service logs together
+orch logs my-agent
+
+# View only the live service logs (skip run history)
+orch logs my-agent --live
+```
+
+When you filter by agent name, `orch logs` automatically detects if the agent has an always-on service and shows its live logs alongside the run history.
+
+For advanced options (time filtering, higher limits), use `orch service logs` directly:
 
 ```bash
 # Fetch recent logs (default: 100 lines)
@@ -159,7 +174,7 @@ Logs include timestamps and severity levels. Sensitive values (API keys, tokens,
 orch service restart <service-id>
 ```
 
-Restarts the service by deploying a fresh Cloud Run revision. The platform automatically refreshes the signed bundle URL before restarting, which prevents issues with expired download links.
+Restarts the service by deploying a fresh instance. The platform automatically refreshes the signed bundle URL before restarting, which prevents issues with expired download links.
 
 ### Delete a Service
 
@@ -167,7 +182,60 @@ Restarts the service by deploying a fresh Cloud Run revision. The platform autom
 orch service delete <service-id>
 ```
 
-Permanently removes the service and its Cloud Run deployment.
+Permanently removes the service and its infrastructure.
+
+---
+
+## HTTP Ingress (Receiving Webhooks)
+
+Every always-on service gets a **public HTTPS URL** automatically. Use `orch service info` to find yours:
+
+```bash
+orch service info <service-id>
+# → URL: https://orch-xxxx-my-agent.services.orchagent.io
+```
+
+### How It Works
+
+The platform runs an HTTP gateway on port 8080 that:
+- Handles `GET /health` internally (platform health checks)
+- **Proxies all other HTTP requests to your app on port 3000**
+
+Your app should bind to **port 3000** (or set the `ORCHAGENT_HTTP_PORT` env var for a different port). The `PORT` env var is also set to this value for framework compatibility (Express, Uvicorn, etc.).
+
+### Example — Telegram Webhook Receiver
+
+```python
+from fastapi import FastAPI, Request
+
+app = FastAPI()
+
+@app.post("/webhook/telegram")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    # Handle Telegram update...
+    return {"ok": True}
+
+# Start with: uvicorn app:app --host 0.0.0.0 --port 3000
+```
+
+After deploying, register the webhook URL with Telegram:
+
+```bash
+# Get your service URL
+orch service info <service-id>
+
+# Register with Telegram
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=<service-url>/webhook/telegram"
+```
+
+### Services That Don't Need HTTP Ingress
+
+Services that only make **outbound** connections (Discord bots using WebSocket, pollers, cron-triggered workers) don't need to bind to any port — the gateway handles health checks automatically.
+
+<Warning>
+Your code must **not** bind to port 8080 — the platform health server uses it. Bind to port 3000 (or your configured `ORCHAGENT_HTTP_PORT`).
+</Warning>
 
 ---
 
@@ -429,12 +497,21 @@ orch service deploy acme/my-discord-bot \
   --env BOT_PREFIX="!"
 ```
 
-### Webhook Listener
+### Webhook Listener (Telegram, Stripe, etc.)
 
 ```bash
-# Agent declares required_secrets: ["WEBHOOK_SECRET", "DATABASE_URL"]
+# Deploy — secrets auto-resolved from vault
 orch service deploy acme/webhook-processor
+
+# Find your public URL
+orch service info <service-id>
+# → URL: https://orch-xxxx-webhook-processor.services.orchagent.io
+
+# Register the URL with your webhook provider
+curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=<service-url>/webhook"
 ```
+
+Your HTTP server should bind to port 3000. See [HTTP Ingress](#http-ingress-receiving-webhooks) for details.
 
 ### Background Worker
 
@@ -462,7 +539,7 @@ orch service deploy acme/my-agent \
 
 **Service stuck in provisioning?**
 - Check the events timeline: `orch service info <service-id>`
-- Verify your agent has a `runtime.command` or `loop` config and a published code bundle (direct LLM agents cannot be deployed as services)
+- Verify your agent has a `runtime.command` or `loop` config and a published code bundle (`prompt` type agents cannot be deployed as services)
 - Check the logs for dependency installation failures: `orch service logs <service-id>`
 
 **Service keeps restarting?**
@@ -470,7 +547,17 @@ orch service deploy acme/my-agent \
 - Look at the last error: `orch service info <service-id>`
 - Ensure all `required_secrets` from the agent's orchagent.json exist in your workspace vault
 - Verify your entrypoint process doesn't exit immediately
-- Your code must NOT bind to port 8080 — the health server uses it
+- Your code must **not** bind to port 8080 — the platform health server uses it. Bind to port 3000 instead.
+
+**Service URL not resolving?**
+- New services may take up to 2 minutes for DNS to propagate
+- Try a public DNS resolver to confirm: `nslookup <hostname> 1.1.1.1`
+- If your local machine cached a "not found" response, flush your DNS cache (`sudo dscacheutil -flushcache` on macOS) or wait ~30 minutes
+
+**Webhooks not reaching your app?**
+- Confirm your app binds to port 3000 (not 8080): `--host 0.0.0.0 --port 3000`
+- Check that the webhook provider is using the full URL including the path (e.g. `https://<service-url>/webhook/telegram`)
+- Test locally: `curl https://<service-url>/your-endpoint` — you should see your app's response, not a 404
 
 **CRASH-LOOP badge showing?**
 - The service has been auto-paused after exceeding the failure threshold

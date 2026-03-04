@@ -535,6 +535,39 @@ orch service deploy acme/my-agent \
 
 ---
 
+## Auto-Update on Publish
+
+When you publish a new version of an agent (`orch publish`), any running services **in the same workspace** with `auto_update` enabled are automatically updated to the new version.
+
+<Warning>
+Auto-update is **workspace-scoped**. If you publish from your personal workspace but your service runs in a team workspace, the service won't be updated. You must publish from the same workspace where the service is deployed.
+</Warning>
+
+```bash
+# Switch to the workspace where your service runs
+orch workspace use my-team
+
+# Now publish — services in "my-team" will auto-update
+orch publish
+```
+
+If auto-update didn't work, check:
+1. **Are you in the right workspace?** Run `orch workspace list` and `orch service list --workspace <slug>` to confirm
+2. **Is auto_update enabled?** Services deployed with `--no-auto-update` won't be updated
+3. **Does the new version have a code bundle?** Agents without `runtime.command` or a code bundle won't trigger service updates
+
+To manually update a service to the latest version:
+
+```bash
+orch service update <service-id>
+```
+
+<Note>
+`orch service restart` does **not** update the version — it only restarts the existing code. Use `orch service update` to pull a new published version.
+</Note>
+
+---
+
 ## Troubleshooting
 
 **Service stuck in provisioning?**
@@ -575,6 +608,17 @@ orch service deploy acme/my-agent \
 
 **Bundle URL expired after a long-running service?**
 - Use `orch service restart <service-id>` — this automatically refreshes the signed bundle URL
+
+**Service not updating after `orch publish`?**
+- Auto-update is **workspace-scoped**. If you published from a different workspace than where the service runs, it won't auto-update
+- Switch to the correct workspace first: `orch workspace use <slug>`, then `orch publish`
+- Or manually update: `orch service update <service-id>`
+- Note: `orch service restart` does NOT update the version — use `orch service update` instead
+
+**Deploy fails with 422 after deleting a service?**
+- The previous service's infrastructure may not have fully cleaned up
+- Wait 1-2 minutes and retry
+- If it persists, try a different service name or contact support
 
 ---
 

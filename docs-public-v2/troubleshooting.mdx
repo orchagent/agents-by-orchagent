@@ -477,6 +477,38 @@ The service was auto-paused after repeated failures.
 1. Fix the root cause (check logs)
 2. Restart: `orch service restart <service-id>`
 
+### Service not updating after `orch publish`
+
+You published a new version but your running service still has the old code.
+
+**Cause:** Auto-update is workspace-scoped. If you published from workspace A but the service runs in workspace B, the service won't be updated.
+
+**Fix:**
+
+```bash
+# Check which workspace your service is in
+orch service list --workspace my-team
+
+# Switch to that workspace, then publish
+orch workspace use my-team
+orch publish
+
+# Or manually update the service
+orch service update <service-id>
+```
+
+<Note>
+`orch service restart` does **not** change the version — it only restarts the existing code. Use `orch service update` to pull a new published version.
+</Note>
+
+### Deploy fails with 422 after deleting a service
+
+You deleted a service and are trying to redeploy, but it keeps failing with "Service infrastructure rejected the request (code 422)."
+
+**Cause:** The previous service's infrastructure wasn't fully cleaned up.
+
+**Fix:** Wait 1-2 minutes and retry. If the error persists, try a different service name or contact support.
+
 ### "No entrypoint found"
 
 The service runner can't detect which file to run.

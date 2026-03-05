@@ -48,6 +48,7 @@ Before diving into commands, understand the four types on orchagent:
 | `orch list` | List locally installed agents | - |
 | `orch agents` | List your published agents | - |
 | `orch info <agent>` | Show agent details and schemas | - |
+| `orch schema <agent>` | Dump input/output schemas as JSON | - |
 | `orch tree <agent>` | Show agent dependency tree | - |
 | `orch transfer <agent>` | Transfer agent to another workspace | Cloud |
 | `orch dev` | Start local dev server with hot-reload | Your machine |
@@ -288,6 +289,34 @@ orch info joe/code-reviewer --json
 | `--json` | Output as JSON |
 
 Displays: type, callable status, supported providers, server URL (for tool types), source URL, run command, local-ready status, input/output schemas, dependencies, skills, custom tools, and environment pinning. For GitHub-linked agents, fetches and displays the repository README.
+
+### schema
+
+Dump agent input/output schemas as machine-readable JSON. Designed for programmatic consumption by AI agents and automation tools.
+
+```bash
+# Show both input and output schemas
+orch schema joe/code-reviewer
+
+# Input schema only
+orch schema joe/code-reviewer --input-only
+
+# Output schema only
+orch schema joe/code-reviewer --output-only
+
+# Full agent spec (type, callable, providers, secrets, dependencies, custom_tools)
+orch schema joe/code-reviewer@v2 --full
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--input-only` | Show only the input schema |
+| `--output-only` | Show only the output schema |
+| `--full` | Show full agent spec including schemas, secrets, dependencies, and custom tools |
+
+Output is always JSON. Default mode returns `{ agent, type, input_schema, output_schema }`. Use `--full` for the complete agent specification.
 
 ### tree
 
@@ -1708,7 +1737,7 @@ orch logs --json
 
 | Target | Behavior |
 |--------|----------|
-| *(none)* or agent name | Lists recent runs in a table. If filtering by agent name and an always-on service exists, service logs are shown below the runs table. |
+| *(none)* or agent name | Lists recent runs in a table. If filtering by agent name and an always-on service exists, service logs are shown below the runs table. If no runs are found, suggests active services in the workspace with `--live` commands. |
 | Agent name with `--live` | Shows only the always-on service logs (no run history) |
 | Full UUID | Shows detailed logs: agent info, status, duration, exit code, input/output data, stdout, stderr |
 | Short UUID prefix (7+ hex chars) | Resolves to full run ID via prefix matching, then shows detailed logs |

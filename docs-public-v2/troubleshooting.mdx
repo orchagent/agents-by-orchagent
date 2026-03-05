@@ -275,7 +275,7 @@ orch run acme/agent --data "{\"text\": \"hello\"}"
 The agent's input schema requires a field you didn't provide.
 
 **Fix:**
-1. Check the schema: `orch info acme/agent`
+1. Check the schema: `orch schema acme/agent` (or `orch info acme/agent`)
 2. Provide all required fields in your `--data` JSON
 
 ---

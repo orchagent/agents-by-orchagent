@@ -1,0 +1,236 @@
+---
+title: "Agent Storage"
+description: "Persistent shared JSON document store for agent state, coordination, and checkpoints"
+---
+
+Agent Storage is a workspace-scoped JSON document store for shared agent state. Use it for multi-agent coordination, state checkpoints, deduplication, and human-in-the-loop triage.
+
+## Data Model
+
+Documents are organized as **namespace** + **key** + JSON **value**, scoped to a workspace.
+
+| Field | Rules |
+|-------|-------|
+| **Namespace** | Lowercase letters, digits, hyphens. 1-64 chars. `^[a-z][a-z0-9-]{0,63}$` |
+| **Key** | Letters, digits, dots, hyphens, underscores. 1-256 chars. `^[a-zA-Z0-9][a-zA-Z0-9._-]{0,255}$` |
+| **Value** | Any JSON object or array (PATCH requires object) |
+
+Each document also tracks `version` (integer, auto-incremented), `size_bytes`, `created_at`, `updated_at`, and `updated_by`.
+
+## CLI
+
+```bash
+# List namespaces
+orch storage list
+
+# List keys in a namespace
+orch storage list signals
+orch storage list signals --limit 50 --cursor <cursor>
+
+# Read a document
+orch storage get signals 2026-03-05
+orch storage get signals 2026-03-05 --raw    # Value only
+orch storage get signals 2026-03-05 --json   # Full metadata
+
+# Write a document (create or replace)
+orch storage set signals 2026-03-05 '{"pending": [], "done": []}'
+
+# Read value from file
+orch storage set signals config @config.json
+
+# Compare-and-swap (fail if version changed)
+orch storage set signals 2026-03-05 '{"status": "done"}' --version 3
+
+# Merge-patch (shallow merge into existing object)
+orch storage patch signals 2026-03-05 '{"status": "done"}'
+
+# Delete a single document
+orch storage delete signals 2026-03-05
+
+# Delete all documents in a namespace
+orch storage delete signals --all
+```
+
+All commands support `--workspace <slug>` to target a specific workspace and `--json` for machine-readable output.
+
+## REST API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/storage` | List namespaces |
+| `GET` | `/storage/{namespace}` | List keys (`limit`, `cursor` params) |
+| `GET` | `/storage/{namespace}/{key}` | Read document |
+| `PUT` | `/storage/{namespace}/{key}` | Create or update document |
+| `PATCH` | `/storage/{namespace}/{key}` | Shallow merge-patch |
+| `DELETE` | `/storage/{namespace}/{key}` | Delete document |
+| `DELETE` | `/storage/{namespace}` | Delete all docs in namespace |
+
+### Authentication
+
+All endpoints require `Authorization: Bearer <api_key>` and `X-Workspace-Id` header (CLI sets this automatically).
+
+### Concurrency (CAS)
+
+Reads return an `ETag` header containing the document's current `version`. To perform a compare-and-swap write, include `If-Match: <version>` on your PUT request. If the document has been modified since that version, the API returns `409 CONFLICT`.
+
+PATCH uses CAS internally with automatic retries.
+
+### Response Headers
+
+Writes include storage usage headers:
+
+- `X-Storage-Used` — current total bytes used
+- `X-Storage-Limit` — workspace tier limit (when bounded)
+
+### `updated_by` Field
+
+Tracks who last modified a document:
+
+- Agent key writes: `org-slug/agent-name@version`
+- CLI writes: `cli`
+- Direct API writes: `api`
+
+## Python SDK
+
+<Tabs>
+  <Tab title="Basic Operations">
+    ```python
+    from orchagent import storage
+
+    # Write a document
+    storage.set("signals", "2026-03-05", {"pending": [], "done": []})
+
+    # Read (returns None if not found)
+    data = storage.get("signals", "2026-03-05")
+
+    # Merge-patch
+    storage.patch("signals", "2026-03-05", {"status": "done"})
+
+    # List keys
+    result = storage.list("signals")
+    # {"keys": [...], "cursor": "...", "has_more": true}
+
+    # Paginate
+    result = storage.list("signals", limit=50, cursor=result["cursor"])
+
+    # List namespaces
+    namespaces = storage.namespaces()
+
+    # Delete
+    storage.delete("signals", "2026-03-05")
+    storage.delete_namespace("signals")  # returns count deleted
+    ```
+  </Tab>
+  <Tab title="Atomic Updates (CAS)">
+    ```python
+    from orchagent import storage
+
+    # Atomic read-modify-write with automatic CAS retry
+    storage.update("signals", "2026-03-05", lambda doc: {
+        **(doc or {}),
+        "done": (doc or {}).get("done", []) + [new_item],
+    })
+
+    # Manual CAS: write only if version matches
+    storage.set("signals", "config", new_value, version=3)
+    # Raises StorageConflictError if current version != 3
+    ```
+  </Tab>
+  <Tab title="Error Handling">
+    ```python
+    from orchagent.storage import (
+        StorageError,           # Base exception
+        StorageNotFoundError,   # 404
+        StorageConflictError,   # 409 — CAS version mismatch
+        StorageQuotaError,      # 413/429 — size or quota limit
+    )
+
+    try:
+        storage.set("signals", "key", payload)
+    except StorageQuotaError as e:
+        print(f"Quota exceeded: {e}")
+    except StorageConflictError:
+        print("Version conflict — use update() for auto-retry")
+    ```
+  </Tab>
+</Tabs>
+
+### API Reference
+
+| Function | Description |
+|----------|-------------|
+| `get(namespace, key)` | Read value. Returns `None` if not found |
+| `set(namespace, key, value, version=None)` | Write document. Optional CAS with `version` |
+| `update(namespace, key, fn, max_retries=5)` | Atomic read-modify-write with CAS retry |
+| `patch(namespace, key, partial)` | Shallow merge-patch |
+| `list(namespace, limit=100, cursor=None)` | List keys in namespace |
+| `namespaces()` | List all namespaces |
+| `delete(namespace, key)` | Delete document |
+| `delete_namespace(namespace)` | Delete all docs in namespace |
+
+<Note>
+The SDK reads `ORCHAGENT_SERVICE_KEY` or `ORCHAGENT_API_KEY` from environment variables automatically. In sandbox environments these are injected by the gateway — no setup needed.
+</Note>
+
+## Error Codes
+
+| Status | Code | Meaning |
+|--------|------|---------|
+| `400` | `INVALID_INPUT` | Bad namespace, key, or body; PATCH target not an object |
+| `404` | `NOT_FOUND` | Document or namespace doesn't exist |
+| `409` | `CONFLICT` | CAS version mismatch |
+| `413` | `DOCUMENT_TOO_LARGE` | Document exceeds tier size limit |
+| `429` | `STORAGE_QUOTA_EXCEEDED` | Namespace, doc count, or total storage limit reached |
+
+## Quotas
+
+Enforced per workspace tier:
+
+| Limit | Free | Pro | Team | Enterprise |
+|---|---:|---:|---:|---:|
+| Namespaces | 5 | 25 | 100 | Unlimited |
+| Docs per namespace | 100 | 1,000 | 10,000 | Unlimited |
+| Max document size | 100 KB | 1 MB | 5 MB | 10 MB |
+| Total storage | 10 MB | 100 MB | 1 GB | Unlimited |
+
+## Common Patterns
+
+### State Checkpoints (Scheduled Agents)
+
+Save progress between runs so a scheduled agent can resume where it left off:
+
+```python
+from orchagent import storage
+
+state = storage.get("weekly-scan", "progress") or {"scanned": [], "pending": repos}
+for repo in state["pending"][:5]:
+    result = scan(repo)
+    state["scanned"].append(repo)
+    state["pending"].remove(repo)
+    storage.set("weekly-scan", "progress", state)
+```
+
+### Multi-Agent Coordination
+
+Multiple agents writing to the same document with safe concurrent updates:
+
+```python
+from orchagent import storage
+
+storage.update("signals", "2026-03-05", lambda doc: {
+    **(doc or {"pending": [], "done": []}),
+    "pending": (doc or {}).get("pending", []) + [new_signal],
+})
+```
+
+### Human-in-the-Loop Triage
+
+Agents write findings to storage, humans review via CLI:
+
+```bash
+# Agent writes findings during execution
+# Human reviews later:
+orch storage list signals
+orch storage get signals 2026-03-05
+orch storage patch signals 2026-03-05 '{"reviewed": true, "action": "ignore"}'
+```

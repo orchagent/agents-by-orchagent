@@ -48,6 +48,7 @@
                   "using-agents/cli-commands",
                   "using-agents/scheduling",
                   "using-agents/services",
+                  "using-agents/storage",
                   "using-agents/code-snippets"
                 ]
               },
@@ -197,6 +198,10 @@
     {
       "source": "/security",
       "destination": "/concepts/security"
+    },
+    {
+      "source": "/storage",
+      "destination": "/using-agents/storage"
     }
   ]
 }

@@ -409,11 +409,26 @@ When calling multiple agents, handle failures gracefully:
 - **Don't ignore the call chain** — it prevents cycles and tracks lineage
 - **Don't hardcode gateway URLs** — use the environment variable
 
+## Agent Storage
+
+The SDK also includes a storage module for persistent shared state between agents. See the dedicated [Agent Storage](/using-agents/storage) page for the full reference.
+
+```python
+from orchagent import storage
+
+storage.set("signals", "2026-03-05", {"pending": [], "done": []})
+data = storage.get("signals", "2026-03-05")
+storage.update("signals", "2026-03-05", lambda doc: {**doc, "status": "done"})
+```
+
 ## Next Steps
 
 <CardGroup cols={2}>
   <Card title="Orchestration" icon="diagram-project" href="/building-agents/orchestration">
     Learn how to build orchestrator agents that compose multiple agents together
+  </Card>
+  <Card title="Agent Storage" icon="database" href="/using-agents/storage">
+    Persistent shared state for multi-agent coordination and checkpoints
   </Card>
   <Card title="Local vs Server" icon="server" href="/concepts/local-vs-server">
     Understand when to use local execution vs server execution

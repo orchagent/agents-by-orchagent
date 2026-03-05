@@ -136,6 +136,10 @@ When your agent runs, the model is resolved in this order:
 Set `default_models` to control costs. For example, use a smaller model like `claude-haiku-4-5-20251001` for simple tasks, and let callers override with `--model` when they need a more capable model.
 </Tip>
 
+<Note>
+`orch publish` and `orch validate` will warn if your model IDs don't match known provider patterns (e.g. `gpt-*` for OpenAI, `claude-*` for Anthropic, `gemini-*` for Gemini). This catches typos and mismatches before they cause 404 errors at runtime.
+</Note>
+
 ## Workspace Secrets
 
 Declare the environment variables your agent needs at runtime using `required_secrets`, and variables that unlock additional features using `optional_secrets`. Both are matched **by name** against your workspace secrets vault and injected as env vars into the sandbox.

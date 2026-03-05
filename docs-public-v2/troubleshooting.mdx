@@ -454,6 +454,23 @@ orch schedule list
 
 ## Services (Always-On)
 
+### "No runs found" for an always-on agent
+
+Always-on services don't create discrete "runs" — they're long-lived processes. If you run `orch logs` and see "No runs found", the CLI will suggest active services in your workspace:
+
+```bash
+# The CLI auto-suggests services when no runs are found:
+orch logs
+# → "This workspace has always-on services. To view service logs:"
+# →   orch logs discord-bot --live
+
+# View service logs directly
+orch logs my-agent --live
+
+# Or use the service logs command for advanced options
+orch service logs <service-id>
+```
+
 ### Service stuck in provisioning
 
 **Fix:**

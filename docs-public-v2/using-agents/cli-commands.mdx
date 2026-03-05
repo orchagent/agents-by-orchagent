@@ -2835,6 +2835,17 @@ orch run acme/scanner doc.pdf 2>/dev/null && echo "success"
 # Process JSON output (--json is auto-enabled when piped)
 orch run acme/scanner doc.pdf | jq '.data.total'
 
+# Handle structured errors (errors are JSON when --json is active)
+output=$(orch run acme/scanner doc.pdf --json 2>/dev/null)
+if echo "$output" | jq -e '.error' > /dev/null 2>&1; then
+  code=$(echo "$output" | jq -r '.code')
+  echo "Failed with $code: $(echo "$output" | jq -r '.message')"
+fi
+
 # Install agents in CI
 orch install acme/code-reviewer --format claude-code --scope project
 ```
+
+<Tip>
+When `--json` is active, errors are returned as structured JSON on stdout with `error`, `code`, `message`, `hint`, and `exit_code` fields. See [Troubleshooting → Error Response Format](/troubleshooting#error-response-format) for the full schema.
+</Tip>

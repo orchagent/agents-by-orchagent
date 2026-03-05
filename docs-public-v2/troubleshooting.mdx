@@ -690,6 +690,56 @@ fi
 
 ## Error Response Format
 
+### CLI Errors (with `--json`)
+
+When `--json` is active (explicit flag or auto-detected non-TTY), all CLI errors are structured JSON on stdout:
+
+```json
+{
+  "error": true,
+  "code": "NOT_FOUND",
+  "message": "Agent 'acme/scanner' not found",
+  "hint": "Run `orch agents` to list your agents",
+  "exit_code": 4
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `error` | `true` | Always `true` — distinguishes errors from success output |
+| `code` | `string` | Machine-readable error code (see table below) |
+| `message` | `string` | Human-readable error description |
+| `hint` | `string?` | Optional suggestion for how to fix the error |
+| `exit_code` | `number` | Exit code the process will exit with |
+
+**Error codes:**
+
+| Code | Meaning |
+|------|---------|
+| `GENERAL_ERROR` | Unknown/unclassified error |
+| `AUTH_REQUIRED` | Not logged in or invalid API key |
+| `PERMISSION_DENIED` | Insufficient permissions (403) |
+| `NOT_FOUND` | Agent, version, or resource not found (404) |
+| `INVALID_INPUT` | Validation error, bad JSON, invalid flags |
+| `RATE_LIMITED` | Too many requests (429) |
+| `TIMEOUT` | Operation timed out |
+| `SERVER_ERROR` | Server-side error (5xx) |
+| `NETWORK_ERROR` | Unable to connect |
+
+Gateway-specific error codes (e.g. `AGENT_NOT_FOUND`, `MISSING_BILLING_ORG`) pass through from the API when available.
+
+Use in scripts:
+
+```bash
+# Parse structured errors with jq
+output=$(orch run acme/scanner doc.pdf --json 2>/dev/null)
+if echo "$output" | jq -e '.error' > /dev/null 2>&1; then
+  echo "Error: $(echo "$output" | jq -r '.code')"
+fi
+```
+
+### API Errors (Gateway)
+
 API errors return a structured JSON response:
 
 ```json

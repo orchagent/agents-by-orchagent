@@ -196,6 +196,12 @@ orch schedule list --type cron
 
 # JSON output (for scripting)
 orch schedule list --json
+
+# Return only specific fields (implies --json)
+orch schedule list --fields agent_name,cron_expression,enabled
+
+# Paginate
+orch schedule list --limit 10 --offset 20
 ```
 
 Output shows: ID, agent, type, cron expression, enabled status, last run time, last status, and total run count.
@@ -276,6 +282,9 @@ orch schedule runs <schedule-id> --status failed
 
 # Limit results
 orch schedule runs <schedule-id> --limit 50
+
+# Paginate and filter fields
+orch schedule runs <schedule-id> --limit 10 --offset 20 --fields status,duration_ms
 ```
 
 ---

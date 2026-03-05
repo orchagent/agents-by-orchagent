@@ -255,6 +255,12 @@ orch agents --all-versions
 
 # JSON output
 orch agents --json
+
+# Return only specific fields (implies --json)
+orch agents --fields name,version,type
+
+# Paginate results
+orch agents --limit 10 --offset 20
 ```
 
 **Options:**
@@ -264,6 +270,9 @@ orch agents --json
 | `--filter <text>` | Filter agents by name |
 | `--all-versions` | Show all versions (default: latest only) |
 | `--json` | Output raw JSON |
+| `--fields <fields>` | Comma-separated fields to include in JSON output (implies `--json`) |
+| `--limit <n>` | Maximum number of items to return |
+| `--offset <n>` | Number of items to skip |
 
 By default, shows only the latest version of each agent grouped by name. Displays a table with columns: Agent, Version, Type, Description. When in latest-only mode, the version column shows the count (e.g., `v3 (5 total)`). Respects workspace context.
 
@@ -280,6 +289,9 @@ orch info joe/code-reviewer@v2
 
 # JSON output
 orch info joe/code-reviewer --json
+
+# Return only specific fields (implies --json)
+orch info joe/code-reviewer --fields name,type,input_schema
 ```
 
 **Options:**
@@ -287,6 +299,7 @@ orch info joe/code-reviewer --json
 | Flag | Description |
 |------|-------------|
 | `--json` | Output as JSON |
+| `--fields <fields>` | Comma-separated fields to include in JSON output (implies `--json`) |
 
 Displays: type, callable status, supported providers, server URL (for tool types), source URL, run command, local-ready status, input/output schemas, dependencies, skills, custom tools, and environment pinning. For GitHub-linked agents, fetches and displays the repository README.
 
@@ -1473,6 +1486,9 @@ orch secrets list --workspace acme-team
 # JSON output
 orch secrets list --json
 
+# Return only specific fields (implies --json)
+orch secrets list --fields name,secret_type
+
 # Create or update a secret
 orch secrets set ANTHROPIC_API_KEY sk-ant-xxx
 
@@ -1497,6 +1513,7 @@ orch secrets delete OLD_API_KEY
 |------|-------------|
 | `--workspace <slug>` | Workspace slug (default: current workspace) |
 | `--json` | Output as JSON |
+| `--fields <fields>` | Comma-separated fields to include in JSON output (implies `--json`) |
 
 **Options for `set`:**
 
@@ -1719,8 +1736,14 @@ orch logs a1b2c3d
 # Limit results
 orch logs --limit 50
 
+# Skip first 20 results
+orch logs --limit 10 --offset 20
+
 # JSON output
 orch logs --json
+
+# Return only specific fields (implies --json)
+orch logs --fields status,duration_ms,agent_name
 ```
 
 **Options:**
@@ -1730,8 +1753,10 @@ orch logs --json
 | `--workspace <slug>` | Workspace slug (default: current workspace) |
 | `--status <status>` | Filter by status: `running`, `completed`, `failed`, `timeout` |
 | `--limit <n>` | Number of runs to show (default: 20, max: 200) |
+| `--offset <n>` | Number of runs to skip |
 | `--live` | Show live logs from always-on service only (skips run history) |
 | `--json` | Output as JSON |
+| `--fields <fields>` | Comma-separated fields to include in JSON output (implies `--json`) |
 
 **Modes:**
 
@@ -2374,6 +2399,12 @@ orch schedule list --type cron
 
 # JSON output
 orch schedule list --json
+
+# Return only specific fields (implies --json)
+orch schedule list --fields agent_name,cron_expression,enabled
+
+# Paginate results
+orch schedule list --limit 10 --offset 20
 ```
 
 **Options:**
@@ -2384,6 +2415,9 @@ orch schedule list --json
 | `--agent <name>` | Filter by agent name |
 | `--type <type>` | Filter by type: `cron` or `webhook` |
 | `--json` | Output as JSON |
+| `--fields <fields>` | Comma-separated fields to include in JSON output (implies `--json`) |
+| `--limit <n>` | Maximum number of schedules to return (default: 100) |
+| `--offset <n>` | Number of schedules to skip |
 
 ### schedule create
 
@@ -2523,14 +2557,22 @@ orch schedule runs <schedule-id> --status failed
 
 # Limit results
 orch schedule runs <schedule-id> --limit 50
+
+# Paginate
+orch schedule runs <schedule-id> --limit 10 --offset 20
+
+# Return only specific fields (implies --json)
+orch schedule runs <schedule-id> --fields status,duration_ms,started_at
 ```
 
 | Flag | Description |
 |------|-------------|
 | `--status <status>` | Filter by status: `completed`, `failed`, `running`, `timeout` |
 | `--limit <n>` | Number of runs to show (default: 20) |
+| `--offset <n>` | Number of runs to skip |
 | `--workspace <slug>` | Workspace slug (default: current workspace) |
 | `--json` | Output as JSON |
+| `--fields <fields>` | Comma-separated fields to include in JSON output (implies `--json`) |
 
 ---
 
@@ -2600,6 +2642,12 @@ orch service list --status running
 
 # JSON output
 orch service list --json
+
+# Return only specific fields (implies --json)
+orch service list --fields service_name,current_state,health_status
+
+# Paginate results
+orch service list --limit 10 --offset 0
 ```
 
 **Options:**
@@ -2609,6 +2657,9 @@ orch service list --json
 | `--workspace <slug>` | Workspace slug (default: current workspace) |
 | `--status <status>` | Filter by service status |
 | `--json` | Output as JSON |
+| `--fields <fields>` | Comma-separated fields to include in JSON output (implies `--json`) |
+| `--limit <n>` | Maximum number of services to return (default: 100) |
+| `--offset <n>` | Number of services to skip |
 
 ### service info
 

@@ -109,6 +109,12 @@ orch service list --status running
 
 # JSON output (for scripting)
 orch service list --json
+
+# Return only specific fields (implies --json)
+orch service list --fields service_name,current_state,health_status
+
+# Paginate
+orch service list --limit 10 --offset 0
 ```
 
 Output shows: Name, Agent, State (color-coded), Health, Restarts (with failure count), and Deployed timestamp.

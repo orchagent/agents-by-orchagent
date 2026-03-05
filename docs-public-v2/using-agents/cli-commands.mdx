@@ -49,6 +49,8 @@ Before diving into commands, understand the four types on orchagent:
 | `orch agents` | List your published agents | - |
 | `orch info <agent>` | Show agent details and schemas | - |
 | `orch schema <agent>` | Dump input/output schemas as JSON | - |
+| `orch context` | Dump full CLI context for AI agents (YAML frontmatter + markdown) | - |
+| `orch describe <command>` | Show structured contract for one command | - |
 | `orch tree <agent>` | Show agent dependency tree | - |
 | `orch transfer <agent>` | Transfer agent to another workspace | Cloud |
 | `orch dev` | Start local dev server with hot-reload | Your machine |
@@ -117,8 +119,12 @@ Want to CUSTOMIZE an existing agent?
 
 Managing agents?
   |-- List your agents       --> orch agents
-  |-- Inspect details        --> orch info / orch tree
+  |-- Inspect details        --> orch info / orch schema / orch tree
   \-- Move between workspaces --> orch transfer
+
+Need machine-readable CLI metadata?
+  |-- Full command index     --> orch context
+  \-- Single command schema  --> orch describe
 
 Managing secrets & keys?
   |-- Workspace secrets      --> orch secrets
@@ -330,6 +336,58 @@ orch schema joe/code-reviewer@v2 --full
 | `--full` | Show full agent spec including schemas, secrets, dependencies, and custom tools |
 
 Output is always JSON. Default mode returns `{ agent, type, input_schema, output_schema }`. Use `--full` for the complete agent specification.
+
+### context
+
+Dump a machine-readable guide for the entire CLI. Designed for AI agents and automation tools to discover commands without parsing `--help` text.
+
+```bash
+# Dump full CLI context
+orch context
+```
+
+Output format:
+
+- YAML frontmatter with CLI name, version, and all top-level commands
+- Per-command metadata: description, flags, mutation signal, and dry-run support
+- Markdown guide with auth, output conventions, and command usage patterns
+
+This command is intended to be consumed directly by agents that need a complete CLI capability map.
+
+### describe
+
+Show a structured contract for a single command or subcommand.
+
+```bash
+# Top-level command
+orch describe run --json
+
+# Nested subcommand
+orch describe schedule create --json
+
+# Alternate path syntax also works
+orch describe schedule:create --json
+
+# Human-readable format
+orch describe run --markdown
+```
+
+**Options:**
+
+| Flag | Description |
+|------|-------------|
+| `--json` | Output structured JSON (default) |
+| `--markdown` | Output markdown instead of JSON |
+
+JSON output includes:
+
+- `command`, `description`, `usage`
+- `arguments[]` with required/optional and format hints
+- `flags[]` with type, descriptions, aliases, and `value_required` when a value is required
+- `mutations` and `dry_run` signals
+- `examples`, `aliases`, and nested `subcommands` metadata (for groups)
+
+If the command path is invalid, `orch describe` returns a structured not-found error and suggests `orch context`.
 
 ### tree
 

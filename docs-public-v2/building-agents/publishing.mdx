@@ -189,8 +189,9 @@ The platform runs several checks:
 1. **Manifest validation** — verifies `orchagent.json` is valid
 2. **Schema validation** — validates input/output schemas
 3. **Secrets declaration** — tool and agent types must declare `required_secrets` (use `--no-required-secrets` to bypass)
-4. **Dependency check** — verifies all dependencies exist (for orchestrators)
-5. **Cycle detection** — ensures no circular dependencies
+4. **Secrets validation** — warns if any `required_secrets` are not yet set in the target workspace
+5. **Dependency check** — verifies all dependencies exist (for orchestrators)
+6. **Cycle detection** — ensures no circular dependencies
 
 For **managed loop** agents (with `loop` config), the platform also:
 

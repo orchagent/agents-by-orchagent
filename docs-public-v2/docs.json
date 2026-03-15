@@ -52,6 +52,7 @@
                   "using-agents/messages",
                   "using-agents/tasks",
                   "using-agents/integrations",
+                  "using-agents/mcp",
                   "using-agents/storage",
                   "using-agents/code-snippets"
                 ]
@@ -218,6 +219,14 @@
     {
       "source": "/integrations",
       "destination": "/using-agents/integrations"
+    },
+    {
+      "source": "/mcp",
+      "destination": "/using-agents/mcp"
+    },
+    {
+      "source": "/mcp-server",
+      "destination": "/using-agents/mcp"
     },
     {
       "source": "/desktop",

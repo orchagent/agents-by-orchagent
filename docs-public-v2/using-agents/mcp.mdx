@@ -1,0 +1,187 @@
+---
+title: "MCP Server"
+description: "Use orchagent from Claude Desktop, Claude Code, Cursor, or any MCP client — run agents, manage tasks, send messages."
+---
+
+The orchagent MCP server lets any [Model Context Protocol](https://modelcontextprotocol.io/) client interact with your orchagent account. Add it to Claude Desktop, Claude Code, or Cursor and you can run agents, manage tasks, send messages, and monitor runs — all from natural language.
+
+<Note>
+The MCP server is a thin adapter. Every tool call maps directly to a gateway API endpoint. Auth, rate limiting, and validation are all handled by the gateway.
+</Note>
+
+## Install
+
+```bash
+npm install -g @orchagent/mcp-server
+```
+
+Or use `npx` (no install needed) — see setup below.
+
+## Setup
+
+<Tabs>
+  <Tab title="Claude Desktop">
+    Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
+
+    ```json
+    {
+      "mcpServers": {
+        "orchagent": {
+          "command": "npx",
+          "args": ["@orchagent/mcp-server"],
+          "env": {
+            "ORCHAGENT_API_KEY": "sk_..."
+          }
+        }
+      }
+    }
+    ```
+
+    Restart Claude Desktop after saving.
+  </Tab>
+  <Tab title="Claude Code">
+    Add to `.mcp.json` in your project root (or `~/.claude.json` for global):
+
+    ```json
+    {
+      "mcpServers": {
+        "orchagent": {
+          "command": "npx",
+          "args": ["@orchagent/mcp-server"],
+          "env": {
+            "ORCHAGENT_API_KEY": "sk_..."
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Cursor / Windsurf">
+    Add to your MCP config (check your editor's MCP documentation for the config file location):
+
+    ```json
+    {
+      "mcpServers": {
+        "orchagent": {
+          "command": "npx",
+          "args": ["@orchagent/mcp-server"],
+          "env": {
+            "ORCHAGENT_API_KEY": "sk_..."
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Get your API key from [orchagent.io/settings/api-keys](https://orchagent.io/settings/api-keys).
+
+## Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ORCHAGENT_API_KEY` | Yes | Your orchagent API key |
+| `ORCHAGENT_GATEWAY_URL` | No | Override gateway URL (default: `https://api.orchagent.io`) |
+
+## Available Tools
+
+The MCP server exposes 13 tools across 5 categories.
+
+### Agents
+
+| Tool | Description |
+|------|-------------|
+| `orchagent_list_agents` | List all agents in your account. Optional `workspace_id` filter. |
+| `orchagent_run_agent` | Execute a deployed agent in a cloud sandbox. Params: `org`, `agent`, `version`, `input`. |
+
+### Tasks
+
+| Tool | Description |
+|------|-------------|
+| `orchagent_list_tasks` | List tasks. Filter by `status`, `project`, `priority`, `overdue`. |
+| `orchagent_create_task` | Create a task with `title`, `description`, `due_date`, `project`, `priority`. |
+| `orchagent_update_task` | Update any field on a task. Use `status: "done"` to complete it. |
+| `orchagent_delete_task` | Permanently delete a task. |
+
+### Messages
+
+| Tool | Description |
+|------|-------------|
+| `orchagent_list_messages` | List messages from agents. Filter by `level` or `agent_name`. |
+| `orchagent_send_message` | Send a message to the feed. Set `title`, `body`, `level` (info/success/warning/error). |
+
+### Schedules
+
+| Tool | Description |
+|------|-------------|
+| `orchagent_list_schedules` | List scheduled agent runs in a workspace. |
+| `orchagent_create_schedule` | Create a cron or webhook schedule for an agent. |
+| `orchagent_trigger_schedule` | Manually trigger a scheduled run immediately. |
+
+### Runs
+
+| Tool | Description |
+|------|-------------|
+| `orchagent_list_runs` | List recent agent runs. Filter by `agent_name`, `status`. |
+| `orchagent_get_run_logs` | Get stdout, stderr, and exit code for a specific run. |
+
+## Examples
+
+Once the MCP server is configured, you can use natural language in your MCP client:
+
+### Run an agent
+
+> "Run the morning-brief agent"
+
+Claude calls `orchagent_run_agent` with your org, agent name, and version. The agent executes in a cloud sandbox and returns the result.
+
+### Manage tasks
+
+> "Show me my overdue tasks"
+
+Claude calls `orchagent_list_tasks` with `status: "open"` and `overdue: true`.
+
+> "Add a task: review PR #42, due Friday, high priority"
+
+Claude calls `orchagent_create_task` with the parsed title, due date, and priority.
+
+### Schedule agents
+
+> "Schedule security-scanner to run every day at 6am London time"
+
+Claude calls `orchagent_create_schedule` with `cron_expression: "0 6 * * *"` and `timezone: "Europe/London"`.
+
+### Send messages
+
+> "Send a success message to my feed saying the deploy finished"
+
+Claude calls `orchagent_send_message` with `level: "success"`.
+
+## Use with Claude Desktop Scheduled Tasks
+
+Claude Desktop supports [scheduled tasks](https://docs.anthropic.com/) that run prompts on a cron. Combined with the orchagent MCP server, you can create scheduled prompts that trigger cloud agent execution:
+
+1. Configure the orchagent MCP server in Claude Desktop (see setup above)
+2. Create a scheduled task in Claude Desktop with a prompt like: *"Run my morning-brief agent and send me the summary"*
+3. Claude Desktop runs the prompt on schedule, calling `orchagent_run_agent` via MCP
+4. The agent runs in orchagent's cloud sandbox — no need to keep your laptop open
+
+This bridges local scheduling (Claude Desktop) with cloud execution (orchagent).
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Tasks" icon="list-check" href="/using-agents/tasks">
+    Learn about the task system
+  </Card>
+  <Card title="Messages" icon="envelope" href="/using-agents/messages">
+    How agent messages work
+  </Card>
+  <Card title="Scheduling" icon="clock" href="/using-agents/scheduling">
+    Set up cron and webhook schedules
+  </Card>
+  <Card title="SDK Reference" icon="code" href="/building-agents/sdk">
+    Full SDK documentation
+  </Card>
+</CardGroup>

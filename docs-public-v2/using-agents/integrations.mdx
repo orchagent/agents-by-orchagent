@@ -1,0 +1,165 @@
+---
+title: "Integrations"
+description: "Connect third-party services so your agents can use them — Sentry, Slack, and more."
+---
+
+Integrations connect external services to your workspace so that **your agents can use them**. When you connect Sentry, your agents can access Sentry data — triaging errors, alerting you, generating reports. The integration is just plumbing that securely connects a credential.
+
+<Note>
+Integrations are not dashboards. The value isn't "see Sentry issues in orch-hq" — it's that your agents can now call the Sentry API with a securely stored token, automatically injected into their sandbox.
+</Note>
+
+## How It Works
+
+```
+1. Connect a service in orch-hq (paste auth token, select org/projects)
+2. Gateway encrypts the token as a workspace secret
+3. Deploy an agent with required_secrets: ["SENTRY_AUTH_TOKEN"]
+4. Platform injects the credential into the agent's sandbox
+5. Agent calls the Sentry API directly with the token
+```
+
+Integrations use two-layer storage:
+
+| Layer | Contains | Exposed to frontend? |
+|-------|----------|----------------------|
+| **Credential** | Encrypted auth token (workspace secret) | No — never exposed |
+| **Config** | Provider, org slug, project slugs, status | Yes |
+
+## Available Integrations
+
+| Provider | Status | What agents can do |
+|----------|--------|--------------------|
+| **Sentry** | Live | Triage errors, monitor issue counts, alert on regressions |
+| **Slack** | Coming soon | Send messages, read channels, respond to events |
+| **Linear** | Coming soon | Create/update issues, track project progress |
+| **GitHub** | Coming soon | Read repos, create PRs, manage issues |
+| **PagerDuty** | Coming soon | Create incidents, acknowledge alerts |
+
+## Sentry Setup
+
+Sentry is the first fully supported integration. Set it up in [orch-hq](/orch-hq):
+
+1. Open orch-hq and click **Integrations** in the sidebar
+2. Click **Connect** on the Sentry row
+3. Paste your Sentry auth token
+4. The platform verifies the token and shows your available organizations and projects
+5. Select which org and projects to monitor (or select "all")
+6. Done — agents in this workspace can now use `SENTRY_AUTH_TOKEN`
+
+### Required Token Scopes
+
+Create a token at `{your-org}.sentry.io/settings/account/api/auth-tokens/` with these scopes:
+
+| Scope | Purpose |
+|-------|---------|
+| `org:read` | List organizations |
+| `project:read` | List projects |
+| `event:read` | Read event details (for agents that inspect errors) |
+
+### Using Sentry in Your Agent
+
+Add the secret to your agent's `orchagent.json`:
+
+```json
+{
+    "name": "error-monitor",
+    "type": "tool",
+    "required_secrets": ["SENTRY_AUTH_TOKEN"]
+}
+```
+
+Then use it in your agent code:
+
+```python
+import os
+import requests
+
+token = os.environ["SENTRY_AUTH_TOKEN"]
+headers = {"Authorization": f"Bearer {token}"}
+
+# Fetch unresolved issues
+issues = requests.get(
+    "https://sentry.io/api/0/projects/acme/backend/issues/",
+    headers=headers,
+    params={"query": "is:unresolved"}
+).json()
+```
+
+<Warning>
+Do not add `ORCHAGENT_SERVICE_KEY` to `required_secrets` — it is injected automatically by the platform. Only list secrets your agent needs from external services.
+</Warning>
+
+## API Reference
+
+All integration endpoints are workspace-scoped and require `Authorization: Bearer <api_key>`.
+
+### Create an integration
+
+```
+POST /workspaces/{workspace_id}/integrations
+```
+
+```json
+{
+    "provider": "sentry",
+    "display_name": "Production Sentry",
+    "credential": "sntrys_...",
+    "config": {
+        "sentry_org_slug": "acme-corp",
+        "sentry_project_slugs": ["backend-api", "web-dashboard"]
+    }
+}
+```
+
+### List integrations
+
+```
+GET /workspaces/{workspace_id}/integrations
+```
+
+### Get a single integration
+
+```
+GET /workspaces/{workspace_id}/integrations/{id}
+```
+
+### Update an integration
+
+```
+PATCH /workspaces/{workspace_id}/integrations/{id}
+```
+
+### Delete an integration
+
+```
+DELETE /workspaces/{workspace_id}/integrations/{id}
+```
+
+Deleting an integration also deletes its linked workspace secret.
+
+### Sentry proxy endpoints
+
+These are used by orch-hq's setup flow. The desktop app never touches the raw token — the gateway proxies all Sentry API requests.
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| POST | `/{id}/sentry/verify` | Verify token, return available orgs and projects |
+| GET | `/{id}/sentry/issues` | Fetch 25 most recent unresolved issues |
+| GET | `/{id}/sentry/stats` | Fetch unresolved count and project list |
+
+If Sentry returns 401, the gateway auto-marks the integration `status: "error"` with a message indicating the token is expired or revoked.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="orch-hq" icon="desktop" href="/orch-hq">
+    The desktop app where you manage integrations
+  </Card>
+  <Card title="Security" icon="shield-halved" href="/concepts/security">
+    How orchagent handles secrets and sandboxing
+  </Card>
+  <Card title="SDK Reference" icon="code" href="/building-agents/sdk">
+    Full SDK documentation
+  </Card>
+</CardGroup>

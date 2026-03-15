@@ -1,0 +1,242 @@
+---
+title: "Agent Tasks"
+description: "Create, track, and complete tasks from your agents — with due dates, priorities, and project tags."
+---
+
+Agents can create and manage tasks via the SDK. Tasks appear in the **Tasks panel** in [orch-hq](/orch-hq), grouped by urgency. Your agents find work that needs doing, you check it off when it's done.
+
+## Quick Start
+
+```python
+from orchagent import task
+
+task.create("Review PR #42", due_date="2026-03-20", project="StockSure", priority="high")
+```
+
+The task appears in your orch-hq Tasks panel immediately, sorted under the appropriate urgency group.
+
+## Tasks vs Messages
+
+Messages are fire-and-forget notifications — the agent tells you something. Tasks are stateful work items — something needs doing. An agent might send a message saying "found 3 bugs" and also create 3 tasks to track fixing them.
+
+## SDK Usage
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from orchagent import task
+
+    # Create a task
+    task.create(
+        "Fix login bug",
+        description="Users getting 500 on /auth/callback",
+        due_date="2026-03-20",
+        project="StockSure",
+        priority="high"
+    )
+
+    # List tasks
+    overdue = task.list(status="open", overdue=True)
+    all_open = task.list(status="open", limit=20)
+    by_project = task.list(project="StockSure")
+
+    # Get a single task
+    t = task.get(task_id)
+
+    # Update a task
+    task.update(task_id, status="in_progress")
+
+    # Complete a task (shorthand for status="done")
+    task.complete(task_id)
+    ```
+  </Tab>
+</Tabs>
+
+### task.create()
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `title` | str | Yes | Task title |
+| `description` | str | No | Task details (plain text or markdown) |
+| `due_date` | str | No | Due date as `YYYY-MM-DD` |
+| `project` | str | No | Free-text project tag |
+| `priority` | str | No | `low`, `normal`, `high`, or `urgent` (default: `normal`) |
+| `status` | str | No | `open`, `in_progress`, `done`, or `cancelled` (default: `open`) |
+
+### task.list()
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `limit` | int | No | Max tasks to return (1-200, default: 50) |
+| `offset` | int | No | Pagination offset (default: 0) |
+| `status` | str | No | Filter by status |
+| `project` | str | No | Filter by project tag |
+| `priority` | str | No | Filter by priority |
+| `overdue` | bool | No | Only open tasks past their due date |
+
+### task.update()
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `task_id` | str | Yes | Task UUID |
+| `title` | str | No | New title |
+| `description` | str | No | New description |
+| `due_date` | str | No | New due date (`YYYY-MM-DD`) |
+| `project` | str | No | New project tag |
+| `status` | str | No | New status |
+| `priority` | str | No | New priority |
+
+### task.get() / task.complete()
+
+Both take a single `task_id` string. `complete()` is shorthand for `update(task_id, status="done")`.
+
+## API Reference
+
+All endpoints require `Authorization: Bearer <api_key>`.
+
+### Create a task
+
+```bash
+curl -X POST https://api.orchagent.io/tasks \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Fix login bug",
+    "description": "Users getting 500 on /auth/callback",
+    "due_date": "2026-03-20",
+    "project": "StockSure",
+    "priority": "high"
+  }'
+```
+
+Response (201):
+```json
+{
+    "id": "uuid",
+    "title": "Fix login bug",
+    "status": "open",
+    "priority": "high",
+    "due_date": "2026-03-20",
+    "project": "StockSure",
+    "created_by": "cto-agent",
+    "created_at": "2026-03-14T08:00:00Z"
+}
+```
+
+### List tasks
+
+```
+GET /tasks?limit=50&offset=0&status=open&project=StockSure&priority=high&overdue=true
+```
+
+Response:
+```json
+{
+    "tasks": [...],
+    "total": 12
+}
+```
+
+### Get a single task
+
+```
+GET /tasks/{task_id}
+```
+
+### Update a task
+
+```
+PATCH /tasks/{task_id}
+```
+
+Partial updates — only include fields you want to change. Setting status to `done` automatically sets `completed_at`. Setting status back to `open` or `in_progress` clears `completed_at`.
+
+```json
+{
+    "status": "done"
+}
+```
+
+### Delete a task
+
+```
+DELETE /tasks/{task_id}
+```
+
+### Workspace-scoped listing
+
+```
+GET /workspaces/{workspace_id}/tasks?status=open&project=StockSure
+```
+
+Same query parameters as `GET /tasks`, scoped to a specific workspace.
+
+## orch-hq Display
+
+Tasks appear in the **Tasks panel** (sidebar button) in [orch-hq](/orch-hq):
+
+- **Grouped by urgency**: overdue (red), today (orange), this week (blue), later (muted)
+- Tasks with no due date appear under "Later"
+- **Checkbox** to toggle between open and done (optimistic update)
+- **Priority dots**: urgent (red), high (orange)
+- Shows the agent name for agent-created tasks
+- Polls every 30 seconds for updates
+
+## Examples
+
+### CTO agent finds bugs
+
+```python
+from orchagent import task
+
+bugs = scan_codebase_for_issues()
+for bug in bugs:
+    task.create(
+        f"Fix: {bug.description}",
+        description=f"Found in {bug.file_path}. Error: {bug.error}",
+        project="LogSure",
+        priority="high",
+        due_date="2026-03-18"
+    )
+```
+
+### Morning brief checks for overdue tasks
+
+```python
+from orchagent import task, message
+
+overdue = task.list(status="open", overdue=True)
+if overdue:
+    brief = f"{len(overdue)} overdue tasks:\n"
+    for t in overdue:
+        brief += f"  - {t['title']} (due {t['due_date']}, {t['project']})\n"
+    message.send("Overdue Tasks", brief, level="warning")
+```
+
+### Mark task done after completing work
+
+```python
+from orchagent import task, message
+
+# Agent finishes work...
+task.complete(task_id)
+message.send("Task Completed", f"Finished: {task_title}", level="success")
+```
+
+<Tip>
+Combine tasks with messages for a complete workflow: agents create tasks for work that needs doing, send messages for things you need to know, and the Activity Feed tracks every execution automatically.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Messages" icon="envelope" href="/using-agents/messages">
+    Send notifications from your agents
+  </Card>
+  <Card title="SDK Reference" icon="code" href="/building-agents/sdk">
+    Full SDK documentation
+  </Card>
+  <Card title="orch-hq" icon="desktop" href="/orch-hq">
+    The desktop app where tasks appear
+  </Card>
+</CardGroup>

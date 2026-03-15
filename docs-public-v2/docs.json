@@ -38,6 +38,7 @@
                 "pages": [
                   "index",
                   "quickstart",
+                  "orch-hq",
                   "troubleshooting"
                 ]
               },
@@ -48,6 +49,9 @@
                   "using-agents/cli-commands",
                   "using-agents/scheduling",
                   "using-agents/services",
+                  "using-agents/messages",
+                  "using-agents/tasks",
+                  "using-agents/integrations",
                   "using-agents/storage",
                   "using-agents/code-snippets"
                 ]
@@ -202,6 +206,26 @@
     {
       "source": "/storage",
       "destination": "/using-agents/storage"
+    },
+    {
+      "source": "/messages",
+      "destination": "/using-agents/messages"
+    },
+    {
+      "source": "/tasks",
+      "destination": "/using-agents/tasks"
+    },
+    {
+      "source": "/integrations",
+      "destination": "/using-agents/integrations"
+    },
+    {
+      "source": "/desktop",
+      "destination": "/orch-hq"
+    },
+    {
+      "source": "/hq",
+      "destination": "/orch-hq"
     }
   ]
 }

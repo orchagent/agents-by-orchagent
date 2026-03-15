@@ -1,0 +1,108 @@
+---
+title: "orch-hq Desktop App"
+description: "Your AI command centre — see what your agents are doing, talk to Claude, and manage everything from one place."
+---
+
+orch-hq is a **Mac desktop app** that gives you a visual command centre for your entire agent fleet. Open it, glance at your panels, drop into the terminal, and tell Claude what you need.
+
+<Note>
+orch-hq is currently available for **macOS** only. Windows and Linux support is planned.
+</Note>
+
+## What It Does
+
+orch-hq combines a built-in CLI terminal with passive output panels that show what your agents are doing:
+
+```
+[Sidebar]  [ Terminal | Canvas ]   ← tab bar
+           [                    ]
+           [   full main area   ]
+           [                    ]
+```
+
+- **Terminal tab** — Full-height CLI where you talk to Claude. This is where work happens. Tell Claude to create agents, set up schedules, manage secrets — Claude handles it via the `orch` CLI.
+- **Canvas tab** — Visual map of your agent fleet. See what you've deployed, how agents connect, which workspace they're in.
+- **Right panels** — Messages, Tasks, and Activity slide in from the right on either view.
+
+Switch between Terminal and Canvas with **Cmd+1** / **Cmd+2**.
+
+## The Daily Loop
+
+1. **Open orch-hq** — glance at panels: any failed runs? new messages from agents? overdue tasks?
+2. **Drop into terminal** — "I need to monitor StockSure uptime. Set up an agent that checks every hour and alerts me on Telegram if it's down."
+3. **Claude handles it** — scaffolds agent, publishes, schedules, confirms
+4. **Results flow in** — runs appear in Activity, alerts appear in Messages, follow-up tasks appear in Tasks
+
+The more agents you deploy, the more useful the panels become.
+
+## Panels
+
+### Messages
+
+Agents send messages to you via [`message.send()`](/using-agents/messages). Error alerts, daily briefings, deployment notifications — anything your agents want to tell you shows up here.
+
+- Level indicators: info (blue), success (green), warning (orange), error (red)
+- Click to expand full message body
+- Polls automatically every 15 seconds
+
+### Tasks
+
+Agents create tasks via [`task.create()`](/using-agents/tasks). A CTO agent finds a bug and creates a task. A morning brief flags overdue items. You check them off when done.
+
+- Grouped by urgency: overdue, today, this week, later
+- Click checkbox to mark done
+- Priority dots for urgent/high items
+- Polls every 30 seconds
+
+### Activity Feed
+
+Every agent run appears automatically — status, duration, cost, output. No SDK calls needed; the platform tracks every execution.
+
+## Canvas
+
+The Canvas is a visual map of your deployed agents:
+
+- **Agent cards** with type-colored accents (blue for tool, purple for prompt, orange for skill)
+- **Connection lines** showing agent dependencies and skill links
+- **Workspace boundaries** grouping agents by team
+- **Multiple layouts** — grid, horizontal, vertical, compact, radial (click layout button on workspace hover)
+- **Drag to reposition** — positions persist across sessions
+
+The Canvas is for orientation ("what do I have?"), not for daily work.
+
+## Integrations
+
+Connect third-party services so your agents can use them. When you connect Sentry, your agents can now access Sentry data — triaging errors, alerting you, opening PRs.
+
+See [Integrations](/using-agents/integrations) for setup details.
+
+## Download
+
+Download orch-hq from the [orchagent dashboard](https://orchagent.io/dashboard) (look for the desktop app download button in the sidebar).
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Tauri v2 |
+| Frontend | React 18 + TypeScript |
+| Rendering | Pixi.js v8 (canvas) |
+| State | Zustand v4 |
+| Auth | OAuth (browser flow) |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Messages" icon="envelope" href="/using-agents/messages">
+    How agents send you messages
+  </Card>
+  <Card title="Tasks" icon="list-check" href="/using-agents/tasks">
+    How agents create and manage tasks
+  </Card>
+  <Card title="Integrations" icon="plug" href="/using-agents/integrations">
+    Connect third-party services for your agents
+  </Card>
+  <Card title="CLI Commands" icon="terminal" href="/using-agents/cli-commands">
+    All orch CLI commands
+  </Card>
+</CardGroup>

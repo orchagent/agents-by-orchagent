@@ -1,6 +1,6 @@
 # orchagent
 
-> AI agent deployment platform. Build agents, deploy to secure cloud sandboxes, run via CLI, API, or web UI. BYOK model - you bring your own LLM keys.
+> AI agent deployment platform. Build agents, deploy to secure cloud sandboxes, run via CLI, API, or web UI. BYOK model - you bring your own LLM keys. Desktop command centre (orch-hq) with terminal, canvas, messages, and tasks.
 
 ## Overview
 
@@ -10,6 +10,10 @@ orchagent is a deployment platform where developers build, deploy, and run AI ag
 - Build agents in Python/JS or plain English (prompt-based)
 - Deploy to secure E2B cloud sandboxes
 - Run via CLI, HTTP API, or web UI
+- orch-hq desktop app: visual command centre with terminal, agent canvas, messages, and tasks
+- Agent messages: agents send briefings, alerts, and notifications to orch-hq
+- Agent tasks: agents create tasks with due dates, priorities, and project tags
+- Integrations: connect Sentry, Slack, and more — agents use the credentials
 - Team workspaces with access control
 - Run history, scheduling, and managed secrets
 - Always-on services for long-running agents (Discord bots, workers)
@@ -32,17 +36,42 @@ Additional fields for executable types (prompt, tool, agent):
 
 Legacy type values `code` and `agentic` are accepted as aliases for `tool` and `agent` respectively.
 
+## orch-hq Desktop App
+
+Mac desktop app — visual AI command centre. Terminal + Canvas tabs, Messages/Tasks/Activity right panels.
+
+- **Terminal**: Built-in CLI (Claude Code). Primary interface — tell Claude what to build.
+- **Canvas**: Visual map of deployed agents with dependency lines and workspace boundaries.
+- **Messages panel**: Agents send messages via `message.send()` — briefings, alerts, notifications.
+- **Tasks panel**: Agents create tasks via `task.create()` — grouped by urgency, checkbox to complete.
+- **Activity feed**: Every agent run logged automatically — status, duration, cost, output.
+- **Integrations**: Connect third-party services (Sentry live, Slack/Linear/GitHub planned).
+
+## SDK Modules
+
+The orchagent-sdk (`pip install orchagent-sdk` / `npm install orchagent-sdk`) provides:
+
+- **AgentClient**: Call other agents from within your agent (orchestration)
+- **storage**: Persistent shared state between agents (key-value)
+- **message**: Send messages to orch-hq (`message.send(title, body, level=...)`)
+- **task**: Create and manage tasks (`task.create()`, `task.list()`, `task.update()`, `task.complete()`)
+
 ## Docs
 
 - [What is orchagent?](https://docs.orchagent.io): Platform overview
 - [Quickstart](https://docs.orchagent.io/quickstart): Deploy your first agent in minutes
+- [orch-hq Desktop App](https://docs.orchagent.io/orch-hq): Visual command centre with terminal, canvas, messages, and tasks
 - [API Reference](https://docs.orchagent.io/using-agents/api-reference): Authentication, endpoints, errors
 - [CLI Commands](https://docs.orchagent.io/using-agents/cli-commands): orch login, run, publish
 - [Code Snippets](https://docs.orchagent.io/using-agents/code-snippets): curl, Python, JavaScript, TypeScript examples
+- [Agent Messages](https://docs.orchagent.io/using-agents/messages): Send messages from agents to orch-hq
+- [Agent Tasks](https://docs.orchagent.io/using-agents/tasks): Create and manage tasks from agents
+- [Integrations](https://docs.orchagent.io/using-agents/integrations): Connect third-party services (Sentry, Slack, etc.)
 - [Agent Types](https://docs.orchagent.io/building-agents/agent-types): The four types (prompt, tool, agent, skill) and execution engines
 - [Manifest Format](https://docs.orchagent.io/building-agents/manifest-format): orchagent.json schema
 - [Publishing](https://docs.orchagent.io/building-agents/publishing): Deploy your agent
 - [Orchestration](https://docs.orchagent.io/building-agents/orchestration): Agent-to-agent calls
+- [SDK Reference](https://docs.orchagent.io/building-agents/sdk): AgentClient, storage, message, and task modules
 - [Guide: Multi-Agent Orchestration](https://docs.orchagent.io/guides/orchestration-walkthrough): Build a multi-agent pipeline
 - [Guide: CI/CD Integration](https://docs.orchagent.io/guides/cicd): GitHub Actions workflow for agent deployment
 - [Security](https://docs.orchagent.io/concepts/security): Sandbox isolation, network controls, secret management
@@ -92,6 +121,18 @@ orch fork orchagent/security-agent --workspace acme-corp
 npx @orchagent/cli run orchagent/summarizer --input '{"text": "Your text here"}'
 ```
 
+### Send a message from an agent
+```python
+from orchagent import message
+message.send("Daily Brief", "Here's what happened today...", level="info")
+```
+
+### Create a task from an agent
+```python
+from orchagent import task
+task.create("Fix login bug", due_date="2026-03-20", project="StockSure", priority="high")
+```
+
 ### API call
 ```bash
 curl -X POST https://api.orchagent.io/acme/summarizer/v1/analyze \
@@ -117,6 +158,10 @@ curl -X POST https://api.orchagent.io/acme/summarizer/v1/analyze \
 | Schedule | Cron or webhook trigger that runs an agent automatically |
 | Service | Always-on deployment of an agent (Discord bot, worker, listener) |
 | Credits | Prepaid balance for platform usage |
+| orch-hq | Mac desktop app — visual AI command centre |
+| Message | Agent-to-user notification via `message.send()` |
+| Task | Stateful work item created by agents via `task.create()` |
+| Integration | Third-party service connection (credentials for agents) |
 
 ## Links
 

@@ -1,0 +1,198 @@
+---
+title: "Agent Messages"
+description: "Send messages from your agents to orch-hq — briefings, alerts, reports, and notifications."
+---
+
+Agents can send messages to you via the SDK. Messages appear in the **Messages panel** in [orch-hq](/orch-hq) and are accessible via the API. Use them for daily briefings, error alerts, completion notifications — anything your agent wants to tell you.
+
+## Quick Start
+
+```python
+from orchagent import message
+
+message.send("Daily Brief", "Here's what happened today...")
+```
+
+That's it. The message appears in your orch-hq Messages panel immediately.
+
+## Messages vs Run Output
+
+Every agent run produces `output_data` — visible in the Activity Feed. But not every run output is worth surfacing as a notification. A Discord bot responding to a user produces output, but showing one side of that conversation as a message is noise.
+
+**Messages are intentional.** You decide what's worth surfacing by calling `message.send()` explicitly. This separates "agent did work" (Activity Feed) from "agent has something to tell you" (Messages).
+
+## SDK Usage
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from orchagent import message
+
+    # Simple message
+    message.send("Daily Brief", "Here's what's happening today...")
+
+    # With level (affects display in orch-hq)
+    message.send("Build Failed", "Error in main.py line 42", level="error")
+
+    # With metadata
+    message.send(
+        "Report Ready",
+        "Monthly revenue report generated.",
+        level="success",
+        metadata={"report_url": "https://..."}
+    )
+    ```
+  </Tab>
+</Tabs>
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `title` | str | Yes | Short subject line |
+| `body` | str | Yes | Full message content (plain text or markdown) |
+| `level` | str | No | `info`, `success`, `warning`, or `error` (default: `info`) |
+| `agent_name` | str | No | Override sender name (auto-detected normally) |
+| `metadata` | dict | No | Arbitrary extra data (stored as JSON) |
+
+### Levels
+
+| Level | Use for | Display |
+|-------|---------|---------|
+| `info` | Briefings, status updates | Blue dot |
+| `success` | Completed tasks, reports ready | Green dot |
+| `warning` | Degraded performance, approaching limits | Orange dot |
+| `error` | Failures, broken things | Red dot |
+
+## API Reference
+
+All endpoints require `Authorization: Bearer <api_key>`.
+
+### Send a message
+
+```bash
+curl -X POST https://api.orchagent.io/messages \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Daily Brief",
+    "body": "Here'\''s what'\''s happening...",
+    "level": "info",
+    "metadata": {"source": "morning-brief"}
+  }'
+```
+
+Response (201):
+```json
+{
+    "id": "uuid",
+    "agent_name": "morning-brief",
+    "title": "Daily Brief",
+    "level": "info",
+    "created_at": "2026-03-14T08:00:00Z"
+}
+```
+
+### List messages
+
+```
+GET /messages?limit=50&offset=0&level=error&agent_name=morning-brief
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | int | 50 | Max messages to return |
+| `offset` | int | 0 | Pagination offset |
+| `level` | str | — | Filter by level |
+| `agent_name` | str | — | Filter by agent name |
+
+Response:
+```json
+{
+    "messages": [...],
+    "total": 42
+}
+```
+
+### Workspace-scoped listing
+
+```
+GET /workspaces/{workspace_id}/messages?limit=50
+```
+
+Same query parameters as `GET /messages`, scoped to a specific workspace.
+
+### Delete a message
+
+```
+DELETE /messages/{message_id}
+```
+
+## orch-hq Display
+
+Messages appear in the **Messages panel** (sidebar button) in [orch-hq](/orch-hq):
+
+- Level dot (colored by severity)
+- Agent name, title, and body preview
+- Relative timestamp ("2m ago", "1h ago")
+- Click to expand full body
+- Polls every 15 seconds for new messages
+
+## Examples
+
+### Morning briefing agent
+
+```python
+from orchagent import message
+
+# Compile your brief from whatever sources
+brief = compile_morning_brief()
+
+# Send to orch-hq (in addition to any other channels)
+message.send("Morning Brief", brief)
+```
+
+### Error monitor
+
+```python
+from orchagent import message
+
+errors = check_for_errors()
+if errors:
+    message.send(
+        f"{len(errors)} Errors Detected",
+        "\n".join(f"- {e}" for e in errors),
+        level="error"
+    )
+```
+
+### Deployment notification
+
+```python
+from orchagent import message
+
+message.send(
+    "Deployed v2.3.1",
+    "Backend deployed to production. All health checks passing.",
+    level="success",
+    metadata={"version": "2.3.1", "environment": "production"}
+)
+```
+
+<Tip>
+Messages are additive. If your agent already sends to Telegram or Discord, add `message.send()` alongside your existing delivery code — one extra line puts the message in orch-hq too.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Tasks" icon="list-check" href="/using-agents/tasks">
+    Create and manage tasks from your agents
+  </Card>
+  <Card title="SDK Reference" icon="code" href="/building-agents/sdk">
+    Full SDK documentation
+  </Card>
+  <Card title="orch-hq" icon="desktop" href="/orch-hq">
+    The desktop app where messages appear
+  </Card>
+</CardGroup>

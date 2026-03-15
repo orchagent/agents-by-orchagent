@@ -421,6 +421,29 @@ data = storage.get("signals", "2026-03-05")
 storage.update("signals", "2026-03-05", lambda doc: {**doc, "status": "done"})
 ```
 
+## Agent Messages
+
+Send messages from your agents to [orch-hq](/orch-hq). Use messages for briefings, alerts, reports — anything your agent wants to tell you. See the dedicated [Agent Messages](/using-agents/messages) page for the full reference.
+
+```python
+from orchagent import message
+
+message.send("Daily Brief", "Here's what's happening today...")
+message.send("Build Failed", "Error in main.py line 42", level="error")
+```
+
+## Agent Tasks
+
+Create and manage tasks from your agents. Tasks appear in orch-hq's Tasks panel, grouped by urgency. See the dedicated [Agent Tasks](/using-agents/tasks) page for the full reference.
+
+```python
+from orchagent import task
+
+task.create("Fix login bug", due_date="2026-03-20", project="StockSure", priority="high")
+overdue = task.list(status="open", overdue=True)
+task.complete(task_id)
+```
+
 ## Next Steps
 
 <CardGroup cols={2}>
@@ -430,7 +453,10 @@ storage.update("signals", "2026-03-05", lambda doc: {**doc, "status": "done"})
   <Card title="Agent Storage" icon="database" href="/using-agents/storage">
     Persistent shared state for multi-agent coordination and checkpoints
   </Card>
-  <Card title="Local vs Server" icon="server" href="/concepts/local-vs-server">
-    Understand when to use local execution vs server execution
+  <Card title="Messages" icon="envelope" href="/using-agents/messages">
+    Send messages and notifications from your agents
+  </Card>
+  <Card title="Tasks" icon="list-check" href="/using-agents/tasks">
+    Create and manage tasks from your agents
   </Card>
 </CardGroup>

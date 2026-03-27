@@ -1,0 +1,353 @@
+---
+title: "Budgets"
+description: "Set spending limits on workspaces and individual agents"
+---
+
+Budget policies let you set spending limits on your workspace or individual agents. When spending approaches or exceeds a limit, orchagent sends alerts, blocks new runs, or pauses services — depending on your configuration.
+
+## Quick Start
+
+Create a budget policy from the **Costs** page in your workspace dashboard. Choose a scope (workspace or agent), a time window, and your limits.
+
+You can also manage budgets via the API:
+
+```bash
+# Create a $50/month hard limit on the workspace (blocks new runs when exceeded)
+curl -X POST https://api.orchagent.io/workspaces/{workspace_id}/budgets \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scope_type": "workspace",
+    "window": "monthly",
+    "hard_limit_usd": 50,
+    "action_on_hard_limit": "block_new_runs"
+  }'
+
+# List all budget policies
+curl https://api.orchagent.io/workspaces/{workspace_id}/budgets \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY"
+
+# View recent budget alerts
+curl https://api.orchagent.io/workspaces/{workspace_id}/budget-alerts \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY"
+```
+
+---
+
+## Creating a Budget Policy
+
+Each policy has four key settings:
+
+### Scope
+
+| Scope Type | What It Covers |
+|------------|----------------|
+| `workspace` | All agent runs across the entire workspace |
+| `agent` | A single agent (specify the agent ID as `scope_id`) |
+
+Agent-scoped budgets track spending for one specific agent. Workspace-scoped budgets track total spending across all agents. You can combine both — for example, a $100/month workspace limit and a $30/month limit on your most expensive agent.
+
+### Time Window
+
+| Window | Period | Resets |
+|--------|--------|--------|
+| `daily` | UTC day | Midnight UTC |
+| `weekly` | ISO week | Monday midnight UTC |
+| `monthly` | Calendar month | First of month midnight UTC |
+
+Spending is aggregated from your workspace's usage logs within the current window. When the window resets, the counter starts fresh.
+
+### Limits
+
+Each policy can have a **soft limit**, a **hard limit**, or both:
+
+- **Soft limit** — Warning threshold. When spending crosses 50%, 80%, or 100% of the soft limit, you get an alert. No enforcement action is taken.
+- **Hard limit** — Enforcement threshold. When spending reaches the hard limit, the configured action is triggered. Alerts also fire at 50%, 80%, and 100% of the hard limit.
+
+```json
+{
+  "soft_limit_usd": 30,
+  "hard_limit_usd": 50
+}
+```
+
+<Info>
+At least one limit (soft or hard) is required. If you set both, the soft limit must be less than the hard limit.
+</Info>
+
+### Action on Hard Limit
+
+When spending reaches the hard limit, orchagent takes one of three actions:
+
+| Action | Behavior |
+|--------|----------|
+| `alert_only` | Send alerts (email + webhook) but don't block anything. Default. |
+| `block_new_runs` | Reject new agent runs with HTTP 429 `BUDGET_EXCEEDED`. In-flight runs are not killed. |
+| `pause_service` | Automatically pause always-on services when the limit is hit. Use for service-scoped budgets. |
+
+```json
+{
+  "hard_limit_usd": 100,
+  "action_on_hard_limit": "block_new_runs"
+}
+```
+
+<Warning>
+`block_new_runs` blocks both on-demand runs and scheduled runs. Make sure your hard limit has enough headroom for expected usage. Scheduled agents that hit the budget limit will fail with a 429 error until the window resets.
+</Warning>
+
+---
+
+## Threshold Alerts
+
+orchagent automatically generates alerts when spending crosses key thresholds:
+
+| Threshold | Severity | Triggered When |
+|-----------|----------|----------------|
+| 50% | Warning | Spending reaches half the limit |
+| 80% | Warning | Spending reaches 80% of the limit |
+| 100% | Error | Spending reaches or exceeds the limit |
+
+Alerts are generated for both soft and hard limits. Each alert fires once per window — if you've already been alerted at 80% for this month, you won't get a duplicate 80% alert until next month.
+
+### Alert Delivery
+
+Alerts are delivered through two channels:
+
+1. **Email** — Sent to the workspace owner with a summary of current spend, the limit, burn rate, and a link to the costs dashboard.
+2. **Webhook** — If a `webhook_url` is configured on the policy, a POST request is sent with alert details.
+
+### Webhook Payload
+
+```json
+{
+  "event": "budget.threshold",
+  "severity": "warning",
+  "message": "Budget at 80% — $40.00 of $50.00 monthly limit",
+  "policy_id": "bp-abc123",
+  "threshold_kind": "hard_limit",
+  "threshold_pct": 80,
+  "current_spend_usd": "40.00",
+  "limit_usd": "50.00",
+  "burn_rate_usd_per_day": "2.50",
+  "scope_type": "workspace",
+  "window": "monthly",
+  "workspace_id": "ws-xyz"
+}
+```
+
+---
+
+## Dashboard
+
+The budget section on the **Costs** page shows each policy with:
+
+- **Progress bar** — Visual indicator of how much of the limit has been used
+- **Current spend** — Dollar amount spent in the current window
+- **Breach status** — Badges indicating if the soft or hard limit has been exceeded
+- **Burn rate** — Estimated daily spend based on recent usage ($/day)
+- **Projected breach** — Estimated date when the hard limit will be reached at the current burn rate
+
+---
+
+## Enforcement
+
+Budget limits are enforced at two points in the execution pipeline:
+
+### On-Demand and Scheduled Runs
+
+When `action_on_hard_limit` is `block_new_runs`, the platform checks the budget before every agent execution — both on-demand runs (`orch run`) and scheduled/webhook runs. If the hard limit is exceeded, the run is rejected:
+
+```json
+{
+  "error": "BUDGET_EXCEEDED",
+  "message": "Workspace monthly budget exceeded: $50.12 of $50.00 limit",
+  "status": 429
+}
+```
+
+The 429 status code is non-retryable. The run will succeed again once the window resets or the limit is increased.
+
+### Always-On Services
+
+When `action_on_hard_limit` is `pause_service`, the platform checks the budget after each usage log entry for the service. If the hard limit is exceeded, the service is automatically paused. A `budget_hard_limit_paused` event is logged on the service.
+
+To resume a paused service, either increase the budget limit, wait for the window to reset, or manually restart the service.
+
+---
+
+## API Reference
+
+All budget endpoints are workspace-scoped. Replace `{workspace_id}` with your workspace ID.
+
+### Create a Budget Policy
+
+```bash
+POST /workspaces/{workspace_id}/budgets
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `scope_type` | `string` | Yes | `workspace` or `agent` |
+| `scope_id` | `string` | If agent | Agent ID (required when scope_type is `agent`) |
+| `window` | `string` | Yes | `daily`, `weekly`, or `monthly` |
+| `soft_limit_usd` | `number` | One limit required | Warning threshold in USD |
+| `hard_limit_usd` | `number` | One limit required | Enforcement threshold in USD |
+| `action_on_hard_limit` | `string` | No | `alert_only` (default), `block_new_runs`, or `pause_service` |
+| `webhook_url` | `string` | No | URL for alert webhooks |
+
+<Note>
+Only one policy per scope + window combination is allowed. For example, you can't create two monthly policies for the same workspace — update the existing one instead.
+</Note>
+
+### List Budget Policies
+
+```bash
+GET /workspaces/{workspace_id}/budgets
+```
+
+Returns all policies with enriched fields: current spend, threshold percentages, breach status, burn rate, and projected breach date.
+
+### Get a Budget Policy
+
+```bash
+GET /workspaces/{workspace_id}/budgets/{budget_id}
+```
+
+### Update a Budget Policy
+
+```bash
+PATCH /workspaces/{workspace_id}/budgets/{budget_id}
+```
+
+You can update `soft_limit_usd`, `hard_limit_usd`, `action_on_hard_limit`, and `webhook_url`. Scope and window cannot be changed after creation — delete and recreate the policy instead.
+
+### Delete a Budget Policy
+
+```bash
+DELETE /workspaces/{workspace_id}/budgets/{budget_id}
+```
+
+### List Budget Alerts
+
+```bash
+GET /workspaces/{workspace_id}/budget-alerts?limit=50&offset=0
+```
+
+Returns recent threshold alerts with severity, message, spend amount, and timestamps.
+
+---
+
+## Examples
+
+### Workspace Monthly Cap
+
+Prevent runaway costs with a workspace-wide monthly limit:
+
+```bash
+curl -X POST https://api.orchagent.io/workspaces/{workspace_id}/budgets \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scope_type": "workspace",
+    "window": "monthly",
+    "soft_limit_usd": 40,
+    "hard_limit_usd": 50,
+    "action_on_hard_limit": "block_new_runs"
+  }'
+```
+
+You'll get a warning email at $20 (50%), $32 (80%), and $40 (100% of soft). New runs are blocked at $50.
+
+### Per-Agent Daily Limit
+
+Cap a specific agent to $5/day to prevent a misconfigured schedule from burning through credits:
+
+```bash
+curl -X POST https://api.orchagent.io/workspaces/{workspace_id}/budgets \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scope_type": "agent",
+    "scope_id": "agent-id-here",
+    "window": "daily",
+    "hard_limit_usd": 5,
+    "action_on_hard_limit": "block_new_runs"
+  }'
+```
+
+### Service Cost Control
+
+Pause an always-on service if it exceeds $20/week:
+
+```bash
+curl -X POST https://api.orchagent.io/workspaces/{workspace_id}/budgets \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scope_type": "agent",
+    "scope_id": "service-agent-id",
+    "window": "weekly",
+    "hard_limit_usd": 20,
+    "action_on_hard_limit": "pause_service"
+  }'
+```
+
+### Alert-Only Monitoring
+
+Track spending without enforcement — just get notified:
+
+```bash
+curl -X POST https://api.orchagent.io/workspaces/{workspace_id}/budgets \
+  -H "Authorization: Bearer $ORCHAGENT_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "scope_type": "workspace",
+    "window": "monthly",
+    "soft_limit_usd": 100,
+    "action_on_hard_limit": "alert_only",
+    "webhook_url": "https://hooks.slack.com/your-webhook"
+  }'
+```
+
+---
+
+## Permissions
+
+| Operation | Required Role |
+|-----------|---------------|
+| List budgets | Member |
+| View budget details | Member |
+| Create budget | Owner |
+| Update budget | Owner |
+| Delete budget | Owner |
+| View budget alerts | Member |
+
+---
+
+## Troubleshooting
+
+**Runs failing with 429 BUDGET_EXCEEDED?**
+- Your workspace or agent has hit a hard limit with `block_new_runs` action
+- Check your budgets in the dashboard under **Costs**
+- Either increase the limit, wait for the window to reset, or switch to `alert_only`
+
+**Not receiving alert emails?**
+- Budget alerts are sent to the workspace owner's email
+- Check your spam folder
+- Verify the workspace has an owner with a valid email
+
+**Webhook not firing?**
+- Make sure `webhook_url` is set on the policy
+- The URL must accept POST requests with JSON body
+- Webhook delivery is fire-and-forget — failures are logged but not retried
+
+**Service not pausing at limit?**
+- `pause_service` only works when `action_on_hard_limit` is set to `pause_service`
+- The check happens after each usage log, so there may be a brief delay
+- Verify the policy scope matches the service's agent ID
+
+**Spend not updating?**
+- Spend is calculated from usage logs in real time
+- Tool-type agents that make direct LLM calls (bypassing the sandbox proxy) won't have their LLM costs tracked in usage logs
+- Platform execution costs (sandbox compute) are always tracked

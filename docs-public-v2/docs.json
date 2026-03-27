@@ -51,6 +51,7 @@
                   "using-agents/services",
                   "using-agents/messages",
                   "using-agents/tasks",
+                  "using-agents/budgets",
                   "using-agents/integrations",
                   "using-agents/mcp",
                   "using-agents/storage",
@@ -235,6 +236,14 @@
     {
       "source": "/hq",
       "destination": "/orch-hq"
+    },
+    {
+      "source": "/budgets",
+      "destination": "/using-agents/budgets"
+    },
+    {
+      "source": "/budget",
+      "destination": "/using-agents/budgets"
     }
   ]
 }
